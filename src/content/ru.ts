@@ -1,0 +1,85 @@
+import type { LandingContent } from './types';
+
+export const ru = {
+  meta: {
+    title: 'Ринат Гумаров — Senior Frontend Engineer',
+    description:
+      'Senior Frontend Engineer, который создаёт сложные интерфейсы для трейдинга, финтеха и амбициозных продуктов.',
+  },
+  nav: {
+    work: 'Проекты',
+    about: 'Обо мне',
+    contact: 'Контакты',
+  },
+  hero: {
+    eyebrow: 'React · TypeScript · Fintech · Product',
+    title: 'Senior Frontend Engineer, который создаёт амбициозные продукты.',
+    body: 'Проектирую и запускаю сложные интерфейсы для трейдинга, финтеха и собственных продуктов.',
+    workCta: 'Смотреть проекты',
+    contactCta: 'Связаться',
+  },
+  projectsHeading: 'Избранные проекты',
+  projects: [
+    {
+      slug: 'tradingview',
+      name: 'TradingView',
+      eyebrow: 'Интерфейсы для трейдинга',
+      summary: 'Платформа для анализа рынков и трейдинга.',
+      contribution:
+        'Senior Frontend Engineer: развиваю сложные frontend-функции в Pine Editor и Strategy Tester.',
+      href: 'https://www.tradingview.com/',
+    },
+    {
+      slug: 'stoic',
+      name: 'Stoic',
+      eyebrow: 'Финтех с нуля',
+      summary: 'Финтех-продукт для автоматизированных торговых стратегий.',
+      contribution:
+        'Основной frontend-инженер: с нуля создал веб-приложение на React, TypeScript и Next.js.',
+      href: 'https://stoic.ai/',
+    },
+    {
+      slug: 'splithub',
+      name: 'SplitHub',
+      eyebrow: 'Владение продуктом',
+      summary: 'iOS-продукт для совместного учёта расходов.',
+      contribution:
+        'Придумал продукт, сформировал UX и довёл его от разработки до релиза в App Store.',
+      href: 'https://splithub.app/',
+    },
+    {
+      slug: 'evercity',
+      name: 'Evercity',
+      eyebrow: 'Устойчивое финансирование',
+      summary:
+        'Платформа для управления, выпуска и мониторинга устойчивого финансирования.',
+      contribution:
+        'Участвовал во frontend- и full-stack-разработке платформы устойчивого финансирования.',
+      href: 'https://evercity.io/',
+    },
+  ],
+  principles: {
+    heading: 'Как я работаю',
+    items: [
+      'Строю frontend-архитектуру, в которой сложные продукты остаются понятными и устойчивыми.',
+      'Превращаю неоднозначные идеи в сфокусированный пользовательский опыт.',
+      'Уделяю внимание производительности и качеству взаимодействия в каждом состоянии интерфейса.',
+      'Беру ответственность за путь от первого вопроса до запуска в production.',
+    ],
+  },
+  personal: {
+    heading: 'Вне экрана',
+    body: 'Вне экрана меня тянет к скорости, балансу и возможности экспериментировать. Постепенно собираю BMW E30 и обычно параллельно делаю ещё одно приложение или технический эксперимент.',
+    items: ['Сёрфинг', 'Сноуборд', 'Скейтбординг', 'Мотоциклы', 'Дрифт'],
+  },
+  contact: {
+    heading: 'Давайте сделаем что-то амбициозное',
+    body: 'Есть амбициозная frontend-задача или продукт, который стоит создать? Давайте поговорим.',
+    telegramLabel: 'Telegram',
+    telegramHref: 'https://t.me/RinatGumarov',
+    telegramHandle: '@RinatGumarov',
+    emailLabel: 'Email',
+    emailHref: 'mailto:hi@gumarov.com',
+    emailAddress: 'hi@gumarov.com',
+  },
+} satisfies LandingContent;
