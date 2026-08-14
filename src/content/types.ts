@@ -15,6 +15,7 @@ export interface Project {
   eyebrow: string;
   summary: string;
   contribution: string;
+  capabilities: string;
   href: string;
 }
 

@@ -27,6 +27,8 @@ export const en = {
       summary: 'A platform for market analysis and trading.',
       contribution:
         'Senior Frontend Engineer working across Pine Editor and Strategy Tester with ownership of complex frontend features.',
+      capabilities:
+        'Complex frontend systems · Performance-sensitive interfaces',
       href: 'https://www.tradingview.com/',
     },
     {
@@ -36,6 +38,7 @@ export const en = {
       summary: 'A fintech web app for automated trading strategies.',
       contribution:
         'Primary frontend engineer who built the React, TypeScript, and Next.js application from scratch.',
+      capabilities: 'React · TypeScript · Next.js',
       href: 'https://stoic.ai/',
     },
     {
@@ -45,6 +48,7 @@ export const en = {
       summary: 'An iOS expense-sharing product for groups.',
       contribution:
         'Conceived the product, shaped its UX, and shipped it through engineering to an App Store release.',
+      capabilities: 'Product strategy · UX · iOS delivery',
       href: 'https://splithub.app/',
     },
     {
@@ -55,6 +59,7 @@ export const en = {
         'A platform for sustainable-finance management, issuance, and monitoring.',
       contribution:
         'Contributed to frontend and full-stack work on a sustainable-finance platform.',
+      capabilities: 'Frontend · Full stack · Sustainable finance',
       href: 'https://evercity.io/',
     },
   ],
