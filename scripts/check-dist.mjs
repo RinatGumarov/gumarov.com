@@ -265,7 +265,7 @@ function extractSemanticRegion(html, attribute) {
 
 function collectImageReferences(markup) {
   const references = new Set();
-  const sourcePattern = /(?:^|\s)(?:src|srcset)="([^"]+)"/gu;
+  const sourcePattern = /(?:^|\s)(?:src|srcset)="([^"]+)"/giu;
 
   for (const sourceMatch of markup.matchAll(sourcePattern)) {
     const sourceValue = sourceMatch[1].trim();
