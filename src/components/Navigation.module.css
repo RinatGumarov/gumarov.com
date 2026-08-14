@@ -1,0 +1,128 @@
+.skipLink {
+  position: fixed;
+  z-index: 100;
+  inset-block-start: var(--space-3);
+  inset-inline-start: var(--space-3);
+  display: inline-flex;
+  min-block-size: 44px;
+  align-items: center;
+  padding-inline: var(--space-4);
+  color: var(--color-graphite-950);
+  background: var(--color-cyan-300);
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  transform: translateY(calc(-100% - var(--space-5)));
+}
+
+.skipLink:focus-visible {
+  transform: translateY(0);
+}
+
+.header {
+  position: relative;
+  z-index: 10;
+  border-block-end: 1px solid var(--color-line);
+  background: color-mix(in srgb, var(--color-graphite-900) 82%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.frame {
+  width: min(100% - (2 * var(--page-gutter)), var(--content-wide));
+  min-block-size: 76px;
+  margin-inline: auto;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.identity,
+.primary a,
+.locales a {
+  display: inline-flex;
+  min-inline-size: 44px;
+  min-block-size: 44px;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.identity {
+  justify-self: start;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.monogram {
+  display: grid;
+  inline-size: 36px;
+  block-size: 36px;
+  place-items: center;
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-cyan-300);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+}
+
+.primary {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.primary a,
+.locales a {
+  padding-inline: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.primary a:hover,
+.locales a:hover,
+.locales a[aria-current='page'] {
+  color: var(--color-cyan-300);
+}
+
+.locales {
+  display: flex;
+  align-items: center;
+  color: var(--color-line-strong);
+}
+
+@media (max-width: 52rem) {
+  .frame {
+    grid-template-columns: 1fr auto;
+    padding-block: var(--space-2);
+  }
+
+  .primary {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: space-between;
+    border-block-start: 1px solid var(--color-line);
+  }
+
+  .primary a {
+    flex: 1;
+  }
+}
+
+@media (max-width: 26rem) {
+  .identity > span:last-child {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .locales a {
+    padding-inline: var(--space-1);
+  }
+}

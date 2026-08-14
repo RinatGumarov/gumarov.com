@@ -8,6 +8,22 @@ it('renders the personal landing landmark', () => {
   expect(screen.getByRole('main')).toHaveAttribute('data-locale', 'en');
 });
 
+it('keeps global landmarks distinct with one page heading and a skip target', () => {
+  render(<App locale="en" />);
+
+  const header = screen.getByRole('banner');
+  const main = screen.getByRole('main');
+
+  expect(main).not.toContainElement(header);
+  expect(main).toHaveAttribute('id', 'main-content');
+  expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+  expect(screen.getByRole('contentinfo')).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Skip to content' })).toHaveAttribute(
+    'href',
+    '#main-content',
+  );
+});
+
 it.each([
   {
     locale: 'en',

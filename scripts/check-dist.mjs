@@ -268,13 +268,29 @@ function collectImageReferences(markup) {
   const sourcePattern = /(?:^|\s)(?:src|srcset)="([^"]+)"/gu;
 
   for (const sourceMatch of markup.matchAll(sourcePattern)) {
-    for (const candidate of sourceMatch[1].split(',')) {
+    const sourceValue = sourceMatch[1].trim();
+
+    for (const candidate of splitImageSourceCandidates(sourceValue)) {
       const reference = candidate.trim().split(/\s+/u)[0];
       if (reference) references.add(reference);
     }
   }
 
   return references;
+}
+
+function splitImageSourceCandidates(sourceValue) {
+  if (!sourceValue.startsWith('data:')) return sourceValue.split(',');
+
+  const inlineCandidate = sourceValue.match(
+    /^(data:[^,]+,[^\s,]+)(?:\s+(?:\d+(?:\.\d+)?x|\d+w))?(?:\s*,\s*(.*))?$/u,
+  );
+  if (!inlineCandidate) return sourceValue.split(',');
+
+  const remainingCandidates = inlineCandidate[2]
+    ? inlineCandidate[2].split(',')
+    : [];
+  return [inlineCandidate[1], ...remainingCandidates];
 }
 
 function validateContentContract(
