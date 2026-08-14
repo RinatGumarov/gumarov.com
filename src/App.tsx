@@ -6,6 +6,7 @@ import { Navigation } from './components/Navigation';
 import { PersonalStrip, type PersonalPhotos } from './components/PersonalStrip';
 import { SelectedWork } from './components/SelectedWork';
 import { WorkPrinciples } from './components/WorkPrinciples';
+import { useMotionEnhancementGate } from './lib/motion';
 
 export type { Locale } from './content';
 
@@ -19,6 +20,7 @@ const personalPhotoPlaceholders: PersonalPhotos = [
 ];
 
 export function App({ locale }: { locale: Locale }) {
+  useMotionEnhancementGate();
   const content = getContent(locale);
 
   return (

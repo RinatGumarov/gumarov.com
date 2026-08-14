@@ -6,11 +6,39 @@ import {
   screen,
 } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { usePointerParallax, useReducedMotion } from './motion';
+import {
+  useMotionEnhancementGate,
+  usePointerParallax,
+  useReducedMotion,
+} from './motion';
 import { useViewedOnce } from './useViewedOnce';
 
 afterEach(() => {
+  document.documentElement.removeAttribute('data-motion-state');
   vi.unstubAllGlobals();
+});
+
+describe('useMotionEnhancementGate', () => {
+  it('keeps the application in its final state when matchMedia is unavailable', () => {
+    vi.stubGlobal('matchMedia', undefined);
+
+    renderHook(() => useMotionEnhancementGate());
+
+    expect(document.documentElement).not.toHaveAttribute('data-motion-state');
+  });
+
+  it('enables enhancements only after a successful no-preference query and cleans up', () => {
+    installMotionQueries({ coarse: false, reduced: false });
+
+    const { unmount } = renderHook(() => useMotionEnhancementGate());
+
+    expect(document.documentElement).toHaveAttribute(
+      'data-motion-state',
+      'enabled',
+    );
+    unmount();
+    expect(document.documentElement).not.toHaveAttribute('data-motion-state');
+  });
 });
 
 describe('useReducedMotion', () => {
@@ -237,7 +265,12 @@ function installMotionQueries({
   vi.stubGlobal(
     'matchMedia',
     vi.fn((query: string) => ({
-      matches: query === '(pointer: coarse)' ? coarse : reduced,
+      matches:
+        query === '(pointer: coarse)'
+          ? coarse
+          : query === '(prefers-reduced-motion: no-preference)'
+            ? !reduced
+            : reduced,
       media: query,
       onchange: null,
       addEventListener: vi.fn(),

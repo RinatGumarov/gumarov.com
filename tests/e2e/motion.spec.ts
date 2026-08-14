@@ -44,7 +44,7 @@ test('reduced motion presents final states while preserving focus and hover feed
   await expect(primaryAction).toHaveCSS('outline-style', 'solid');
 });
 
-test('motion APIs remain progressive under four-times CPU throttling', async ({
+test('sustained pointer motion stays responsive under four-times CPU throttling', async ({
   page,
 }) => {
   const browserErrors: Error[] = [];
@@ -64,10 +64,32 @@ test('motion APIs remain progressive under four-times CPU throttling', async ({
   );
   const bounds = await projectVisual.boundingBox();
   if (!bounds) throw new Error('Project visual did not produce layout bounds');
-  await page.mouse.move(
-    bounds.x + bounds.width - 1,
-    bounds.y + bounds.height / 2,
-  );
+  const frameGaps = await projectVisual.evaluate(async (element) => {
+    const bounds = element.getBoundingClientRect();
+    const gaps: number[] = [];
+    let previousFrame = performance.now();
+
+    for (let frame = 0; frame < 120; frame += 1) {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame((now) => {
+          gaps.push(now - previousFrame);
+          previousFrame = now;
+          const progress = frame / 119;
+          element.dispatchEvent(
+            new PointerEvent('pointermove', {
+              bubbles: true,
+              clientX: bounds.left + bounds.width * progress,
+              clientY:
+                bounds.top + bounds.height * (0.5 + Math.sin(frame / 8) * 0.4),
+            }),
+          );
+          resolve();
+        });
+      });
+    }
+
+    return gaps;
+  });
   await expect
     .poll(() =>
       projectVisual.evaluate((element) =>
@@ -81,15 +103,12 @@ test('motion APIs remain progressive under four-times CPU throttling', async ({
     Number.parseFloat(element.style.getPropertyValue('--motion-parallax-x')),
   );
   expect(parallaxOffset).toBeLessThanOrEqual(4);
-
-  const frameDelay = await page.evaluate(
-    () =>
-      new Promise<number>((resolve) => {
-        const startedAt = performance.now();
-        requestAnimationFrame(() => resolve(performance.now() - startedAt));
-      }),
-  );
-  expect(frameDelay).toBeLessThan(1000);
+  const sortedFrameGaps = [...frameGaps].sort((a, b) => a - b);
+  const percentile95 =
+    sortedFrameGaps[Math.floor((sortedFrameGaps.length - 1) * 0.95)];
+  const maximumFrameGap = Math.max(...frameGaps);
+  expect(percentile95).toBeLessThan(50);
+  expect(maximumFrameGap).toBeLessThan(150);
   expect(browserErrors).toEqual([]);
 });
 
@@ -129,4 +148,43 @@ test('missing observers never hide project content', async ({ page }) => {
     await expect(project).toBeVisible();
     await expect(project.locator('h3')).toBeVisible();
   }
+});
+
+test('missing matchMedia leaves every enhancement in its complete final state', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: undefined,
+    });
+  });
+  await page.goto('/en/');
+
+  await expect(page.locator('html')).not.toHaveAttribute(
+    'data-motion-state',
+    'enabled',
+  );
+  const heroLayer = page
+    .locator('[data-motion-hero] [data-motion-enter]')
+    .first();
+  const projectLayer = page
+    .locator('[data-motion-project] [data-motion-reveal]')
+    .first();
+  const stickyCopy = page
+    .locator('[data-motion-project] [data-motion-sticky]')
+    .first();
+  const parallaxLayer = page.locator('[data-motion-parallax-layer]').first();
+
+  for (const layer of [heroLayer, projectLayer, parallaxLayer]) {
+    await expect(layer).toBeVisible();
+    await expect(layer).toHaveCSS('animation-name', 'none');
+    await expect(layer).toHaveCSS('opacity', '1');
+    await expect(layer).toHaveCSS('transform', 'none');
+  }
+  await expect(stickyCopy).toHaveCSS('position', 'static');
+  const ambientAnimation = await page
+    .locator('[data-motion-hero]')
+    .evaluate((element) => getComputedStyle(element, '::before').animationName);
+  expect(ambientAnimation).toBe('none');
 });

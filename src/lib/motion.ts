@@ -8,6 +8,7 @@ import {
 } from 'react';
 
 const reducedMotionQuery = '(prefers-reduced-motion: reduce)';
+const motionEnhancementQuery = '(prefers-reduced-motion: no-preference)';
 const coarsePointerQuery = '(pointer: coarse)';
 const maximumParallax = 4;
 
@@ -49,6 +50,46 @@ export function useReducedMotion() {
     getReducedMotionSnapshot,
     () => true,
   );
+}
+
+export function useMotionEnhancementGate() {
+  const enabled = useSyncExternalStore(
+    subscribeToMotionEnhancements,
+    getMotionEnhancementSnapshot,
+    () => false,
+  );
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const root = document.documentElement;
+    if (!enabled) {
+      root.removeAttribute('data-motion-state');
+      return;
+    }
+
+    root.setAttribute('data-motion-state', 'enabled');
+    return () => root.removeAttribute('data-motion-state');
+  }, [enabled]);
+
+  return enabled;
+}
+
+function getMotionEnhancementSnapshot() {
+  return getMediaQuery(motionEnhancementQuery)?.matches === true;
+}
+
+function subscribeToMotionEnhancements(onChange: () => void) {
+  const mediaQuery = getMediaQuery(motionEnhancementQuery);
+  if (!mediaQuery) return () => undefined;
+
+  if (typeof mediaQuery.addEventListener === 'function') {
+    mediaQuery.addEventListener('change', onChange);
+    return () => mediaQuery.removeEventListener('change', onChange);
+  }
+
+  mediaQuery.addListener(onChange);
+  return () => mediaQuery.removeListener(onChange);
 }
 
 function setParallax(element: HTMLElement | null, x: number, y: number) {
