@@ -18,7 +18,7 @@ export function App({ locale }: { locale: Locale }) {
         </nav>
       </header>
 
-      <section aria-labelledby="hero-heading">
+      <section data-hero="landing" aria-labelledby="hero-heading">
         <p>{content.hero.eyebrow}</p>
         <h1 id="hero-heading">{content.hero.title}</h1>
         <p>{content.hero.body}</p>

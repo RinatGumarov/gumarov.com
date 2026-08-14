@@ -22,6 +22,7 @@ it.each([
   ({ locale, hero }) => {
     const html = renderToStaticMarkup(<App locale={locale} />);
 
+    expect(html).toContain('data-hero="landing"');
     expect(html).toContain(hero);
     expect(html).toContain('href="https://www.tradingview.com/"');
     expect(html).toContain('href="https://t.me/RinatGumarov"');

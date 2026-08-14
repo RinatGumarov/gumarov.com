@@ -11,23 +11,41 @@ function getDocumentLocale(): Locale {
 
 if (rootElement?.hasChildNodes()) {
   const serverMarkup = rootElement.innerHTML;
+  let hydrationRoot: ReturnType<typeof hydrateRoot> | undefined;
+  let restorationScheduled = false;
+  let serverMarkupRestored = false;
   const restoreServerMarkup = (error: unknown) => {
-    rootElement.innerHTML = serverMarkup;
-
     if (import.meta.env.DEV) {
       console.error('Unable to hydrate the landing page.', error);
     }
+
+    if (restorationScheduled || serverMarkupRestored) return;
+    restorationScheduled = true;
+
+    queueMicrotask(() => {
+      restorationScheduled = false;
+      if (serverMarkupRestored) return;
+
+      try {
+        hydrationRoot?.unmount();
+      } catch {
+        // React may still be unwinding; restoring the static page remains safe.
+      }
+
+      rootElement.innerHTML = serverMarkup;
+      serverMarkupRestored = true;
+    });
   };
 
   try {
-    hydrateRoot(rootElement, <App locale={getDocumentLocale()} />, {
-      onUncaughtError: restoreServerMarkup,
-      onRecoverableError(error) {
-        if (import.meta.env.DEV) {
-          console.error('The landing page recovered during hydration.', error);
-        }
+    hydrationRoot = hydrateRoot(
+      rootElement,
+      <App locale={getDocumentLocale()} />,
+      {
+        onUncaughtError: restoreServerMarkup,
+        onRecoverableError: restoreServerMarkup,
       },
-    });
+    );
   } catch (error) {
     restoreServerMarkup(error);
   }

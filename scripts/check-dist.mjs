@@ -1,7 +1,7 @@
 import { gzipSync } from 'node:zlib';
 import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import vm from 'node:vm';
 
 const projectRoot = path.resolve(
@@ -14,37 +14,51 @@ const kibibyte = 1024;
 const javascriptBudget = 150 * kibibyte;
 const initialTransferBudget = 700 * kibibyte;
 const heroSourceBudget = 300 * kibibyte;
-const projectUrls = [
-  'https://www.tradingview.com/',
-  'https://stoic.ai/',
-  'https://splithub.app/',
-  'https://evercity.io/',
-];
-const contactUrls = ['https://t.me/RinatGumarov', 'mailto:hi@gumarov.com'];
 const routeContracts = [
   {
     file: 'index.html',
+    locale: 'en',
     lang: 'en',
     canonical: `${siteUrl}/`,
-    hero: 'Senior Frontend Engineer building ambitious products.',
     root: true,
   },
   {
     file: 'en/index.html',
+    locale: 'en',
     lang: 'en',
     canonical: `${siteUrl}/en/`,
-    hero: 'Senior Frontend Engineer building ambitious products.',
   },
   {
     file: 'ru/index.html',
+    locale: 'ru',
     lang: 'ru',
     canonical: `${siteUrl}/ru/`,
-    hero: 'Senior Frontend Engineer, который создаёт амбициозные продукты.',
   },
 ];
 const failures = [];
 const routeDocuments = new Map();
-let initialTransferBytes = 0;
+const heroSourcePaths = new Set();
+const routeTransferBytes = new Map();
+const missingAssetFailures = new Set();
+const contentByLocale = new Map();
+
+try {
+  const serverEntryPath = path.join(
+    path.dirname(distDirectory),
+    'dist-ssr',
+    'entry-server.js',
+  );
+  const serverEntry = await import(pathToFileURL(serverEntryPath).href);
+
+  if (typeof serverEntry.getContent !== 'function') {
+    throw new TypeError('getContent export is missing');
+  }
+
+  contentByLocale.set('en', serverEntry.getContent('en'));
+  contentByLocale.set('ru', serverEntry.getContent('ru'));
+} catch (error) {
+  failures.push(`Unable to load the built content contract: ${String(error)}`);
+}
 
 for (const route of routeContracts) {
   const routePath = path.join(distDirectory, route.file);
@@ -58,6 +72,7 @@ for (const route of routeContracts) {
   }
 
   routeDocuments.set(route.file, html);
+  const content = contentByLocale.get(route.locale);
   requireMatch(
     html,
     new RegExp(`<html[^>]*\\blang=["']${route.lang}["']`, 'u'),
@@ -83,22 +98,26 @@ for (const route of routeContracts) {
     `<link rel="alternate" hreflang="x-default" href="${siteUrl}/" />`,
     `${route.file}: missing x-default alternate`,
   );
-  requireText(html, route.hero, `${route.file}: missing localized hero copy`);
-
-  for (const projectUrl of projectUrls) {
+  if (content) {
     requireText(
       html,
-      `href="${projectUrl}"`,
-      `${route.file}: missing project link ${projectUrl}`,
+      `<title>${escapeHtml(content.meta.title)}</title>`,
+      `${route.file}: missing localized metadata title`,
     );
-  }
-
-  for (const contactUrl of contactUrls) {
     requireText(
       html,
-      `href="${contactUrl}"`,
-      `${route.file}: missing contact link ${contactUrl}`,
+      `<meta name="description" content="${escapeHtmlAttribute(content.meta.description)}" />`,
+      `${route.file}: missing localized metadata description`,
     );
+
+    for (const value of collectVisibleContent(content)) {
+      const renderedValue = escapeReactHtml(value);
+      if (!html.includes(renderedValue)) {
+        failures.push(
+          `${route.file}: missing visible content ${JSON.stringify(value)}`,
+        );
+      }
+    }
   }
 
   requireMatch(
@@ -106,6 +125,16 @@ for (const route of routeContracts) {
     /<div id="root"><main\b/u,
     `${route.file}: server-rendered application markup is missing`,
   );
+
+  const heroMarkup = extractSemanticRegion(html, 'data-hero');
+  if (heroMarkup === null) {
+    failures.push(`${route.file}: semantic hero region is missing`);
+  } else {
+    for (const reference of collectImageReferences(heroMarkup)) {
+      const heroSourcePath = resolveLocalAsset(reference, routePath);
+      if (heroSourcePath) heroSourcePaths.add(heroSourcePath);
+    }
+  }
 
   if (html.includes('<!--app-html-->') || html.includes('<!--page-meta-->')) {
     failures.push(`${route.file}: unresolved prerender marker`);
@@ -140,22 +169,39 @@ if (compressedJavascriptBytes > javascriptBudget) {
   );
 }
 
-if (rootDocument) {
-  const rootPath = path.join(distDirectory, 'index.html');
-  const initialAssetPaths = await collectInitialAssetPaths(rootDocument);
-  initialTransferBytes =
-    gzipSync(await readFile(rootPath)).byteLength +
-    (await sumTransferredBytes(initialAssetPaths));
+for (const route of routeContracts) {
+  const html = routeDocuments.get(route.file);
+  if (!html) continue;
+
+  const routePath = path.join(distDirectory, route.file);
+  const initialAssetPaths = await collectInitialAssetPaths(
+    html,
+    routePath,
+    route.file,
+  );
+  const initialTransferBytes =
+    gzipSync(await readFile(routePath)).byteLength +
+    (await sumRouteTransferredBytes(initialAssetPaths, route.file));
+  routeTransferBytes.set(route.file, initialTransferBytes);
 
   if (initialTransferBytes > initialTransferBudget) {
     failures.push(
-      `Initial transfer is ${formatKib(initialTransferBytes)}; budget is ${formatKib(initialTransferBudget)}.`,
+      `${route.file}: initial transfer is ${formatKib(initialTransferBytes)}; budget is ${formatKib(initialTransferBudget)}.`,
     );
   }
 }
 
-for (const file of outputFiles.filter(isHeroSource)) {
-  const fileBytes = (await stat(file)).size;
+for (const file of heroSourcePaths) {
+  let fileBytes;
+  try {
+    fileBytes = (await stat(file)).size;
+  } catch {
+    failures.push(
+      `Hero source is missing: ${path.relative(distDirectory, file)}`,
+    );
+    continue;
+  }
+
   if (fileBytes > heroSourceBudget) {
     failures.push(
       `Hero source ${path.relative(distDirectory, file)} is ${formatKib(fileBytes)}; budget is ${formatKib(heroSourceBudget)}.`,
@@ -170,8 +216,14 @@ if (failures.length > 0) {
   }
   process.exitCode = 1;
 } else {
+  const worstRoute = [...routeTransferBytes.entries()].sort(
+    ([, leftBytes], [, rightBytes]) => rightBytes - leftBytes,
+  )[0];
+  const worstRouteSummary = worstRoute
+    ? `${worstRoute[0]} ${formatKib(worstRoute[1])}`
+    : 'unavailable';
   console.log(
-    `Distribution checks passed: 3 routes, ${formatKib(compressedJavascriptBytes)} compressed JavaScript, ${formatKib(initialTransferBytes)} initial transfer.`,
+    `Distribution checks passed: 3 routes, ${formatKib(compressedJavascriptBytes)} compressed JavaScript, worst initial transfer ${worstRouteSummary}.`,
   );
 }
 
@@ -185,6 +237,68 @@ function requireMatch(source, pattern, failure) {
   if (!pattern.test(source)) {
     failures.push(failure);
   }
+}
+
+function extractSemanticRegion(html, attribute) {
+  const pattern = new RegExp(
+    `<([a-z][a-z0-9-]*)\\b(?=[^>]*\\b${attribute}(?:\\s|=|>))[^>]*>([\\s\\S]*?)<\\/\\1>`,
+    'iu',
+  );
+  return html.match(pattern)?.[2] ?? null;
+}
+
+function collectImageReferences(markup) {
+  const references = new Set();
+  const sourcePattern = /(?:^|\s)(?:src|srcset)="([^"]+)"/gu;
+
+  for (const sourceMatch of markup.matchAll(sourcePattern)) {
+    for (const candidate of sourceMatch[1].split(',')) {
+      const reference = candidate.trim().split(/\s+/u)[0];
+      if (reference) references.add(reference);
+    }
+  }
+
+  return references;
+}
+
+function collectVisibleContent(content) {
+  const { meta: _metadata, ...visibleContent } = content;
+  const values = new Set();
+  collectStrings(visibleContent, null, values);
+  return values;
+}
+
+function collectStrings(value, key, values) {
+  if (typeof value === 'string') {
+    if (key !== 'slug' && value !== '') values.add(value);
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) collectStrings(item, null, values);
+    return;
+  }
+
+  if (value && typeof value === 'object') {
+    for (const [childKey, childValue] of Object.entries(value)) {
+      collectStrings(childValue, childKey, values);
+    }
+  }
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+
+function escapeHtmlAttribute(value) {
+  return escapeHtml(value).replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+}
+
+function escapeReactHtml(value) {
+  return escapeHtml(value).replaceAll('"', '&quot;').replaceAll("'", '&#x27;');
 }
 
 function checkRootLocaleBootstrap(html) {
@@ -307,20 +421,43 @@ async function sumTransferredBytes(files, alwaysCompress = false) {
   return bytes;
 }
 
-async function collectInitialAssetPaths(html) {
+async function sumRouteTransferredBytes(files, routeFile) {
+  let bytes = 0;
+
+  for (const file of new Set(files)) {
+    try {
+      const contents = await readFile(file);
+      bytes += isCompressible(file)
+        ? gzipSync(contents).byteLength
+        : contents.byteLength;
+    } catch {
+      reportMissingAsset(routeFile, file);
+    }
+  }
+
+  return bytes;
+}
+
+async function collectInitialAssetPaths(html, documentPath, routeFile) {
   const paths = new Set();
   const assetTagPattern = /<(?:script|link)\b[^>]*>/gu;
 
   for (const tagMatch of html.matchAll(assetTagPattern)) {
     const tag = tagMatch[0];
     const isScript = tag.startsWith('<script');
+    const linkRelations = new Set(
+      (readHtmlAttribute(tag, 'rel') ?? '').toLowerCase().split(/\s+/u),
+    );
     const isInitialLink =
       tag.startsWith('<link') &&
-      /\brel="(?:modulepreload|preload|stylesheet)"/u.test(tag);
+      ['modulepreload', 'preload', 'stylesheet'].some((relation) =>
+        linkRelations.has(relation),
+      );
     if (!isScript && !isInitialLink) continue;
 
-    const reference = tag.match(/\b(?:src|href)="([^"]+)"/u)?.[1];
-    const assetPath = resolveLocalAsset(reference);
+    const reference =
+      readHtmlAttribute(tag, 'src') ?? readHtmlAttribute(tag, 'href');
+    const assetPath = resolveLocalAsset(reference, documentPath);
     if (assetPath) paths.add(assetPath);
   }
 
@@ -330,7 +467,11 @@ async function collectInitialAssetPaths(html) {
     const picture = pictureMatch[0];
     htmlWithoutPictures = htmlWithoutPictures.replace(picture, '');
     if (/\bloading="lazy"/u.test(picture)) continue;
-    const largestCandidate = await findLargestImageCandidate(picture);
+    const largestCandidate = await findLargestImageCandidate(
+      picture,
+      documentPath,
+      routeFile,
+    );
     if (largestCandidate) paths.add(largestCandidate);
   }
 
@@ -338,23 +479,23 @@ async function collectInitialAssetPaths(html) {
   for (const imageMatch of htmlWithoutPictures.matchAll(imagePattern)) {
     const image = imageMatch[0];
     if (/\bloading="lazy"/u.test(image)) continue;
-    const largestCandidate = await findLargestImageCandidate(image);
+    const largestCandidate = await findLargestImageCandidate(
+      image,
+      documentPath,
+      routeFile,
+    );
     if (largestCandidate) paths.add(largestCandidate);
   }
 
+  await collectCssDependencies(paths, routeFile);
   return [...paths];
 }
 
-async function findLargestImageCandidate(markup) {
+async function findLargestImageCandidate(markup, documentPath, routeFile) {
   const candidates = [];
-  const sourcePattern = /\b(?:src|srcset)="([^"]+)"/gu;
-
-  for (const sourceMatch of markup.matchAll(sourcePattern)) {
-    for (const candidate of sourceMatch[1].split(',')) {
-      const url = candidate.trim().split(/\s+/u)[0];
-      const assetPath = resolveLocalAsset(url);
-      if (assetPath) candidates.push(assetPath);
-    }
+  for (const reference of collectImageReferences(markup)) {
+    const assetPath = resolveLocalAsset(reference, documentPath);
+    if (assetPath) candidates.push(assetPath);
   }
 
   let largest;
@@ -367,21 +508,82 @@ async function findLargestImageCandidate(markup) {
         largestBytes = candidateBytes;
       }
     } catch {
-      failures.push(
-        `Initial asset is missing: ${path.relative(distDirectory, candidate)}`,
-      );
+      reportMissingAsset(routeFile, candidate);
     }
   }
 
   return largest;
 }
 
-function resolveLocalAsset(reference) {
+async function collectCssDependencies(paths, routeFile) {
+  const cssQueue = [...paths].filter((file) => file.endsWith('.css'));
+  const visitedCss = new Set();
+
+  while (cssQueue.length > 0) {
+    const cssPath = cssQueue.shift();
+    if (!cssPath || visitedCss.has(cssPath)) continue;
+    visitedCss.add(cssPath);
+
+    let css;
+    try {
+      css = await readFile(cssPath, 'utf8');
+    } catch {
+      reportMissingAsset(routeFile, cssPath);
+      continue;
+    }
+
+    for (const reference of collectCssReferences(css)) {
+      const assetPath = resolveLocalAsset(reference, cssPath);
+      if (!assetPath || paths.has(assetPath)) continue;
+      paths.add(assetPath);
+      if (assetPath.endsWith('.css')) cssQueue.push(assetPath);
+    }
+  }
+}
+
+function collectCssReferences(css) {
+  const references = new Set();
+  const importPattern =
+    /@import\s+(?!url\()(?:"([^"]+)"|'([^']+)'|([^\s;]+))/giu;
+  const urlPattern = /url\(\s*(?:"([^"]+)"|'([^']+)'|([^\s)]+))\s*\)/giu;
+
+  for (const match of css.matchAll(importPattern)) {
+    const reference = match[1] ?? match[2] ?? match[3];
+    if (reference) references.add(reference);
+  }
+
+  for (const match of css.matchAll(urlPattern)) {
+    const reference = match[1] ?? match[2] ?? match[3];
+    if (reference) references.add(reference);
+  }
+
+  return references;
+}
+
+function readHtmlAttribute(tag, name) {
+  const match = tag.match(
+    new RegExp(`(?:^|\\s)${name}=(?:"([^"]*)"|'([^']*)')`, 'iu'),
+  );
+  return match?.[1] ?? match?.[2];
+}
+
+function reportMissingAsset(routeFile, file) {
+  const relativeFile = path.relative(distDirectory, file);
+  const failure = `${routeFile}: initial asset is missing: ${relativeFile}`;
+  if (missingAssetFailures.has(failure)) return;
+  missingAssetFailures.add(failure);
+  failures.push(failure);
+}
+
+function resolveLocalAsset(reference, referringFile) {
   if (!reference || reference.startsWith('#')) return null;
 
   let url;
   try {
-    url = new URL(reference, `${siteUrl}/`);
+    const relativeReferrer = referringFile
+      ? path.relative(distDirectory, referringFile).split(path.sep).join('/')
+      : 'index.html';
+    url = new URL(reference, new URL(`/${relativeReferrer}`, siteUrl));
   } catch {
     return null;
   }
@@ -405,14 +607,6 @@ function resolveLocalAsset(reference) {
 
 function isCompressible(file) {
   return /\.(?:css|html|js|json|svg|webmanifest)$/u.test(file);
-}
-
-function isHeroSource(file) {
-  const relativeFile = path
-    .relative(distDirectory, file)
-    .split(path.sep)
-    .join('/');
-  return /(?:^|\/)assets\/(?:hero|portrait)\//u.test(relativeFile);
 }
 
 function formatKib(bytes) {
