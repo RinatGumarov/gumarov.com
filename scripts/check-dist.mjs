@@ -2,6 +2,7 @@ import { gzipSync } from 'node:zlib';
 import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { JSDOM } from 'jsdom';
 import vm from 'node:vm';
 
 const projectRoot = path.resolve(
@@ -73,6 +74,19 @@ for (const route of routeContracts) {
 
   routeDocuments.set(route.file, html);
   const content = contentByLocale.get(route.locale);
+  const renderedDom = new JSDOM(html, { includeNodeLocations: true });
+  const renderedDocument = renderedDom.window.document;
+  const applicationRoot = renderedDocument.getElementById('root');
+  const applicationRootLocation = applicationRoot
+    ? renderedDom.nodeLocation(applicationRoot)
+    : null;
+  const applicationMarkup =
+    applicationRootLocation?.startTag && applicationRootLocation.endTag
+      ? html.slice(
+          applicationRootLocation.startTag.endOffset,
+          applicationRootLocation.endTag.startOffset,
+        )
+      : '';
   requireMatch(
     html,
     new RegExp(`<html[^>]*\\blang=["']${route.lang}["']`, 'u'),
@@ -110,21 +124,21 @@ for (const route of routeContracts) {
       `${route.file}: missing localized metadata description`,
     );
 
-    for (const value of collectVisibleContent(content)) {
-      const renderedValue = escapeReactHtml(value);
-      if (!html.includes(renderedValue)) {
-        failures.push(
-          `${route.file}: missing visible content ${JSON.stringify(value)}`,
-        );
-      }
+    if (applicationRoot) {
+      validateContentContract(
+        route.file,
+        applicationRoot,
+        applicationMarkup,
+        content,
+      );
     }
   }
 
-  requireMatch(
-    html,
-    /<div id="root"><main\b/u,
-    `${route.file}: server-rendered application markup is missing`,
-  );
+  if (!applicationRoot?.querySelector('main')) {
+    failures.push(
+      `${route.file}: server-rendered application markup is missing`,
+    );
+  }
 
   const heroMarkup = extractSemanticRegion(html, 'data-hero');
   if (heroMarkup === null) {
@@ -149,6 +163,8 @@ for (const route of routeContracts) {
       `${route.file}: root locale bootstrap leaked into locale route`,
     );
   }
+
+  renderedDom.window.close();
 }
 
 const rootDocument = routeDocuments.get('index.html');
@@ -261,29 +277,90 @@ function collectImageReferences(markup) {
   return references;
 }
 
-function collectVisibleContent(content) {
-  const { meta: _metadata, ...visibleContent } = content;
-  const values = new Set();
-  collectStrings(visibleContent, null, values);
-  return values;
+function validateContentContract(
+  routeFile,
+  applicationRoot,
+  applicationMarkup,
+  content,
+) {
+  const renderedText = normalizeText(applicationRoot.textContent ?? '');
+  const renderedDestinations = new Set(
+    [...applicationRoot.querySelectorAll('a[href]')].map((link) =>
+      link.getAttribute('href'),
+    ),
+  );
+
+  for (const requirement of collectContentRequirements(content)) {
+    if (requirement.kind === 'destination') {
+      const escapedHref = `href="${escapeReactAttribute(requirement.value)}"`;
+      if (
+        !renderedDestinations.has(requirement.value) ||
+        !applicationMarkup.includes(escapedHref)
+      ) {
+        failures.push(
+          `${routeFile}: missing destination ${requirement.path} href=${JSON.stringify(requirement.value)}`,
+        );
+      }
+      continue;
+    }
+
+    if (!renderedText.includes(normalizeText(requirement.value))) {
+      failures.push(
+        `${routeFile}: missing visible content ${requirement.path} ${JSON.stringify(requirement.value)}`,
+      );
+    }
+  }
 }
 
-function collectStrings(value, key, values) {
+function collectContentRequirements(content) {
+  const requirements = [];
+
+  for (const [key, value] of Object.entries(content)) {
+    if (key !== 'meta') {
+      collectRequirements(value, key, key, requirements);
+    }
+  }
+
+  return requirements;
+}
+
+function collectRequirements(value, pathName, key, requirements) {
   if (typeof value === 'string') {
-    if (key !== 'slug' && value !== '') values.add(value);
+    if (key !== 'slug' && value !== '') {
+      requirements.push({
+        kind: isDestinationField(key) ? 'destination' : 'visible',
+        path: pathName,
+        value,
+      });
+    }
     return;
   }
 
   if (Array.isArray(value)) {
-    for (const item of value) collectStrings(item, null, values);
+    value.forEach((item, index) => {
+      collectRequirements(item, `${pathName}[${index}]`, key, requirements);
+    });
     return;
   }
 
   if (value && typeof value === 'object') {
     for (const [childKey, childValue] of Object.entries(value)) {
-      collectStrings(childValue, childKey, values);
+      collectRequirements(
+        childValue,
+        `${pathName}.${childKey}`,
+        childKey,
+        requirements,
+      );
     }
   }
+}
+
+function isDestinationField(key) {
+  return key === 'href' || key.endsWith('Href');
+}
+
+function normalizeText(value) {
+  return String(value).replace(/\s+/gu, ' ').trim();
 }
 
 function escapeHtml(value) {
@@ -297,7 +374,7 @@ function escapeHtmlAttribute(value) {
   return escapeHtml(value).replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 }
 
-function escapeReactHtml(value) {
+function escapeReactAttribute(value) {
   return escapeHtml(value).replaceAll('"', '&quot;').replaceAll("'", '&#x27;');
 }
 

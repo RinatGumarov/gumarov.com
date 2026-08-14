@@ -17,28 +17,89 @@ afterEach(async () => {
 
 describe('distribution checker', () => {
   it('fails for omitted values across the built visible-content contract', async () => {
-    const omittedValues = [
-      'Required contract-only sentence.',
-      'About',
-      'TradingView contribution',
-      'Working principle.',
-      'Personal story.',
-      'Let’s talk',
+    const omittedRequirements = [
+      { path: 'hero.body', value: 'Required contract-only sentence.' },
+      { path: 'nav.about', value: 'About' },
+      {
+        path: 'projects[0].contribution',
+        value: 'TradingView contribution',
+      },
+      { path: 'principles.items[0]', value: 'Working principle.' },
+      { path: 'personal.body', value: 'Personal story.' },
+      { path: 'contact.heading', value: 'Let’s talk' },
     ];
     const fixture = await createDistributionFixture({
       omittedValuesByRoute: {
-        'en/index.html': new Set(omittedValues),
+        'en/index.html': new Set(
+          omittedRequirements.map((requirement) => requirement.value),
+        ),
       },
       extraEnglishHeroBody: 'Required contract-only sentence.',
     });
 
     const result = runChecker(fixture.distDirectory);
 
-    for (const value of omittedValues) {
+    for (const requirement of omittedRequirements) {
       expect(result.stderr).toContain(
-        `en/index.html: missing visible content ${JSON.stringify(value)}`,
+        `en/index.html: missing visible content ${requirement.path} ${JSON.stringify(requirement.value)}`,
       );
     }
+    expect(result.status).toBe(1);
+  });
+
+  it.each([
+    {
+      label: 'project',
+      path: 'projects[0].href',
+      destination: 'https://www.tradingview.com/',
+    },
+    {
+      label: 'Telegram',
+      path: 'contact.telegramHref',
+      destination: 'https://t.me/RinatGumarov',
+    },
+    {
+      label: 'email',
+      path: 'contact.emailHref',
+      destination: 'mailto:hi@gumarov.com',
+    },
+  ])(
+    'requires the $label destination in an exact href attribute',
+    async ({ path: contentPath, destination }) => {
+      const fixture = await createDistributionFixture({
+        transformHtmlByRoute: {
+          'en/index.html': (html) =>
+            replaceDestinationLinkWithUnrelatedText(html, destination),
+        },
+      });
+
+      const result = runChecker(fixture.distDirectory);
+
+      expect(result.stderr).toContain(
+        `en/index.html: missing destination ${contentPath} href=${JSON.stringify(destination)}`,
+      );
+      expect(result.status).toBe(1);
+    },
+  );
+
+  it('requires the visible email address in rendered text independently of mailto', async () => {
+    const fixture = await createDistributionFixture({
+      transformHtmlByRoute: {
+        'en/index.html': (html) =>
+          html
+            .replace(
+              '<a href="mailto:hi@gumarov.com">mailto:hi@gumarov.com</a>',
+              '<a href="mailto:hi@gumarov.com">Email destination</a>',
+            )
+            .replace('<p>hi@gumarov.com</p>', ''),
+      },
+    });
+
+    const result = runChecker(fixture.distDirectory);
+
+    expect(result.stderr).toContain(
+      'en/index.html: missing visible content contact.emailAddress "hi@gumarov.com"',
+    );
     expect(result.status).toBe(1);
   });
 
@@ -127,13 +188,14 @@ async function createDistributionFixture(options = {}) {
 
   for (const route of routes) {
     const outputPath = path.join(distDirectory, route.file);
-    const html = renderFixtureDocument({
+    let html = renderFixtureDocument({
       ...route,
       content: contentByLocale[route.locale],
       head: options.headByRoute?.[route.file] ?? '',
       heroMarkup: options.heroMarkup ?? '',
       omittedValues: options.omittedValuesByRoute?.[route.file] ?? new Set(),
     });
+    html = options.transformHtmlByRoute?.[route.file]?.(html) ?? html;
     await writeFile(outputPath, html);
   }
 
@@ -256,6 +318,14 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#x27;');
+}
+
+function replaceDestinationLinkWithUnrelatedText(html, destination) {
+  const escapedDestination = escapeHtml(destination);
+  return html.replace(
+    `<a href="${escapedDestination}">${escapedDestination}</a>`,
+    `<span data-destination="${escapedDestination}">${escapedDestination}</span>`,
+  );
 }
 
 function runChecker(distDirectory) {
