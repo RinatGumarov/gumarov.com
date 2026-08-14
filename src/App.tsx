@@ -32,6 +32,7 @@ export function App({ locale }: { locale: Locale }) {
         <SelectedWork
           heading={content.projectsHeading}
           projects={content.projects}
+          locale={locale}
         />
 
         <WorkPrinciples content={content.principles} />
@@ -41,7 +42,7 @@ export function App({ locale }: { locale: Locale }) {
           photos={personalPhotoPlaceholders}
         />
 
-        <Contact content={content.contact} />
+        <Contact content={content.contact} locale={locale} />
       </main>
 
       <Footer

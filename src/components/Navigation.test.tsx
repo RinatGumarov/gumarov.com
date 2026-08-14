@@ -1,13 +1,22 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getContent } from '../content';
 import { readPreferredLocale } from '../lib/locale';
 import { Navigation } from './Navigation';
 
+const { trackAnalyticsEventMock } = vi.hoisted(() => ({
+  trackAnalyticsEventMock: vi.fn(),
+}));
+
+vi.mock('../lib/analytics', () => ({
+  trackAnalyticsEvent: trackAnalyticsEventMock,
+}));
+
 describe('Navigation', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    trackAnalyticsEventMock.mockReset();
     window.history.replaceState({}, '', '/en/');
   });
 
@@ -67,5 +76,20 @@ describe('Navigation', () => {
 
     expect(readPreferredLocale()).toBe('ru');
     expect(russianLink).toHaveAttribute('href', '/ru/#work');
+    expect(trackAnalyticsEventMock).toHaveBeenCalledWith({
+      name: 'language_changed',
+      properties: { from: 'en', to: 'ru' },
+    });
+  });
+
+  it('does not report selecting the already-active language as a change', async () => {
+    const user = userEvent.setup();
+    render(<Navigation locale="en" labels={getContent('en').nav} />);
+    const englishLink = screen.getByRole('link', { name: 'English' });
+    englishLink.addEventListener('click', (event) => event.preventDefault());
+
+    await user.click(englishLink);
+
+    expect(trackAnalyticsEventMock).not.toHaveBeenCalled();
   });
 });

@@ -1,7 +1,16 @@
 import { render, screen } from '@testing-library/react';
-import { expect, it } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { expect, it, vi } from 'vitest';
 import { getContent } from '../content';
 import { Hero } from './Hero';
+
+const { trackAnalyticsEventMock } = vi.hoisted(() => ({
+  trackAnalyticsEventMock: vi.fn(),
+}));
+
+vi.mock('../lib/analytics', () => ({
+  trackAnalyticsEvent: trackAnalyticsEventMock,
+}));
 
 it('presents the localized frontend-first hero with direct conversion links', () => {
   const { container } = render(<Hero content={getContent('en').hero} />);
@@ -49,4 +58,16 @@ it('presents the localized frontend-first hero with direct conversion links', ()
   expect(image).toHaveAttribute('alt', '');
   expect(image).toHaveAttribute('loading', 'eager');
   expect(image).toHaveAttribute('fetchpriority', 'high');
+});
+
+it('keeps the internal hero contact jump out of channel click analytics', async () => {
+  const user = userEvent.setup();
+  render(<Hero content={getContent('en').hero} />);
+  const contactJump = screen.getByRole('link', { name: 'Get in touch' });
+  contactJump.addEventListener('click', (event) => event.preventDefault());
+
+  await user.click(contactJump);
+
+  expect(contactJump).toHaveAttribute('href', '#contact');
+  expect(trackAnalyticsEventMock).not.toHaveBeenCalled();
 });

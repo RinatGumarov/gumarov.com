@@ -1,7 +1,16 @@
 import { render, screen, within } from '@testing-library/react';
+import { beforeEach, vi } from 'vitest';
 import { en } from '../content/en';
 import { SelectedWork } from './SelectedWork';
 import { WorkPrinciples } from './WorkPrinciples';
+
+const { observeProjectViewOnceMock } = vi.hoisted(() => ({
+  observeProjectViewOnceMock: vi.fn(() => vi.fn()),
+}));
+
+vi.mock('../lib/analytics', () => ({
+  observeProjectViewOnce: observeProjectViewOnceMock,
+}));
 
 const expectedProjects = [
   {
@@ -43,9 +52,15 @@ const expectedProjects = [
 ] as const;
 
 describe('selected work', () => {
+  beforeEach(() => observeProjectViewOnceMock.mockClear());
+
   it('renders each approved project mapping and narrative independently', () => {
     render(
-      <SelectedWork heading={en.projectsHeading} projects={en.projects} />,
+      <SelectedWork
+        heading={en.projectsHeading}
+        projects={en.projects}
+        locale="en"
+      />,
     );
 
     const section = screen.getByRole('region', { name: 'Selected work' });
@@ -78,7 +93,11 @@ describe('selected work', () => {
 
   it('uses accessible containers with purely abstract decorative geometry', () => {
     render(
-      <SelectedWork heading={en.projectsHeading} projects={en.projects} />,
+      <SelectedWork
+        heading={en.projectsHeading}
+        projects={en.projects}
+        locale="en"
+      />,
     );
 
     for (const project of expectedProjects) {
@@ -96,6 +115,29 @@ describe('selected work', () => {
       expect(within(visual).queryByRole('button')).not.toBeInTheDocument();
       expect(within(visual).queryByRole('navigation')).not.toBeInTheDocument();
       expect(within(visual).queryByRole('toolbar')).not.toBeInTheDocument();
+    }
+  });
+
+  it('registers each real project scene for locale-aware 50% view tracking', () => {
+    render(
+      <SelectedWork
+        heading={en.projectsHeading}
+        projects={en.projects}
+        locale="en"
+      />,
+    );
+
+    expect(observeProjectViewOnceMock).toHaveBeenCalledTimes(4);
+    for (const project of expectedProjects) {
+      expect(observeProjectViewOnceMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dataset: expect.objectContaining({ projectSlug: project.slug }),
+        }),
+        {
+          name: 'project_viewed',
+          properties: { slug: project.slug, locale: 'en' },
+        },
+      );
     }
   });
 });
