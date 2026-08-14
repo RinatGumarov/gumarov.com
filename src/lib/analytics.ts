@@ -53,6 +53,7 @@ export interface PostHogConfig {
   disable_surveys_automatic_display: true;
   advanced_disable_feature_flags: true;
   advanced_disable_feature_flags_on_first_load: true;
+  advanced_disable_flags: true;
   advanced_disable_decide: true;
   capture_exceptions: false;
   capture_performance: false;
@@ -65,6 +66,7 @@ export interface PostHogConfig {
   save_referrer: false;
   disable_capture_url_hashes: true;
   respect_dnt: true;
+  request_batching: false;
   get_current_url: () => string;
   before_send: (event: ProviderEvent) => ProviderEvent | null;
 }
@@ -107,6 +109,7 @@ const projectSlugs = ['tradingview', 'stoic', 'splithub', 'evercity'] as const;
 const contactChannels = ['telegram', 'email'] as const;
 const contactSections = ['hero', 'contact', 'footer'] as const;
 const safeProviderProperties = [
+  'token',
   '$lib',
   '$lib_version',
   '$process_person_profile',
@@ -182,6 +185,7 @@ export function createPostHogConfig(
     disable_surveys_automatic_display: true,
     advanced_disable_feature_flags: true,
     advanced_disable_feature_flags_on_first_load: true,
+    advanced_disable_flags: true,
     advanced_disable_decide: true,
     capture_exceptions: false,
     capture_performance: false,
@@ -194,6 +198,7 @@ export function createPostHogConfig(
     save_referrer: false,
     disable_capture_url_hashes: true,
     respect_dnt: true,
+    request_batching: false,
     get_current_url: () => safeCurrentUrl,
     before_send: (event) => sanitizeProviderEvent(event, safeCurrentUrl),
   };
@@ -491,6 +496,6 @@ function browserLocation(): string {
 }
 
 async function loadPostHog(): Promise<PostHogProvider> {
-  const module = await import('posthog-js');
+  const module = await import('posthog-js/dist/module.slim');
   return module.default as unknown as PostHogProvider;
 }

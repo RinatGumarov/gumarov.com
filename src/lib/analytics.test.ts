@@ -31,6 +31,44 @@ const allowedEvents: readonly AnalyticsEvent[] = [
 ];
 
 describe('privacy-first analytics adapter', () => {
+  it('survives the installed PostHog before_send required-property gate', async () => {
+    const { PostHog } = await import('posthog-js/dist/module.slim');
+    const provider = new PostHog();
+    const capturedEvents = vi.fn();
+    provider.init(
+      'phc_public_transport_token',
+      createPostHogConfig(
+        'https://eu.i.posthog.com',
+        'https://gumarov.com/en/?secret=1#contact',
+      ) as never,
+    );
+    provider.on('eventCaptured', capturedEvents);
+
+    const captured = provider.capture('landing_viewed', {
+      locale: 'en',
+      viewport: 'desktop',
+      referrer: 'direct',
+    });
+
+    expect(capturedEvents).toHaveBeenCalledTimes(1);
+    expect(captured).toEqual(capturedEvents.mock.calls[0]?.[0]);
+    expect(capturedEvents.mock.calls[0]?.[0]).toEqual({
+      event: 'landing_viewed',
+      properties: {
+        locale: 'en',
+        viewport: 'desktop',
+        referrer: 'direct',
+        token: 'phc_public_transport_token',
+        $current_url: 'https://gumarov.com/en/',
+        $lib: 'web',
+        $lib_version: expect.any(String),
+        $process_person_profile: false,
+        $cookieless_mode: true,
+      },
+      uuid: expect.any(String),
+    });
+  });
+
   it('lazily initializes once and sends only exact allowlisted payloads', async () => {
     const provider = createProvider();
     const loadProvider = vi.fn(async () => provider);
@@ -67,6 +105,7 @@ describe('privacy-first analytics adapter', () => {
         disable_surveys_automatic_display: true,
         advanced_disable_feature_flags: true,
         advanced_disable_feature_flags_on_first_load: true,
+        advanced_disable_flags: true,
         advanced_disable_decide: true,
         capture_exceptions: false,
         capture_performance: false,
@@ -75,6 +114,7 @@ describe('privacy-first analytics adapter', () => {
         disable_persistence: true,
         save_referrer: false,
         respect_dnt: true,
+        request_batching: false,
       }),
     );
     expect(provider.capture.mock.calls).toEqual(
@@ -247,6 +287,7 @@ describe('privacy sanitizers', () => {
           locale: 'en',
           viewport: 'desktop',
           referrer: 'search',
+          token: 'phc_public_transport_token',
           $current_url: 'https://gumarov.com/en/?secret=1#email',
           $referrer: 'https://www.google.com/search?q=rinat+email',
           distinct_id: 'visitor-id',
@@ -261,6 +302,7 @@ describe('privacy sanitizers', () => {
         locale: 'en',
         viewport: 'desktop',
         referrer: 'search',
+        token: 'phc_public_transport_token',
         $current_url: 'https://gumarov.com/en/',
         $lib: 'web',
         $lib_version: '1.0.0',
