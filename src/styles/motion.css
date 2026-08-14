@@ -1,0 +1,122 @@
+@keyframes motion-hero-copy-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 1.25rem, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes motion-hero-portrait-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 1.75rem, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes motion-scene-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 1rem, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes motion-line-drift {
+  0%,
+  100% {
+    opacity: 0.42;
+    transform: translate3d(0, -1.25rem, 0) scaleY(0.96);
+  }
+
+  50% {
+    opacity: 0.9;
+    transform: translate3d(0, 1.25rem, 0) scaleY(1.02);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-motion-hero] [data-motion-enter='copy'] {
+    animation: motion-hero-copy-enter 640ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  [data-motion-hero] [data-motion-enter='portrait'] {
+    animation: motion-hero-portrait-enter 760ms cubic-bezier(0.22, 1, 0.36, 1)
+      90ms both;
+  }
+
+  [data-motion-hero]::before {
+    transform-origin: center;
+    animation: motion-line-drift 8s ease-in-out infinite;
+  }
+
+  [data-motion-project][data-motion-viewed='true'] [data-motion-reveal='copy'],
+  [data-motion-personal][data-motion-viewed='true']
+    [data-motion-reveal='copy'] {
+    animation: motion-scene-enter 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  [data-motion-project][data-motion-viewed='true']
+    [data-motion-reveal='visual'],
+  [data-motion-personal][data-motion-viewed='true']
+    [data-motion-reveal='visual'] {
+    animation: motion-scene-enter 640ms cubic-bezier(0.22, 1, 0.36, 1) 70ms both;
+  }
+}
+
+@media (min-width: 56.001rem) and (prefers-reduced-motion: no-preference) {
+  [data-motion-project] [data-motion-sticky] {
+    position: sticky;
+    inset-block-start: clamp(5rem, 10vh, 8rem);
+    align-self: start;
+  }
+}
+
+@media (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  [data-motion-parallax-layer] {
+    transform: translate3d(
+      var(--motion-parallax-x, 0),
+      var(--motion-parallax-y, 0),
+      0
+    );
+    transition: transform 120ms ease-out;
+    will-change: transform;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-motion-enter],
+  [data-motion-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+
+  [data-motion-hero]::before {
+    transform: none !important;
+    animation: none !important;
+  }
+
+  [data-motion-parallax-layer] {
+    transform: none !important;
+    transition: none !important;
+    will-change: auto;
+  }
+
+  [data-motion-sticky] {
+    position: static !important;
+    inset-block-start: auto !important;
+  }
+}

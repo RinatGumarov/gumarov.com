@@ -1,4 +1,5 @@
 import type { LandingContent } from '../content';
+import { usePointerParallax } from '../lib/motion';
 import styles from './Hero.module.css';
 
 const portraitSources = {
@@ -15,14 +16,16 @@ interface HeroProps {
 
 export function Hero(_props: HeroProps) {
   const { content } = _props;
+  const portraitMotion = usePointerParallax<HTMLPictureElement>();
 
   return (
     <section
       className={styles.hero}
       data-hero="landing"
+      data-motion-hero="true"
       aria-labelledby="hero-heading"
     >
-      <div className={styles.copy}>
+      <div className={styles.copy} data-motion-enter="copy">
         <p className={styles.eyebrow}>{content.eyebrow}</p>
         <h1 className={styles.title} id="hero-heading">
           {content.title}
@@ -39,8 +42,18 @@ export function Hero(_props: HeroProps) {
         </div>
       </div>
 
-      <figure className={styles.portrait} aria-hidden="true">
-        <picture>
+      <figure
+        className={styles.portrait}
+        aria-hidden="true"
+        data-motion-enter="portrait"
+      >
+        <picture
+          ref={portraitMotion.ref}
+          data-motion-parallax="true"
+          data-motion-parallax-layer="true"
+          onPointerMove={portraitMotion.onPointerMove}
+          onPointerLeave={portraitMotion.onPointerLeave}
+        >
           <source
             type="image/avif"
             srcSet={portraitSources.avif}

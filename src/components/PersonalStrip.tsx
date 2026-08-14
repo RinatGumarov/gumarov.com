@@ -1,3 +1,5 @@
+import { usePointerParallax } from '../lib/motion';
+import { useViewedOnce } from '../lib/useViewedOnce';
 import styles from './PersonalStrip.module.css';
 
 export interface PersonalPhoto {
@@ -25,10 +27,18 @@ interface PersonalStripProps {
 
 export function PersonalStrip(_props: PersonalStripProps) {
   const { content, photos } = _props;
+  const { observed, ref } = useViewedOnce<HTMLElement>();
+  const stripMotion = usePointerParallax<HTMLDivElement>();
 
   return (
-    <section className={styles.personal} aria-labelledby="personal-heading">
-      <div className={styles.copy}>
+    <section
+      ref={ref}
+      className={styles.personal}
+      aria-labelledby="personal-heading"
+      data-motion-personal="true"
+      data-motion-viewed={observed ? 'true' : undefined}
+    >
+      <div className={styles.copy} data-motion-reveal="copy">
         <p className={styles.index} aria-hidden="true">
           03 /
         </p>
@@ -41,9 +51,20 @@ export function PersonalStrip(_props: PersonalStripProps) {
         </ul>
       </div>
 
-      <div className={styles.filmStrip}>
+      <div
+        ref={stripMotion.ref}
+        className={styles.filmStrip}
+        data-motion-parallax="true"
+        data-motion-reveal="visual"
+        onPointerMove={stripMotion.onPointerMove}
+        onPointerLeave={stripMotion.onPointerLeave}
+      >
         {photos.map((photo, index) => (
-          <figure className={styles.frame} key={index}>
+          <figure
+            className={styles.frame}
+            data-motion-parallax-layer="true"
+            key={index}
+          >
             <img
               src={photo.src}
               width={photo.width}
