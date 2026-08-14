@@ -32,6 +32,7 @@
   gap: var(--space-3);
   margin: 0 0 var(--space-7);
   color: var(--color-amber-300);
+  font-family: var(--font-mono);
   font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -141,18 +142,15 @@
 }
 
 .portrait picture::before {
-  inset: 8%;
-  border: 1px solid var(--color-line-strong);
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgb(26 174 210 / 0.1), transparent 38%),
+    linear-gradient(180deg, transparent 46%, rgb(8 11 15 / 0.44));
 }
 
 .portrait picture::after {
-  inset-block-start: 12%;
-  inset-inline-start: 15%;
-  inline-size: 42%;
-  aspect-ratio: 1;
-  border: 1px solid color-mix(in srgb, var(--color-cyan-400) 48%, transparent);
-  border-radius: 50%;
-  box-shadow: 5.5rem 9rem 0 3.75rem var(--color-graphite-700);
+  inset: 8%;
+  border: 1px solid var(--color-line-strong);
 }
 
 .portrait img {
@@ -160,7 +158,6 @@
   inline-size: 100%;
   block-size: 100%;
   object-fit: cover;
-  opacity: 0;
 }
 
 .portrait figcaption {
@@ -170,6 +167,7 @@
   display: flex;
   justify-content: space-between;
   color: var(--color-text-subtle);
+  font-family: var(--font-mono);
   font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.18em;

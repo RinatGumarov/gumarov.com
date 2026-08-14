@@ -25,6 +25,7 @@ describe('landing content', () => {
     expect(content.personal.items.length).toBeGreaterThan(0);
     expect(content.contact.heading).not.toBe('');
     expect(content.contact.body).not.toBe('');
+    expect(content.footer.privacy).not.toBe('');
   });
 
   it.each(['en', 'ru'] as const)(

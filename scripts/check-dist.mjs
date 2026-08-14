@@ -1,8 +1,10 @@
+import { createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { JSDOM } from 'jsdom';
+import sharp from 'sharp';
 import vm from 'node:vm';
 
 const projectRoot = path.resolve(
@@ -15,6 +17,22 @@ const kibibyte = 1024;
 const javascriptBudget = 150 * kibibyte;
 const initialTransferBudget = 700 * kibibyte;
 const heroSourceBudget = 300 * kibibyte;
+const approvedPortraitSourceSha256 =
+  '82a737263a795f74b39bca2b78710cfdca336d8408566f458c8bb4e8c35d9310';
+const approvedPortraitManifestFile = 'assets/portrait/approved-manifest.json';
+const requiredPortraitAssets = [480, 768, 1024].flatMap((width) =>
+  [
+    { extension: 'avif', manifestFormat: 'avif', metadataFormat: 'heif' },
+    { extension: 'webp', manifestFormat: 'webp', metadataFormat: 'webp' },
+    { extension: 'jpg', manifestFormat: 'jpeg', metadataFormat: 'jpeg' },
+  ].map(({ extension, manifestFormat, metadataFormat }) => ({
+    file: `assets/portrait/portrait-${width}.${extension}`,
+    manifestFormat,
+    metadataFormat,
+    width,
+    height: Math.round(width * 1.25),
+  })),
+);
 const routeContracts = [
   {
     file: 'index.html',
@@ -225,6 +243,8 @@ for (const file of heroSourcePaths) {
   }
 }
 
+await validateRequiredPortraitAssets();
+
 if (failures.length > 0) {
   console.error('Distribution checks failed:');
   for (const failure of failures) {
@@ -246,6 +266,134 @@ if (failures.length > 0) {
 function requireText(source, expected, failure) {
   if (!source.includes(expected)) {
     failures.push(failure);
+  }
+}
+
+async function validateRequiredPortraitAssets() {
+  const approvedManifest = await readApprovedPortraitManifest();
+  const approvedOutputs = new Map(
+    Array.isArray(approvedManifest?.outputs)
+      ? approvedManifest.outputs.map((output) => [output.file, output])
+      : [],
+  );
+
+  if (
+    approvedManifest &&
+    approvedManifest.source?.sha256 !== approvedPortraitSourceSha256
+  ) {
+    failures.push(
+      `${approvedPortraitManifestFile}: source SHA-256 is not the pinned approved portrait source.`,
+    );
+  }
+  if (approvedManifest && approvedManifest.schemaVersion !== 1) {
+    failures.push(`${approvedPortraitManifestFile}: expected schemaVersion 1.`);
+  }
+  if (
+    approvedManifest &&
+    (!Array.isArray(approvedManifest.outputs) ||
+      approvedManifest.outputs.length !== requiredPortraitAssets.length)
+  ) {
+    failures.push(
+      `${approvedPortraitManifestFile}: expected exactly ${requiredPortraitAssets.length} approved outputs.`,
+    );
+  }
+
+  for (const contract of requiredPortraitAssets) {
+    const assetPath = path.join(distDirectory, contract.file);
+    const approvedOutput = approvedOutputs.get(contract.file);
+    let assetStat;
+
+    if (!approvedOutput) {
+      failures.push(
+        `${approvedPortraitManifestFile}: missing approved output ${contract.file}.`,
+      );
+    } else if (
+      approvedOutput.format !== contract.manifestFormat ||
+      approvedOutput.width !== contract.width ||
+      approvedOutput.height !== contract.height
+    ) {
+      failures.push(
+        `${approvedPortraitManifestFile}: contract for ${contract.file} does not match the required format and dimensions.`,
+      );
+    }
+
+    try {
+      assetStat = await stat(assetPath);
+    } catch {
+      failures.push(`Required portrait asset is missing: ${contract.file}`);
+      continue;
+    }
+
+    if (assetStat.size > heroSourceBudget) {
+      failures.push(
+        `Portrait asset ${contract.file} is ${formatKib(assetStat.size)}; budget is ${formatKib(heroSourceBudget)}.`,
+      );
+    }
+    if (approvedOutput?.bytes !== assetStat.size) {
+      failures.push(
+        `Portrait asset ${contract.file} byte size does not match the approved manifest.`,
+      );
+    }
+
+    const contents = await readFile(assetPath);
+    const actualSha256 = createHash('sha256').update(contents).digest('hex');
+    if (approvedOutput?.sha256 !== actualSha256) {
+      failures.push(
+        `Portrait asset ${contract.file} SHA-256 does not match the approved manifest.`,
+      );
+    }
+
+    let metadata;
+    try {
+      metadata = await sharp(assetPath).metadata();
+    } catch (error) {
+      failures.push(
+        `Portrait asset ${contract.file} could not be inspected: ${String(error)}`,
+      );
+      continue;
+    }
+
+    if (metadata.format !== contract.metadataFormat) {
+      failures.push(
+        `Portrait asset ${contract.file} has format ${String(metadata.format)}; expected ${contract.metadataFormat}.`,
+      );
+    }
+    if (
+      metadata.width !== contract.width ||
+      metadata.height !== contract.height
+    ) {
+      failures.push(
+        `Portrait asset ${contract.file} is ${String(metadata.width)}x${String(metadata.height)}; expected ${contract.width}x${contract.height}.`,
+      );
+    }
+    for (const metadataType of ['exif', 'xmp', 'iptc', 'icc']) {
+      if (metadata[metadataType] !== undefined) {
+        failures.push(
+          `Portrait asset ${contract.file} contains ${metadataType.toUpperCase()} metadata.`,
+        );
+      }
+    }
+    if (metadata.orientation !== undefined) {
+      failures.push(
+        `Portrait asset ${contract.file} contains orientation metadata.`,
+      );
+    }
+  }
+}
+
+async function readApprovedPortraitManifest() {
+  try {
+    return JSON.parse(
+      await readFile(
+        path.join(distDirectory, approvedPortraitManifestFile),
+        'utf8',
+      ),
+    );
+  } catch (error) {
+    failures.push(
+      `Approved portrait manifest is missing or invalid: ${approvedPortraitManifestFile} (${String(error)}).`,
+    );
+    return null;
   }
 }
 

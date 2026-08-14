@@ -17,6 +17,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:a11y": "playwright test tests/e2e/accessibility.spec.ts",
+    "media:portrait": "node scripts/process-images.mjs",
     "typecheck": "tsc -b",
     "lint": "eslint . --max-warnings=0",
     "format:check": "prettier --check .",

@@ -1,8 +1,13 @@
 import type { LandingContent } from '../content';
 import styles from './Hero.module.css';
 
-const neutralPortraitFallback =
-  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+const portraitSources = {
+  avif: '/assets/portrait/portrait-480.avif 480w, /assets/portrait/portrait-768.avif 768w, /assets/portrait/portrait-1024.avif 1024w',
+  webp: '/assets/portrait/portrait-480.webp 480w, /assets/portrait/portrait-768.webp 768w, /assets/portrait/portrait-1024.webp 1024w',
+  jpeg: '/assets/portrait/portrait-480.jpg 480w, /assets/portrait/portrait-768.jpg 768w, /assets/portrait/portrait-1024.jpg 1024w',
+};
+const portraitSizes =
+  '(max-width: 46rem) min(100vw - 4rem, 28rem), (max-width: 64rem) 38vw, 30vw';
 
 interface HeroProps {
   content: LandingContent['hero'];
@@ -36,9 +41,27 @@ export function Hero(_props: HeroProps) {
 
       <figure className={styles.portrait} aria-hidden="true">
         <picture>
-          <source media="(min-width: 64rem)" srcSet={neutralPortraitFallback} />
-          <source media="(min-width: 40rem)" srcSet={neutralPortraitFallback} />
-          <img src={neutralPortraitFallback} alt="" width="800" height="1000" />
+          <source
+            type="image/avif"
+            srcSet={portraitSources.avif}
+            sizes={portraitSizes}
+          />
+          <source
+            type="image/webp"
+            srcSet={portraitSources.webp}
+            sizes={portraitSizes}
+          />
+          <img
+            src="/assets/portrait/portrait-768.jpg"
+            srcSet={portraitSources.jpeg}
+            sizes={portraitSizes}
+            alt=""
+            width="768"
+            height="960"
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
+          />
         </picture>
         <figcaption>
           <span>RG</span>
