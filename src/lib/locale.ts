@@ -23,6 +23,10 @@ export function resolveLocale(input: LocaleResolutionInput): Locale {
       return 'en';
     }
 
+    if (input.pathname !== '/') {
+      return 'en';
+    }
+
     if (isLocale(input.stored)) {
       return input.stored;
     }

@@ -30,6 +30,12 @@ describe('resolveLocale', () => {
     ).toBe('ru');
   });
 
+  it('falls back to English on an unsupported non-root path', () => {
+    expect(
+      resolveLocale({ pathname: '/work', stored: 'ru', languages: ['ru-RU'] }),
+    ).toBe('en');
+  });
+
   it('falls back to English for unsupported or malformed inputs', () => {
     expect(
       resolveLocale({ pathname: '/', stored: 'invalid', languages: ['de'] }),
