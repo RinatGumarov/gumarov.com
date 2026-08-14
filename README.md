@@ -76,10 +76,13 @@ unverified claims. Font files and their licenses must ship together.
 | `portrait-1024.jpg`  | 151,291 | `499ac60a65648cd5af5d0d990203ca2bd96a1b4304a021bc65cddd01e123af67` |
 
 The two complete processing runs produced identical intermediate and output
-hashes. Neither the HEIC nor the decoded PNG is committed. No project
-screenshots are committed: the approved project scenes remain CSS-native
-geometry because redistribution rights and provenance for third-party
-screenshots have not been cleared.
+hashes. `public/assets/portrait/approved-manifest.json` records the pinned
+source, lossless decode, transform parameters, and every approved output hash;
+the distribution build rejects missing, changed, mis-sized, or metadata-bearing
+portrait derivatives. Neither the HEIC nor the decoded PNG is committed. No
+project screenshots are committed: the approved project scenes remain
+CSS-native geometry because redistribution rights and provenance for
+third-party screenshots have not been cleared.
 
 ### Fonts
 

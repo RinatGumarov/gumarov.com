@@ -1,5 +1,6 @@
+import { createHash } from 'node:crypto';
 import { afterEach, describe, expect, it } from 'vitest';
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -83,6 +84,95 @@ describe('distribution checker', () => {
       'Portrait asset assets/portrait/portrait-480.jpg contains EXIF metadata.',
     );
     expect(metadataResult.status).toBe(1);
+
+    const iccFixture = await createDistributionFixture();
+    await sharp({
+      create: {
+        width: 480,
+        height: 600,
+        channels: 3,
+        background: '#123456',
+      },
+    })
+      .jpeg()
+      .withIccProfile('srgb')
+      .toFile(
+        path.join(iccFixture.distDirectory, 'assets/portrait/portrait-480.jpg'),
+      );
+
+    const iccResult = runChecker(iccFixture.distDirectory);
+
+    expect(iccResult.stderr).toContain(
+      'Portrait asset assets/portrait/portrait-480.jpg contains ICC metadata.',
+    );
+    expect(iccResult.status).toBe(1);
+
+    const orientationFixture = await createDistributionFixture();
+    await sharp({
+      create: {
+        width: 480,
+        height: 600,
+        channels: 3,
+        background: '#123456',
+      },
+    })
+      .jpeg()
+      .withMetadata({ orientation: 6 })
+      .toFile(
+        path.join(
+          orientationFixture.distDirectory,
+          'assets/portrait/portrait-480.jpg',
+        ),
+      );
+
+    const orientationResult = runChecker(orientationFixture.distDirectory);
+
+    expect(orientationResult.stderr).toContain(
+      'Portrait asset assets/portrait/portrait-480.jpg contains orientation metadata.',
+    );
+    expect(orientationResult.status).toBe(1);
+  });
+
+  it('rejects unrelated metadata-free pixels that do not match the approved output manifest', async () => {
+    const missingManifestFixture = await createDistributionFixture();
+    await rm(
+      path.join(
+        missingManifestFixture.distDirectory,
+        'assets/portrait/approved-manifest.json',
+      ),
+    );
+
+    const missingManifestResult = runChecker(
+      missingManifestFixture.distDirectory,
+    );
+
+    expect(missingManifestResult.stderr).toContain(
+      'Approved portrait manifest is missing or invalid: assets/portrait/approved-manifest.json',
+    );
+    expect(missingManifestResult.status).toBe(1);
+
+    const fixture = await createDistributionFixture();
+    const assetPath = path.join(
+      fixture.distDirectory,
+      'assets/portrait/portrait-480.webp',
+    );
+    await sharp({
+      create: {
+        width: 480,
+        height: 600,
+        channels: 3,
+        background: '#654321',
+      },
+    })
+      .webp({ quality: 10 })
+      .toFile(assetPath);
+
+    const result = runChecker(fixture.distDirectory);
+
+    expect(result.stderr).toContain(
+      'Portrait asset assets/portrait/portrait-480.webp SHA-256 does not match the approved manifest.',
+    );
+    expect(result.status).toBe(1);
   });
 
   it('fails for omitted values across the built visible-content contract', async () => {
@@ -347,10 +437,13 @@ async function createDistributionFixture(options = {}) {
 async function writeValidPortraitAssets(distDirectory) {
   const portraitDirectory = path.join(distDirectory, 'assets/portrait');
   await mkdir(portraitDirectory, { recursive: true });
+  const outputs = [];
 
   for (const width of [480, 768, 1024]) {
     for (const format of ['avif', 'webp', 'jpeg']) {
       const extension = format === 'jpeg' ? 'jpg' : format;
+      const file = `portrait-${width}.${extension}`;
+      const outputPath = path.join(portraitDirectory, file);
       await sharp({
         create: {
           width,
@@ -360,9 +453,34 @@ async function writeValidPortraitAssets(distDirectory) {
         },
       })
         .toFormat(format, { quality: 10 })
-        .toFile(path.join(portraitDirectory, `portrait-${width}.${extension}`));
+        .toFile(outputPath);
+      const contents = await readFile(outputPath);
+      outputs.push({
+        file: `assets/portrait/${file}`,
+        format,
+        width,
+        height: width * 1.25,
+        bytes: contents.byteLength,
+        sha256: createHash('sha256').update(contents).digest('hex'),
+      });
     }
   }
+
+  await writeFile(
+    path.join(portraitDirectory, 'approved-manifest.json'),
+    `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        source: {
+          sha256:
+            '82a737263a795f74b39bca2b78710cfdca336d8408566f458c8bb4e8c35d9310',
+        },
+        outputs,
+      },
+      null,
+      2,
+    )}\n`,
+  );
 }
 
 function createContent(locale, heroBody) {

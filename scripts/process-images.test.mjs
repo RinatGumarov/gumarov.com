@@ -1,7 +1,15 @@
 import { createHash } from 'node:crypto';
-import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  access,
+  chmod,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import sharp from 'sharp';
 import { afterEach, describe, expect, it } from 'vitest';
 import { decodeHeicToPng, processPortrait } from './process-images.mjs';
@@ -17,6 +25,49 @@ afterEach(async () => {
 });
 
 describe('portrait image pipeline', () => {
+  it('rejects an unapproved HEIC before invoking the decoder', async () => {
+    const fixtureRoot = await mkdtemp(path.join(tmpdir(), 'heic-approval-'));
+    temporaryDirectories.push(fixtureRoot);
+    const inputPath = path.join(fixtureRoot, 'unapproved.heic');
+    const outputDirectory = path.join(fixtureRoot, 'outputs');
+    const intermediatePath = path.join(fixtureRoot, 'decoded.png');
+    const markerPath = path.join(fixtureRoot, 'decoder-was-invoked');
+    const decoderPath = path.join(fixtureRoot, 'heif-convert');
+
+    await writeFile(inputPath, 'unapproved portrait fixture');
+    await writeFile(
+      decoderPath,
+      `#!/usr/bin/env node
+import { writeFile } from 'node:fs/promises';
+await writeFile(${JSON.stringify(markerPath)}, 'invoked');
+`,
+    );
+    await chmod(decoderPath, 0o755);
+
+    const result = spawnSync(
+      process.execPath,
+      [
+        path.resolve(process.cwd(), 'scripts/process-images.mjs'),
+        inputPath,
+        outputDirectory,
+        intermediatePath,
+      ],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          PATH: `${fixtureRoot}${path.delimiter}${process.env.PATH ?? ''}`,
+        },
+      },
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      'Approved portrait source SHA-256 mismatch: expected 82a737263a795f74b39bca2b78710cfdca336d8408566f458c8bb4e8c35d9310',
+    );
+    await expect(access(markerPath)).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
   it('decodes HEIC through the limits-disabled lossless PNG boundary', async () => {
     const fixtureRoot = await mkdtemp(path.join(tmpdir(), 'heic-decoder-'));
     temporaryDirectories.push(fixtureRoot);
@@ -110,6 +161,8 @@ await copyFile(process.argv[3], process.argv[4]);
         expect(metadata.exif).toBeUndefined();
         expect(metadata.xmp).toBeUndefined();
         expect(metadata.iptc).toBeUndefined();
+        expect(metadata.icc).toBeUndefined();
+        expect(metadata.orientation).toBeUndefined();
         expect(firstBytes.byteLength).toBeLessThanOrEqual(300 * 1024);
         expect(sha256(firstBytes)).toBe(sha256(secondBytes));
       }

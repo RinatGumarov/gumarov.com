@@ -8,6 +8,9 @@ import sharp from 'sharp';
 
 const execFileAsync = promisify(execFile);
 
+export const approvedPortraitSourceSha256 =
+  '82a737263a795f74b39bca2b78710cfdca336d8408566f458c8bb4e8c35d9310';
+
 const portraitWidths = [480, 768, 1024];
 const portraitFormats = [
   {
@@ -96,6 +99,23 @@ export async function decodeHeicToPng({
   };
 }
 
+export async function verifyApprovedPortraitSource(inputPath) {
+  const contents = await readFile(inputPath);
+  const actualSha256 = createHash('sha256').update(contents).digest('hex');
+
+  if (actualSha256 !== approvedPortraitSourceSha256) {
+    throw new Error(
+      `Approved portrait source SHA-256 mismatch: expected ${approvedPortraitSourceSha256}, received ${actualSha256}.`,
+    );
+  }
+
+  return {
+    file: inputPath,
+    bytes: contents.byteLength,
+    sha256: actualSha256,
+  };
+}
+
 const isDirectInvocation =
   process.argv[1] &&
   path.resolve(process.argv[1]) ===
@@ -118,6 +138,7 @@ if (isDirectInvocation) {
     projectRoot,
     process.argv[4] ?? 'assets-source/portrait-decoded.png',
   );
+  const source = await verifyApprovedPortraitSource(inputPath);
   const intermediate = await decodeHeicToPng({
     inputPath,
     outputPath: intermediatePath,
@@ -126,5 +147,5 @@ if (isDirectInvocation) {
     inputPath: intermediatePath,
     outputDirectory,
   });
-  console.log(JSON.stringify({ intermediate, outputs }, null, 2));
+  console.log(JSON.stringify({ source, intermediate, outputs }, null, 2));
 }

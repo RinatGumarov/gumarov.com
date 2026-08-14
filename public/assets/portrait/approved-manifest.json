@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "file": "assets-source/portrait.heic",
+    "width": 2316,
+    "height": 3088,
+    "bytes": 1109592,
+    "sha256": "82a737263a795f74b39bca2b78710cfdca336d8408566f458c8bb4e8c35d9310"
+  },
+  "losslessIntermediate": {
+    "file": "assets-source/portrait-decoded.png",
+    "width": 2316,
+    "height": 3088,
+    "bytes": 5956158,
+    "sha256": "5c3ac0971451e64b058b9090a5050ad06c5a6c518feae66fe02aeba73e0befd6"
+  },
+  "processing": {
+    "decoder": "libheif heif-dec --disable-limits",
+    "crop": "fixed-centre-cover",
+    "aspectRatio": "4:5",
+    "resizeKernel": "lanczos3",
+    "colourspace": "srgb",
+    "brightness": 0.92,
+    "saturation": 0.88,
+    "metadataPolicy": "exclude"
+  },
+  "outputs": [
+    {
+      "file": "assets/portrait/portrait-480.avif",
+      "format": "avif",
+      "width": 480,
+      "height": 600,
+      "bytes": 17165,
+      "sha256": "b04d949e2496a40d9e85a08502a14e903c1d8963b48cc3c3a231b817957d73fb"
+    },
+    {
+      "file": "assets/portrait/portrait-480.webp",
+      "format": "webp",
+      "width": 480,
+      "height": 600,
+      "bytes": 25314,
+      "sha256": "fc2302b679f55b3b655e8a188c2180b663a3d270bea920c4f47d3e77fb84fb7b"
+    },
+    {
+      "file": "assets/portrait/portrait-480.jpg",
+      "format": "jpeg",
+      "width": 480,
+      "height": 600,
+      "bytes": 38372,
+      "sha256": "6bb5c78a0a3f912b132c6330163b90fa6f6ffa63f654836b56c3f9884f2885b4"
+    },
+    {
+      "file": "assets/portrait/portrait-768.avif",
+      "format": "avif",
+      "width": 768,
+      "height": 960,
+      "bytes": 39194,
+      "sha256": "8368a77e5a0f9239a5059c56b9860c1197f5549a59d30bcd987094657709342c"
+    },
+    {
+      "file": "assets/portrait/portrait-768.webp",
+      "format": "webp",
+      "width": 768,
+      "height": 960,
+      "bytes": 59064,
+      "sha256": "6f4d3370903a8af7fdfedab8876369713b768c6f17052674aa35dbeb8551b5e7"
+    },
+    {
+      "file": "assets/portrait/portrait-768.jpg",
+      "format": "jpeg",
+      "width": 768,
+      "height": 960,
+      "bytes": 89083,
+      "sha256": "ff41db2cd26bd54981baca46858be10baceb83239c9443143701e6e3272c4057"
+    },
+    {
+      "file": "assets/portrait/portrait-1024.avif",
+      "format": "avif",
+      "width": 1024,
+      "height": 1280,
+      "bytes": 65777,
+      "sha256": "ecfe605c830aa150c97c80a012c9370fc0dfcbc434776b6c7de5c7abea49eebe"
+    },
+    {
+      "file": "assets/portrait/portrait-1024.webp",
+      "format": "webp",
+      "width": 1024,
+      "height": 1280,
+      "bytes": 100276,
+      "sha256": "7ed1c477a15d05bb448588364e62840a6c5f1f201a919156ab8095d29338d6b9"
+    },
+    {
+      "file": "assets/portrait/portrait-1024.jpg",
+      "format": "jpeg",
+      "width": 1024,
+      "height": 1280,
+      "bytes": 151291,
+      "sha256": "499ac60a65648cd5af5d0d990203ca2bd96a1b4304a021bc65cddd01e123af67"
+    }
+  ]
+}
