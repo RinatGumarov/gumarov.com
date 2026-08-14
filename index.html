@@ -1,12 +1,43 @@
 <!doctype html>
-<html lang="en">
+<html lang="<!--html-lang-->">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Rinat Gumarov — Senior Frontend Engineer</title>
+    <!--page-meta-->
+    <script data-root-locale-bootstrap>
+      (() => {
+        if (window.location.pathname !== '/') return;
+
+        let locale = null;
+        try {
+          locale = window.localStorage.getItem('preferred-locale');
+        } catch {
+          // The English document remains the usable fallback.
+        }
+
+        if (locale !== 'en' && locale !== 'ru') {
+          const languages = Array.isArray(window.navigator.languages)
+            ? window.navigator.languages
+            : [window.navigator.language];
+          locale = languages.some(
+            (language) =>
+              typeof language === 'string' &&
+              language.toLowerCase().startsWith('ru'),
+          )
+            ? 'ru'
+            : 'en';
+        }
+
+        if (locale === 'ru') {
+          window.location.replace(
+            `/ru/${window.location.search}${window.location.hash}`,
+          );
+        }
+      })();
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><!--app-html--></div>
     <script type="module" src="/src/entry-client.tsx"></script>
   </body>
 </html>
