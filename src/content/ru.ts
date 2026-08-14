@@ -27,6 +27,8 @@ export const ru = {
       summary: 'Платформа для анализа рынков и трейдинга.',
       contribution:
         'Senior Frontend Engineer: развиваю сложные frontend-функции в Pine Editor и Strategy Tester.',
+      capabilities:
+        'Сложные frontend-системы · Интерфейсы с высокими требованиями к производительности',
       href: 'https://www.tradingview.com/',
     },
     {
@@ -36,6 +38,7 @@ export const ru = {
       summary: 'Финтех-продукт для автоматизированных торговых стратегий.',
       contribution:
         'Основной frontend-инженер: с нуля создал веб-приложение на React, TypeScript и Next.js.',
+      capabilities: 'React · TypeScript · Next.js',
       href: 'https://stoic.ai/',
     },
     {
@@ -45,6 +48,7 @@ export const ru = {
       summary: 'iOS-продукт для совместного учёта расходов.',
       contribution:
         'Придумал продукт, сформировал UX и довёл его от разработки до релиза в App Store.',
+      capabilities: 'Продуктовая стратегия · UX · iOS-разработка',
       href: 'https://splithub.app/',
     },
     {
@@ -55,6 +59,7 @@ export const ru = {
         'Платформа для управления, выпуска и мониторинга устойчивого финансирования.',
       contribution:
         'Участвовал во frontend- и full-stack-разработке платформы устойчивого финансирования.',
+      capabilities: 'Frontend · Full stack · Устойчивое финансирование',
       href: 'https://evercity.io/',
     },
   ],
