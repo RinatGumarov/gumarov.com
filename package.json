@@ -12,7 +12,7 @@
     "build:client": "vite build",
     "build:ssr": "vite build --ssr src/entry-server.tsx --outDir dist-ssr",
     "prerender": "node scripts/prerender.mjs",
-    "build": "vite build",
+    "build": "pnpm build:client && pnpm build:ssr && pnpm prerender && node scripts/check-dist.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
