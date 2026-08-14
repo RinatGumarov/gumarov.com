@@ -143,9 +143,16 @@
   border: 1px solid var(--color-line-strong);
   background-color: var(--color-graphite-850);
   background-image:
-    linear-gradient(var(--color-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--color-line) 1px, transparent 1px);
-  background-size: clamp(2.5rem, 6vw, 5rem) clamp(2.5rem, 6vw, 5rem);
+    radial-gradient(
+      circle at 22% 18%,
+      color-mix(in srgb, var(--project-accent) 15%, transparent),
+      transparent 32%
+    ),
+    linear-gradient(
+      145deg,
+      var(--color-graphite-800),
+      var(--color-graphite-950)
+    );
   box-shadow: var(--shadow-deep);
 }
 
@@ -157,149 +164,143 @@
 }
 
 .visual::before {
-  inset-block-start: 0;
-  inset-inline-start: 11%;
+  inset-block: 0;
+  inset-inline-start: 18%;
   inline-size: 1px;
-  block-size: 100%;
-  background: color-mix(in srgb, var(--project-accent) 68%, transparent);
+  background: color-mix(in srgb, var(--project-accent) 55%, transparent);
 }
 
 .visual::after {
-  inset-block-start: 13%;
-  inset-inline-end: 0;
-  inline-size: 39%;
+  inset-block-start: 72%;
+  inset-inline: 0;
   block-size: 1px;
-  background: var(--project-accent-secondary);
+  background: color-mix(
+    in srgb,
+    var(--project-accent-secondary) 62%,
+    transparent
+  );
 }
 
-.interface {
+.geometry {
   position: absolute;
-  inset: clamp(var(--space-5), 6vw, var(--space-10));
-  display: grid;
-  grid-template-rows: auto 1fr;
-  border: 1px solid color-mix(in srgb, var(--project-accent) 50%, transparent);
-  background: rgb(8 11 15 / 0.8);
-  box-shadow: 1.25rem 1.25rem 0 rgb(8 11 15 / 0.44);
-}
-
-.interfaceTop {
-  min-block-size: clamp(2rem, 4vw, 3.25rem);
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding-inline: var(--space-4);
-  border-block-end: 1px solid var(--color-line);
-}
-
-.interfaceTop span {
-  inline-size: 0.34rem;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: var(--color-text-subtle);
-}
-
-.interfaceTop span:first-child {
-  background: var(--project-accent);
-}
-
-.interfaceBody {
-  min-block-size: 0;
-  display: grid;
-  grid-template-columns: minmax(2rem, 18%) minmax(0, 1fr);
-}
-
-.interfaceRail {
-  display: grid;
-  align-content: start;
-  gap: var(--space-4);
-  padding: clamp(var(--space-3), 2.5vw, var(--space-5));
-  border-inline-end: 1px solid var(--color-line);
-}
-
-.interfaceRail span {
-  block-size: 2px;
-  background: var(--color-line-strong);
-}
-
-.interfaceRail span:nth-child(2) {
-  inline-size: 68%;
-  background: var(--project-accent);
-}
-
-.interfaceRail span:nth-child(3) {
-  inline-size: 82%;
-}
-
-.interfaceCanvas {
-  position: relative;
-  min-inline-size: 0;
+  inset: 0;
   overflow: hidden;
+  isolation: isolate;
 }
 
-.panelPrimary,
-.panelSecondary,
-.signal,
-.marker {
+.lightPlane,
+.depthPlane,
+.arc,
+.lineField,
+.nodes {
   position: absolute;
   display: block;
 }
 
-.panelPrimary {
-  inset: 13% 8% 42% 9%;
-  border: 1px solid var(--color-line-strong);
+.lightPlane {
+  inset: -18% 28% 27% -12%;
+  clip-path: polygon(12% 0, 100% 17%, 73% 100%, 0 68%);
   background: linear-gradient(
-    120deg,
-    color-mix(in srgb, var(--project-accent) 13%, transparent),
-    transparent 64%
+    142deg,
+    color-mix(in srgb, var(--project-accent) 32%, transparent),
+    color-mix(in srgb, var(--project-accent-secondary) 5%, transparent) 63%,
+    transparent
   );
+  filter: blur(0.25rem);
+  transform: rotate(-8deg);
 }
 
-.panelSecondary {
-  inset: 66% 29% 12% 9%;
-  border-block: 1px solid var(--color-line-strong);
+.depthPlane {
+  inset: 24% 11% 5% 31%;
+  clip-path: polygon(50% 0, 100% 30%, 78% 100%, 10% 84%, 0 28%);
+  border: 1px solid color-mix(in srgb, var(--project-accent) 42%, transparent);
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--project-accent) 9%, transparent),
+    rgb(8 11 15 / 0.25)
+  );
+  transform: rotate(7deg);
 }
 
-.signal {
-  inset-block: 13% 12%;
-  inset-inline-end: 17%;
-  inline-size: 1px;
-  background: var(--project-accent-secondary);
+.arc {
+  inset-block-start: 8%;
+  inset-inline-end: -8%;
+  inline-size: 58%;
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--project-accent) 70%, transparent);
+  border-block-start-color: transparent;
+  border-inline-end-color: var(--project-accent-secondary);
+  border-radius: 50%;
+  transform: rotate(24deg);
 }
 
-.marker {
-  inset-block-start: 35%;
-  inset-inline-end: calc(17% - 0.28rem);
-  inline-size: 0.6rem;
+.lineField {
+  inset: 49% -7% -18% 7%;
+  color: color-mix(in srgb, var(--project-accent) 34%, transparent);
+  background: repeating-linear-gradient(
+    104deg,
+    currentColor 0 1px,
+    transparent 1px 1.8rem
+  );
+  mask-image: linear-gradient(90deg, transparent, black 22% 76%, transparent);
+  transform: skewY(-9deg);
+}
+
+.nodes {
+  inset: 0;
+}
+
+.nodes span {
+  position: absolute;
+  display: block;
+  inline-size: clamp(0.35rem, 0.8vw, 0.65rem);
   aspect-ratio: 1;
   border: 1px solid var(--project-accent-secondary);
+  border-radius: 50%;
   background: var(--color-graphite-950);
-  transform: rotate(45deg);
+  box-shadow: 0 0 1.5rem
+    color-mix(in srgb, var(--project-accent) 48%, transparent);
 }
 
-.scene[data-project-slug='stoic'] .panelPrimary {
-  inset: 12% 17% 28% 8%;
+.nodes span:first-child {
+  inset-block-start: 19%;
+  inset-inline-start: 22%;
 }
 
-.scene[data-project-slug='stoic'] .panelSecondary {
-  inset: 24% 7% 17% 76%;
+.nodes span:nth-child(2) {
+  inset-block-start: 58%;
+  inset-inline-start: 48%;
 }
 
-.scene[data-project-slug='splithub'] .panelPrimary {
-  inset: 18% 39% 19% 8%;
+.nodes span:last-child {
+  inset-block-start: 32%;
+  inset-inline-end: 14%;
 }
 
-.scene[data-project-slug='splithub'] .panelSecondary {
-  inset: 18% 8% 55% 67%;
-  border: 1px solid var(--color-line-strong);
+.scene[data-project-slug='stoic'] .lightPlane {
+  transform: rotate(12deg) translate(8%, 4%);
 }
 
-.scene[data-project-slug='evercity'] .panelPrimary {
-  inset: 16% 9% 49% 9%;
+.scene[data-project-slug='stoic'] .arc {
+  inset-inline-end: 15%;
+  transform: rotate(-26deg);
 }
 
-.scene[data-project-slug='evercity'] .panelSecondary {
-  inset: 62% 9% 12% 9%;
-  border: 1px solid var(--color-line-strong);
+.scene[data-project-slug='splithub'] .depthPlane {
+  transform: rotate(-11deg) translate(-8%, -3%);
+}
+
+.scene[data-project-slug='splithub'] .lineField {
+  transform: skewY(11deg) rotate(-6deg);
+}
+
+.scene[data-project-slug='evercity'] .lightPlane {
+  transform: rotate(-18deg) translate(3%, 9%);
+}
+
+.scene[data-project-slug='evercity'] .arc {
+  inset-block-start: 20%;
+  inline-size: 48%;
 }
 
 @media (max-width: 56rem) {
@@ -326,21 +327,12 @@
   .visual {
     aspect-ratio: 4 / 3;
   }
-
-  .interface {
-    inset: var(--space-5);
-  }
-
-  .interfaceRail {
-    padding-inline: var(--space-3);
-  }
 }
 
 @media (forced-colors: active) {
   .visual,
-  .interface,
-  .panelPrimary,
-  .panelSecondary {
+  .depthPlane,
+  .arc {
     border-color: CanvasText;
   }
 }

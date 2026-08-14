@@ -38,27 +38,24 @@ export function ProjectScene({ index, project }: ProjectSceneProps) {
         className={styles.visual}
         role="img"
         aria-label={`${project.name}: ${project.eyebrow}`}
+        data-visual-kind="abstract-geometry"
       >
-        <div className={styles.interface} aria-hidden="true">
-          <div className={styles.interfaceTop}>
+        <div className={styles.geometry} aria-hidden="true">
+          <span
+            className={styles.lightPlane}
+            data-geometry-layer="light-plane"
+          />
+          <span
+            className={styles.depthPlane}
+            data-geometry-layer="depth-plane"
+          />
+          <span className={styles.arc} data-geometry-layer="arc" />
+          <span className={styles.lineField} data-geometry-layer="line-field" />
+          <span className={styles.nodes} data-geometry-layer="nodes">
             <span />
             <span />
             <span />
-          </div>
-          <div className={styles.interfaceBody}>
-            <div className={styles.interfaceRail}>
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-            <div className={styles.interfaceCanvas}>
-              <span className={styles.panelPrimary} />
-              <span className={styles.panelSecondary} />
-              <span className={styles.signal} />
-              <span className={styles.marker} />
-            </div>
-          </div>
+          </span>
         </div>
       </div>
     </article>
