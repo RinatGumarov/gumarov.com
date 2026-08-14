@@ -5,6 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import sharp from 'sharp';
 
 const checkerPath = path.resolve(process.cwd(), 'scripts/check-dist.mjs');
 const temporaryDirectories = [];
@@ -18,6 +19,72 @@ afterEach(async () => {
 });
 
 describe('distribution checker', () => {
+  it('requires every exact metadata-free portrait variant at its declared dimensions', async () => {
+    const missingFixture = await createDistributionFixture();
+    await rm(
+      path.join(
+        missingFixture.distDirectory,
+        'assets/portrait/portrait-768.webp',
+      ),
+    );
+
+    const missingResult = runChecker(missingFixture.distDirectory);
+
+    expect(missingResult.stderr).toContain(
+      'Required portrait asset is missing: assets/portrait/portrait-768.webp',
+    );
+    expect(missingResult.status).toBe(1);
+
+    const dimensionsFixture = await createDistributionFixture();
+    await sharp({
+      create: {
+        width: 20,
+        height: 20,
+        channels: 3,
+        background: '#123456',
+      },
+    })
+      .avif()
+      .toFile(
+        path.join(
+          dimensionsFixture.distDirectory,
+          'assets/portrait/portrait-1024.avif',
+        ),
+      );
+
+    const dimensionsResult = runChecker(dimensionsFixture.distDirectory);
+
+    expect(dimensionsResult.stderr).toContain(
+      'Portrait asset assets/portrait/portrait-1024.avif is 20x20; expected 1024x1280.',
+    );
+    expect(dimensionsResult.status).toBe(1);
+
+    const metadataFixture = await createDistributionFixture();
+    await sharp({
+      create: {
+        width: 480,
+        height: 600,
+        channels: 3,
+        background: '#123456',
+      },
+    })
+      .jpeg()
+      .withExif({ IFD0: { Make: 'Fixture Camera' } })
+      .toFile(
+        path.join(
+          metadataFixture.distDirectory,
+          'assets/portrait/portrait-480.jpg',
+        ),
+      );
+
+    const metadataResult = runChecker(metadataFixture.distDirectory);
+
+    expect(metadataResult.stderr).toContain(
+      'Portrait asset assets/portrait/portrait-480.jpg contains EXIF metadata.',
+    );
+    expect(metadataResult.status).toBe(1);
+  });
+
   it('fails for omitted values across the built visible-content contract', async () => {
     const omittedRequirements = [
       { path: 'hero.body', value: 'Required contract-only sentence.' },
@@ -240,6 +307,7 @@ async function createDistributionFixture(options = {}) {
   await mkdir(path.join(distDirectory, 'ru'), { recursive: true });
   await mkdir(serverDirectory, { recursive: true });
   await writeFile(path.join(fixtureRoot, 'package.json'), '{"type":"module"}');
+  await writeValidPortraitAssets(distDirectory);
 
   const contentByLocale = {
     en: createContent(
@@ -274,6 +342,27 @@ async function createDistributionFixture(options = {}) {
   }
 
   return { distDirectory };
+}
+
+async function writeValidPortraitAssets(distDirectory) {
+  const portraitDirectory = path.join(distDirectory, 'assets/portrait');
+  await mkdir(portraitDirectory, { recursive: true });
+
+  for (const width of [480, 768, 1024]) {
+    for (const format of ['avif', 'webp', 'jpeg']) {
+      const extension = format === 'jpeg' ? 'jpg' : format;
+      await sharp({
+        create: {
+          width,
+          height: width * 1.25,
+          channels: 3,
+          background: '#123456',
+        },
+      })
+        .toFormat(format, { quality: 10 })
+        .toFile(path.join(portraitDirectory, `portrait-${width}.${extension}`));
+    }
+  }
 }
 
 function createContent(locale, heroBody) {

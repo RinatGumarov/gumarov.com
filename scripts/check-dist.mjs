@@ -3,6 +3,7 @@ import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { JSDOM } from 'jsdom';
+import sharp from 'sharp';
 import vm from 'node:vm';
 
 const projectRoot = path.resolve(
@@ -15,6 +16,18 @@ const kibibyte = 1024;
 const javascriptBudget = 150 * kibibyte;
 const initialTransferBudget = 700 * kibibyte;
 const heroSourceBudget = 300 * kibibyte;
+const requiredPortraitAssets = [480, 768, 1024].flatMap((width) =>
+  [
+    { extension: 'avif', format: 'heif' },
+    { extension: 'webp', format: 'webp' },
+    { extension: 'jpg', format: 'jpeg' },
+  ].map(({ extension, format }) => ({
+    file: `assets/portrait/portrait-${width}.${extension}`,
+    format,
+    width,
+    height: Math.round(width * 1.25),
+  })),
+);
 const routeContracts = [
   {
     file: 'index.html',
@@ -225,6 +238,8 @@ for (const file of heroSourcePaths) {
   }
 }
 
+await validateRequiredPortraitAssets();
+
 if (failures.length > 0) {
   console.error('Distribution checks failed:');
   for (const failure of failures) {
@@ -246,6 +261,57 @@ if (failures.length > 0) {
 function requireText(source, expected, failure) {
   if (!source.includes(expected)) {
     failures.push(failure);
+  }
+}
+
+async function validateRequiredPortraitAssets() {
+  for (const contract of requiredPortraitAssets) {
+    const assetPath = path.join(distDirectory, contract.file);
+    let assetStat;
+
+    try {
+      assetStat = await stat(assetPath);
+    } catch {
+      failures.push(`Required portrait asset is missing: ${contract.file}`);
+      continue;
+    }
+
+    if (assetStat.size > heroSourceBudget) {
+      failures.push(
+        `Portrait asset ${contract.file} is ${formatKib(assetStat.size)}; budget is ${formatKib(heroSourceBudget)}.`,
+      );
+    }
+
+    let metadata;
+    try {
+      metadata = await sharp(assetPath).metadata();
+    } catch (error) {
+      failures.push(
+        `Portrait asset ${contract.file} could not be inspected: ${String(error)}`,
+      );
+      continue;
+    }
+
+    if (metadata.format !== contract.format) {
+      failures.push(
+        `Portrait asset ${contract.file} has format ${String(metadata.format)}; expected ${contract.format}.`,
+      );
+    }
+    if (
+      metadata.width !== contract.width ||
+      metadata.height !== contract.height
+    ) {
+      failures.push(
+        `Portrait asset ${contract.file} is ${String(metadata.width)}x${String(metadata.height)}; expected ${contract.width}x${contract.height}.`,
+      );
+    }
+    for (const metadataType of ['exif', 'xmp', 'iptc']) {
+      if (metadata[metadataType] !== undefined) {
+        failures.push(
+          `Portrait asset ${contract.file} contains ${metadataType.toUpperCase()} metadata.`,
+        );
+      }
+    }
   }
 }
 
