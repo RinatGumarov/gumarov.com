@@ -1,0 +1,6 @@
+.superpowers/
+dist/
+dist-ssr/
+node_modules/
+playwright-report/
+test-results/
