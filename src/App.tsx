@@ -1,11 +1,22 @@
 import { getContent, type Locale } from './content';
 import { Contact } from './components/Contact';
+import { Footer } from './components/Footer';
 import { Hero } from './components/Hero';
 import { Navigation } from './components/Navigation';
+import { PersonalStrip, type PersonalPhotos } from './components/PersonalStrip';
 import { SelectedWork } from './components/SelectedWork';
 import { WorkPrinciples } from './components/WorkPrinciples';
 
 export type { Locale } from './content';
+
+const neutralPersonalFallback =
+  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+
+const personalPhotoPlaceholders: PersonalPhotos = [
+  { src: neutralPersonalFallback, width: 800, height: 600, alt: '' },
+  { src: neutralPersonalFallback, width: 800, height: 600, alt: '' },
+  { src: neutralPersonalFallback, width: 800, height: 600, alt: '' },
+];
 
 export function App({ locale }: { locale: Locale }) {
   const content = getContent(locale);
@@ -23,27 +34,19 @@ export function App({ locale }: { locale: Locale }) {
 
         <WorkPrinciples content={content.principles} />
 
-        <section className="section-frame" aria-labelledby="personal-heading">
-          <h2 className="section-heading" id="personal-heading">
-            {content.personal.heading}
-          </h2>
-          <p className="personal-copy">{content.personal.body}</p>
-          <ul className="personal-list">
-            {content.personal.items.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </section>
+        <PersonalStrip
+          content={content.personal}
+          photos={personalPhotoPlaceholders}
+        />
 
         <Contact content={content.contact} />
       </main>
 
-      <footer className="site-footer">
-        <div className="site-footer__frame">
-          <a href={`/${locale}/`}>Rinat Gumarov</a>
-          <span>Senior Frontend Engineer</span>
-        </div>
-      </footer>
+      <Footer
+        locale={locale}
+        contact={content.contact}
+        privacy={content.footer.privacy}
+      />
     </>
   );
 }

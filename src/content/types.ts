@@ -45,4 +45,5 @@ export interface LandingContent {
   principles: { heading: string; items: readonly string[] };
   personal: { heading: string; body: string; items: readonly string[] };
   contact: Contact;
+  footer: { privacy: string };
 }
