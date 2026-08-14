@@ -3,6 +3,8 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 
 const checkerPath = path.resolve(process.cwd(), 'scripts/check-dist.mjs');
 const temporaryDirectories = [];
@@ -117,6 +119,78 @@ describe('distribution checker', () => {
     await writeFile(
       path.join(mediaDirectory, 'portrait-small.jpg'),
       Buffer.alloc(10 * 1024),
+    );
+
+    const result = runChecker(fixture.distDirectory);
+
+    expect(result.stderr).toContain(
+      'Hero source media/portrait-large.jpg is 301.0 KiB; budget is 300.0 KiB.',
+    );
+    expect(result.status).toBe(1);
+  });
+
+  it('budgets responsive hero sources emitted by React SSR', async () => {
+    const heroMarkup = renderToStaticMarkup(
+      createElement(
+        'picture',
+        null,
+        createElement('source', {
+          srcSet:
+            '/media/portrait-small.jpg 480w, /media/portrait-large.jpg 1024w',
+        }),
+        createElement('img', {
+          src: '/media/portrait-small.jpg',
+          alt: '',
+        }),
+      ),
+    );
+    expect(heroMarkup).toContain('srcSet=');
+
+    const fixture = await createDistributionFixture({ heroMarkup });
+    const mediaDirectory = path.join(fixture.distDirectory, 'media');
+    await mkdir(mediaDirectory, { recursive: true });
+    await writeFile(
+      path.join(mediaDirectory, 'portrait-large.jpg'),
+      Buffer.alloc(301 * 1024),
+    );
+    await writeFile(
+      path.join(mediaDirectory, 'portrait-small.jpg'),
+      Buffer.alloc(10 * 1024),
+    );
+
+    const result = runChecker(fixture.distDirectory);
+
+    expect(result.stderr).toContain(
+      'Hero source media/portrait-large.jpg is 301.0 KiB; budget is 300.0 KiB.',
+    );
+    expect(result.status).toBe(1);
+  });
+
+  it('accepts an embedded data-image hero fallback as an inline asset', async () => {
+    const fallback =
+      'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+    const fixture = await createDistributionFixture({
+      heroMarkup: `<picture><source srcset="${fallback}" /><img src="${fallback}" alt="" /></picture>`,
+    });
+
+    const result = runChecker(fixture.distDirectory);
+
+    expect(result.stderr).not.toContain('initial asset is missing');
+    expect(result.stderr).not.toContain('Hero source is missing');
+    expect(result.status).toBe(0);
+  });
+
+  it('still budgets local hero sources listed after an inline fallback', async () => {
+    const fallback =
+      'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+    const fixture = await createDistributionFixture({
+      heroMarkup: `<picture><source srcset="${fallback} 1x, /media/portrait-large.jpg 2x" /><img src="${fallback}" alt="" /></picture>`,
+    });
+    const mediaDirectory = path.join(fixture.distDirectory, 'media');
+    await mkdir(mediaDirectory, { recursive: true });
+    await writeFile(
+      path.join(mediaDirectory, 'portrait-large.jpg'),
+      Buffer.alloc(301 * 1024),
     );
 
     const result = runChecker(fixture.distDirectory);
