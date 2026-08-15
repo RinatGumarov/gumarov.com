@@ -153,6 +153,12 @@ publication gate does not block local Tasks 8–13.
 
 ## Deployment
 
-Deployment is intentionally not configured yet. This repository does not
-create a remote, publish a site, configure DNS, enable analytics, or change
-external accounts.
+GitHub Actions workflows in `.github/workflows/` run the local quality gates
+and can publish `dist/` through official Pages artifact actions. See
+`docs/deployment.md` for the runbook and rollback. This repository still does
+not create a remote, change DNS, enable analytics, or publish until Task 14
+is explicitly approved.
+
+`public/CNAME` contains only `gumarov.com`. `public/.nojekyll` is required so
+Pages serves the Vite output unchanged. The deploy upload includes hidden
+files so `.nojekyll` is part of the artifact.

@@ -51,5 +51,15 @@ Simulate LCP remains the hero heading (`#hero-heading`), which is locked to `ui-
 ## Still open before public launch
 
 - Personal activity photos remain placeholders
-- Visual snapshots are Darwin-specific; Linux CI will need matching baselines in a later deployment task
+- Visual snapshots are Darwin-specific; Linux CI skips the visual file until matching baselines exist
 - No GitHub remote, Pages, DNS, email routing, or production PostHog yet
+
+## GitHub Actions (local files only)
+
+Workflows live in `.github/workflows/` and are documented in `docs/deployment.md`. They have not been pushed.
+
+Task 13 local verification, **2026-08-15**:
+
+- `pnpm verify`: Prettier, ESLint, typecheck, **17 files / 146 tests**, production build, distribution check (**3 routes, 110.8 KiB JS, worst transfer `ru/index.html` 225.5 KiB**). `CNAME` and `.nojekyll` are required in `dist/`.
+- `pnpm test:e2e`: **51 passed**
+- SHA of the commit that introduces the workflows will be recorded immediately after that commit.

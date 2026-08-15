@@ -10,6 +10,11 @@ for (const locale of qualityLocales) {
         colorScheme: 'dark',
       });
 
+      test.skip(
+        process.platform !== 'darwin',
+        'Full-page visual baselines are recorded on Darwin; Linux snapshots are not in this commit.',
+      );
+
       test('matches the reviewed full-page snapshot', async ({ page }) => {
         await page.emulateMedia({ reducedMotion: 'reduce' });
         await page.goto(localePath(locale), { waitUntil: 'networkidle' });
