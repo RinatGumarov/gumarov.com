@@ -1,7 +1,4 @@
 import type { HydrationOptions, Root } from 'react-dom/client';
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { hydrateRootMock, scheduleLandingViewedMock } = vi.hoisted(() => ({
@@ -22,6 +19,7 @@ describe('client hydration fallback', () => {
     document.documentElement.lang = 'en';
     document.body.innerHTML =
       '<div id="root"><main><a href="mailto:hi@gumarov.com">Email</a></main></div>';
+    vi.stubGlobal('requestIdleCallback', () => 1);
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
   });
 
@@ -91,11 +89,50 @@ async function settleMicrotasks() {
   await new Promise<void>((resolve) => queueMicrotask(resolve));
 }
 
-it('does not fetch webfonts from the client entry', async () => {
-  const source = await readFile(
-    path.join(path.dirname(fileURLToPath(import.meta.url)), 'entry-client.tsx'),
-    'utf8',
-  );
+describe('deferred brand fonts', () => {
+  const idleCallbacks: IdleRequestCallback[] = [];
 
-  expect(source).not.toMatch(/faces\.css|fonts\.css|@font-face/u);
+  beforeEach(() => {
+    vi.resetModules();
+    hydrateRootMock.mockReset();
+    scheduleLandingViewedMock.mockReset();
+    idleCallbacks.length = 0;
+    document
+      .querySelectorAll('link[href="/assets/fonts/faces.css"]')
+      .forEach((link) => link.remove());
+    document.documentElement.lang = 'en';
+    document.body.innerHTML =
+      '<div id="root"><main><a href="mailto:hi@gumarov.com">Email</a></main></div>';
+    vi.stubGlobal('requestIdleCallback', (callback: IdleRequestCallback) => {
+      idleCallbacks.push(callback);
+      return 1;
+    });
+    hydrateRootMock.mockReturnValue({
+      render: vi.fn(),
+      unmount: vi.fn(),
+    } satisfies Root);
+  });
+
+  it('does not request brand fonts during the first paint', async () => {
+    await import('./entry-client');
+
+    expect(
+      document.querySelector('link[href="/assets/fonts/faces.css"]'),
+    ).toBeNull();
+  });
+
+  it('requests the brand font stylesheet after idle', async () => {
+    await import('./entry-client');
+
+    expect(idleCallbacks.length).toBeGreaterThan(0);
+    for (const callback of idleCallbacks) {
+      callback({
+        didTimeout: false,
+        timeRemaining: () => 50,
+      });
+    }
+
+    const link = document.querySelector('link[href="/assets/fonts/faces.css"]');
+    expect(link).toHaveAttribute('rel', 'stylesheet');
+  });
 });

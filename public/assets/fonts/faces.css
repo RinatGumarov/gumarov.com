@@ -3,7 +3,16 @@
   src: url('/assets/fonts/Onest-Variable.woff2') format('woff2');
   font-style: normal;
   font-weight: 100 900;
-  font-display: optional;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Onest Fallback';
+  src: local('Arial'), local('Helvetica Neue'), local('Liberation Sans');
+  size-adjust: 107%;
+  ascent-override: 90%;
+  descent-override: 22%;
+  line-gap-override: 0%;
 }
 
 @font-face {
@@ -14,8 +23,19 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'IBM Plex Mono Fallback';
+  src:
+    local('Menlo'), local('Consolas'), local('ui-monospace'), local('monospace');
+  size-adjust: 100%;
+  ascent-override: 100%;
+  descent-override: 25%;
+  line-gap-override: 0%;
+}
+
 :root {
-  --font-sans: Onest, ui-sans-serif, system-ui, sans-serif;
-  --font-display: Onest, ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-sans: Onest, 'Onest Fallback', ui-sans-serif, system-ui, sans-serif;
+  --font-display: Onest, 'Onest Fallback', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:
+    'IBM Plex Mono', 'IBM Plex Mono Fallback', ui-monospace, monospace;
 }

@@ -89,7 +89,11 @@ third-party screenshots have not been cleared.
 
 The complete upstream WOFF2 files remain un-subset because each covers Latin
 and Cyrillic and the measured initial route transfer remains within `700 KiB`.
-Only the above-the-fold Onest file is preloaded.
+Self-hosted Onest and IBM Plex Mono load after first paint from
+`/assets/fonts/faces.css` (idle, not a render-blocking preload) so Lantern LCP
+can paint the hero heading with a system font. The heading stays on
+`ui-sans-serif` / `system-ui`; body and mono type swap to the brand faces with
+size-adjusted fallbacks.
 
 | Font                         | Official upstream revision and source                                                                                                                                                                                                                                                                                       | Shipped file                                                      | SHA-256                                                            | License                                                                      |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------- |

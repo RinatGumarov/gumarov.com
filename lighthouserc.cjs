@@ -13,6 +13,7 @@ module.exports = {
       settings: {
         chromeFlags:
           '--no-sandbox --host-resolver-rules=MAP eu.i.posthog.com ~NOTFOUND',
+        throttlingMethod: 'simulate',
       },
     },
     assert: {

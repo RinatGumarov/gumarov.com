@@ -13,7 +13,19 @@ for (const locale of qualityLocales) {
       test('matches the reviewed full-page snapshot', async ({ page }) => {
         await page.emulateMedia({ reducedMotion: 'reduce' });
         await page.goto(localePath(locale), { waitUntil: 'networkidle' });
+        await expect(
+          page.locator('link[href="/assets/fonts/faces.css"]'),
+        ).toHaveCount(1);
         await page.evaluate(async () => {
+          const faces = document.querySelector(
+            'link[href="/assets/fonts/faces.css"]',
+          );
+          if (faces instanceof HTMLLinkElement && !faces.sheet) {
+            await new Promise((resolve, reject) => {
+              faces.addEventListener('load', resolve, { once: true });
+              faces.addEventListener('error', reject, { once: true });
+            });
+          }
           await document.fonts.ready;
         });
         await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
