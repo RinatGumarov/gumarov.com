@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { expect, it, vi } from 'vitest';
+import type { Locale } from '../content';
 import { getContent } from '../content';
 import { Contact } from './Contact';
 
@@ -11,6 +12,19 @@ const { trackAnalyticsEventMock } = vi.hoisted(() => ({
 vi.mock('../lib/analytics', () => ({
   trackAnalyticsEvent: trackAnalyticsEventMock,
 }));
+
+it.each([
+  ['en', 'Contact'],
+  ['ru', 'Контакты'],
+] as const)(
+  'renders the %s section label from localized content',
+  (locale, label) => {
+    const content = getContent(locale as Locale).contact;
+    render(<Contact content={content} locale={locale as Locale} />);
+
+    expect(screen.getByText(`04 / ${label}`)).toBeInTheDocument();
+  },
+);
 
 it('offers direct, clearly named Telegram and email contact paths', async () => {
   const user = userEvent.setup();

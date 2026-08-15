@@ -5,6 +5,11 @@ import styles from './PersonalStrip.module.css';
 
 export interface PersonalPhoto {
   src: string;
+  /** Responsive JPEG candidates; omitted while a slot is still a placeholder. */
+  srcSet?: string;
+  /** Modern-format candidates offered ahead of the JPEG fallback. */
+  sources?: { avif: string; webp: string };
+  sizes?: string;
   width: number;
   height: number;
   /** Localized description for meaningful photos; decorative placeholders use an empty string. */
@@ -61,17 +66,12 @@ export function PersonalStrip(_props: PersonalStripProps) {
         onPointerMove={stripMotion.onPointerMove}
         onPointerLeave={stripMotion.onPointerLeave}
       >
-        {photos.map((photo, index) => (
-          <figure
-            className={styles.frame}
-            data-image-state={
-              failedPhotos.includes(index) ? 'failed' : undefined
-            }
-            data-motion-parallax-layer="true"
-            key={index}
-          >
+        {photos.map((photo, index) => {
+          const image = (
             <img
               src={photo.src}
+              srcSet={photo.srcSet}
+              sizes={photo.sizes}
               width={photo.width}
               height={photo.height}
               alt={photo.alt}
@@ -83,8 +83,37 @@ export function PersonalStrip(_props: PersonalStripProps) {
                 )
               }
             />
-          </figure>
-        ))}
+          );
+
+          return (
+            <figure
+              className={styles.frame}
+              data-image-state={
+                failedPhotos.includes(index) ? 'failed' : undefined
+              }
+              data-motion-parallax-layer="true"
+              key={index}
+            >
+              {photo.sources ? (
+                <picture>
+                  <source
+                    type="image/avif"
+                    srcSet={photo.sources.avif}
+                    sizes={photo.sizes}
+                  />
+                  <source
+                    type="image/webp"
+                    srcSet={photo.sources.webp}
+                    sizes={photo.sizes}
+                  />
+                  {image}
+                </picture>
+              ) : (
+                image
+              )}
+            </figure>
+          );
+        })}
       </div>
     </section>
   );

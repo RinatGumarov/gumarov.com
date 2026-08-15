@@ -24,7 +24,7 @@ export function Contact(_props: ContactProps) {
     >
       <div className={styles.headingBlock}>
         <p className={styles.index} aria-hidden="true">
-          04 / Contact
+          {`04 / ${content.indexLabel}`}
         </p>
         <h2 id="contact-heading">{content.heading}</h2>
         <p className={styles.invitation}>{content.body}</p>

@@ -89,8 +89,14 @@ export const en = {
     heading: 'Beyond the screen',
     body: 'Curiosity, craft, and focused energy carry beyond my frontend work. I am gradually building a project BMW E30 and keep small apps or technical experiments moving alongside it.',
     items: ['Surfing', 'Snowboarding', 'Skating', 'Motorcycles', 'Drifting'],
+    photos: [
+      { slug: 'surf', alt: 'Rinat riding the face of a breaking wave.' },
+      { slug: 'skate', alt: 'Rinat riding a skatepark ramp at night.' },
+      { slug: 'snowboard', alt: 'Rinat mid-air on a snowboard.' },
+    ],
   },
   contact: {
+    indexLabel: 'Contact',
     heading: 'Let’s build something ambitious',
     body: 'Have an ambitious frontend challenge or a product worth building? Let’s talk.',
     telegramLabel: 'Telegram',

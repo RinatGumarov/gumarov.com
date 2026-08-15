@@ -71,6 +71,37 @@ const requiredPortraitAssets = [480, 768, 1024].flatMap((width) =>
     height: Math.round(width * 1.25),
   })),
 );
+const approvedPersonalManifestFile = 'assets/personal/approved-manifest.json';
+const personalSourceBudget = 120 * kibibyte;
+const approvedPersonalSources = [
+  {
+    slug: 'surf',
+    sha256: '52a7de95ba7da0e95f9ef9fd245e47723883ca912acbd678db16a740065023f4',
+  },
+  {
+    slug: 'skate',
+    sha256: '86ee2c416cea3a0cf1ab8560ba540e3c30592dae069aa0bbb6baa8dec0a3ad7f',
+  },
+  {
+    slug: 'snowboard',
+    sha256: '8fceebec257df1f33f90bbf553a269b40abc9e37bd190cd1c6826ed4543b0258',
+  },
+];
+const requiredPersonalAssets = approvedPersonalSources.flatMap(({ slug }) =>
+  [480, 768].flatMap((width) =>
+    [
+      { extension: 'avif', manifestFormat: 'avif', metadataFormat: 'heif' },
+      { extension: 'webp', manifestFormat: 'webp', metadataFormat: 'webp' },
+      { extension: 'jpg', manifestFormat: 'jpeg', metadataFormat: 'jpeg' },
+    ].map(({ extension, manifestFormat, metadataFormat }) => ({
+      file: `assets/personal/${slug}-${width}.${extension}`,
+      manifestFormat,
+      metadataFormat,
+      width,
+      height: Math.round((width * 3) / 4),
+    })),
+  ),
+);
 const routeContracts = [
   {
     file: 'index.html',
@@ -263,6 +294,7 @@ for (const file of heroSourcePaths) {
 }
 
 await validateRequiredPortraitAssets();
+await validateRequiredPersonalAssets();
 await validateRequiredBrandAssets();
 await validateWebManifest(contentByLocale.get('en'));
 await validatePagesHostingFiles();
@@ -888,42 +920,82 @@ function validateHeroCopyLcpVisibility(css, relativeFile) {
 }
 
 async function validateRequiredPortraitAssets() {
-  const approvedManifest = await readApprovedPortraitManifest();
+  await validateApprovedImageSet({
+    label: 'Portrait',
+    manifestFile: approvedPortraitManifestFile,
+    contracts: requiredPortraitAssets,
+    budget: heroSourceBudget,
+    validateSources(manifest) {
+      if (manifest.source?.sha256 !== approvedPortraitSourceSha256) {
+        failures.push(
+          `${approvedPortraitManifestFile}: source SHA-256 is not the pinned approved portrait source.`,
+        );
+      }
+    },
+  });
+}
+
+async function validateRequiredPersonalAssets() {
+  await validateApprovedImageSet({
+    label: 'Personal',
+    manifestFile: approvedPersonalManifestFile,
+    contracts: requiredPersonalAssets,
+    budget: personalSourceBudget,
+    validateSources(manifest) {
+      const declared = new Map(
+        Array.isArray(manifest.sources)
+          ? manifest.sources.map((source) => [source.slug, source.sha256])
+          : [],
+      );
+      for (const { slug, sha256: expected } of approvedPersonalSources) {
+        if (declared.get(slug) !== expected) {
+          failures.push(
+            `${approvedPersonalManifestFile}: source SHA-256 for ${slug} is not the pinned approved source.`,
+          );
+        }
+      }
+    },
+  });
+}
+
+async function validateApprovedImageSet({
+  label,
+  manifestFile,
+  contracts,
+  budget,
+  validateSources,
+}) {
+  const approvedManifest = await readApprovedManifest(manifestFile, label);
   const approvedOutputs = new Map(
     Array.isArray(approvedManifest?.outputs)
       ? approvedManifest.outputs.map((output) => [output.file, output])
       : [],
   );
 
-  if (
-    approvedManifest &&
-    approvedManifest.source?.sha256 !== approvedPortraitSourceSha256
-  ) {
-    failures.push(
-      `${approvedPortraitManifestFile}: source SHA-256 is not the pinned approved portrait source.`,
-    );
+  if (approvedManifest) {
+    validateSources(approvedManifest);
   }
   if (approvedManifest && approvedManifest.schemaVersion !== 1) {
-    failures.push(`${approvedPortraitManifestFile}: expected schemaVersion 1.`);
+    failures.push(`${manifestFile}: expected schemaVersion 1.`);
   }
   if (
     approvedManifest &&
     (!Array.isArray(approvedManifest.outputs) ||
-      approvedManifest.outputs.length !== requiredPortraitAssets.length)
+      approvedManifest.outputs.length !== contracts.length)
   ) {
     failures.push(
-      `${approvedPortraitManifestFile}: expected exactly ${requiredPortraitAssets.length} approved outputs.`,
+      `${manifestFile}: expected exactly ${contracts.length} approved outputs.`,
     );
   }
 
-  for (const contract of requiredPortraitAssets) {
+  for (const contract of contracts) {
     const assetPath = path.join(distDirectory, contract.file);
     const approvedOutput = approvedOutputs.get(contract.file);
     let assetStat;
 
     if (!approvedOutput) {
       failures.push(
-        `${approvedPortraitManifestFile}: missing approved output ${contract.file}.`,
+        `${manifestFile}: missing approved output ${contract.file}.`,
       );
     } else if (
       approvedOutput.format !== contract.manifestFormat ||
@@ -931,25 +1003,27 @@ async function validateRequiredPortraitAssets() {
       approvedOutput.height !== contract.height
     ) {
       failures.push(
-        `${approvedPortraitManifestFile}: contract for ${contract.file} does not match the required format and dimensions.`,
+        `${manifestFile}: contract for ${contract.file} does not match the required format and dimensions.`,
       );
     }
 
     try {
       assetStat = await stat(assetPath);
     } catch {
-      failures.push(`Required portrait asset is missing: ${contract.file}`);
+      failures.push(
+        `Required ${label.toLowerCase()} asset is missing: ${contract.file}`,
+      );
       continue;
     }
 
-    if (assetStat.size > heroSourceBudget) {
+    if (assetStat.size > budget) {
       failures.push(
-        `Portrait asset ${contract.file} is ${formatKib(assetStat.size)}; budget is ${formatKib(heroSourceBudget)}.`,
+        `${label} asset ${contract.file} is ${formatKib(assetStat.size)}; budget is ${formatKib(budget)}.`,
       );
     }
     if (approvedOutput?.bytes !== assetStat.size) {
       failures.push(
-        `Portrait asset ${contract.file} byte size does not match the approved manifest.`,
+        `${label} asset ${contract.file} byte size does not match the approved manifest.`,
       );
     }
 
@@ -957,7 +1031,7 @@ async function validateRequiredPortraitAssets() {
     const actualSha256 = createHash('sha256').update(contents).digest('hex');
     if (approvedOutput?.sha256 !== actualSha256) {
       failures.push(
-        `Portrait asset ${contract.file} SHA-256 does not match the approved manifest.`,
+        `${label} asset ${contract.file} SHA-256 does not match the approved manifest.`,
       );
     }
 
@@ -966,14 +1040,14 @@ async function validateRequiredPortraitAssets() {
       metadata = await sharp(assetPath).metadata();
     } catch (error) {
       failures.push(
-        `Portrait asset ${contract.file} could not be inspected: ${String(error)}`,
+        `${label} asset ${contract.file} could not be inspected: ${String(error)}`,
       );
       continue;
     }
 
     if (metadata.format !== contract.metadataFormat) {
       failures.push(
-        `Portrait asset ${contract.file} has format ${String(metadata.format)}; expected ${contract.metadataFormat}.`,
+        `${label} asset ${contract.file} has format ${String(metadata.format)}; expected ${contract.metadataFormat}.`,
       );
     }
     if (
@@ -981,35 +1055,32 @@ async function validateRequiredPortraitAssets() {
       metadata.height !== contract.height
     ) {
       failures.push(
-        `Portrait asset ${contract.file} is ${String(metadata.width)}x${String(metadata.height)}; expected ${contract.width}x${contract.height}.`,
+        `${label} asset ${contract.file} is ${String(metadata.width)}x${String(metadata.height)}; expected ${contract.width}x${contract.height}.`,
       );
     }
     for (const metadataType of ['exif', 'xmp', 'iptc', 'icc']) {
       if (metadata[metadataType] !== undefined) {
         failures.push(
-          `Portrait asset ${contract.file} contains ${metadataType.toUpperCase()} metadata.`,
+          `${label} asset ${contract.file} contains ${metadataType.toUpperCase()} metadata.`,
         );
       }
     }
     if (metadata.orientation !== undefined) {
       failures.push(
-        `Portrait asset ${contract.file} contains orientation metadata.`,
+        `${label} asset ${contract.file} contains orientation metadata.`,
       );
     }
   }
 }
 
-async function readApprovedPortraitManifest() {
+async function readApprovedManifest(manifestFile, label) {
   try {
     return JSON.parse(
-      await readFile(
-        path.join(distDirectory, approvedPortraitManifestFile),
-        'utf8',
-      ),
+      await readFile(path.join(distDirectory, manifestFile), 'utf8'),
     );
   } catch (error) {
     failures.push(
-      `Approved portrait manifest is missing or invalid: ${approvedPortraitManifestFile} (${String(error)}).`,
+      `Approved ${label.toLowerCase()} manifest is missing or invalid: ${manifestFile} (${String(error)}).`,
     );
     return null;
   }
@@ -1072,7 +1143,22 @@ function validateContentContract(
     ),
   );
 
+  const renderedAlternativeText = new Set(
+    [...applicationRoot.querySelectorAll('img[alt]')].map((image) =>
+      normalizeText(image.getAttribute('alt') ?? ''),
+    ),
+  );
+
   for (const requirement of collectContentRequirements(content)) {
+    if (requirement.kind === 'alternative') {
+      if (!renderedAlternativeText.has(normalizeText(requirement.value))) {
+        failures.push(
+          `${routeFile}: missing image alt text ${requirement.path} ${JSON.stringify(requirement.value)}`,
+        );
+      }
+      continue;
+    }
+
     if (requirement.kind === 'destination') {
       const escapedHref = `href="${escapeReactAttribute(requirement.value)}"`;
       if (
@@ -1110,7 +1196,11 @@ function collectRequirements(value, pathName, key, requirements) {
   if (typeof value === 'string') {
     if (key !== 'slug' && value !== '') {
       requirements.push({
-        kind: isDestinationField(key) ? 'destination' : 'visible',
+        kind: isDestinationField(key)
+          ? 'destination'
+          : isAlternativeTextField(key)
+            ? 'alternative'
+            : 'visible',
         path: pathName,
         value,
       });
@@ -1139,6 +1229,14 @@ function collectRequirements(value, pathName, key, requirements) {
 
 function isDestinationField(key) {
   return key === 'href' || key.endsWith('Href');
+}
+
+/**
+ * Alternative text reaches assistive technology through an attribute, never as
+ * visible page text, so it is verified against rendered `alt` values instead.
+ */
+function isAlternativeTextField(key) {
+  return key === 'alt';
 }
 
 function normalizeText(value) {
