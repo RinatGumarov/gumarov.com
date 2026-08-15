@@ -1,10 +1,12 @@
 # Launch checklist — local quality gates
 
-Recorded **2026-08-15** on the unpublished `gumarov.com` landing.
+Recorded **2026-08-15** on the `gumarov.com` landing. Sections are appended in
+order; the earliest ones describe the site before it was published.
 
 Evidence commit (contains the quality gates): `4b895bb60722f51541b0ae37fe498ee059e728e9` (`fix: load brand fonts after first paint`). Identify this docs note with `git log -1 --format='%H %s'`.
 
-No remotes, DNS, or analytics were enabled.
+At the time of this first section no remote, DNS, or analytics existed. See
+"Task 14 publication" below for the current state.
 
 ## Commands
 
@@ -111,7 +113,7 @@ probes → production Lighthouse.
 
 ## GitHub Actions (local files only)
 
-Workflows live in `.github/workflows/` and are documented in `docs/deployment.md`. They have not been pushed.
+Workflows live in `.github/workflows/` and are documented in `docs/deployment.md`. They were unpushed when this section was written; both now run on `main`.
 
 Task 13 local verification, **2026-08-15**:
 
