@@ -48,9 +48,28 @@ Gates: category scores ≥ 0.90, LCP ≤ 2500 ms, CLS < 0.1.
 
 Simulate LCP remains the hero heading (`#hero-heading`), which is locked to `ui-sans-serif, system-ui` in first-paint CSS. Observed LCP is ~90 ms. Brand faces load after `load` + `requestIdleCallback` from `/assets/fonts/faces.css` (`font-display: swap` plus size-adjusted local fallbacks) so body/mono/display type can use Onest and IBM Plex Mono without putting a webfont on the LCP element. One simulate run per URL can spike near 3000 ms; the median stays under the gate.
 
+## Task 14 preparation, 2026-08-15
+
+Run with Node `22.22.2` (the repository pins Node 22; Node 25 replaces jsdom's
+`localStorage` with a stub and fails seven storage tests locally).
+
+- Approved personal photographs replaced the placeholders. `pnpm verify`:
+  Prettier, ESLint, typecheck, **17 files / 156 tests**, production build,
+  distribution check (**3 routes, 111.1 KiB JS, worst transfer `ru/index.html`
+  226.0 KiB**).
+- `pnpm test:e2e`: **59 passed**, including the new
+  `tests/e2e/hero-typography.spec.ts` gate that no hero word breaks mid-word at
+  320/390/768/1440px in either locale.
+- Russian visual baselines were re-recorded after the Russian hero measure fix
+  and reviewed before commit.
+- Known gate gap: the personal photographs are `loading="lazy"` and sit below
+  the fold, so Chromium's `fullPage` screenshot does not load them. The visual
+  baselines therefore do not cover that strip; it was verified separately by
+  scrolling the section into view in Chromium and confirming all three images
+  reach `complete` with non-zero intrinsic size.
+
 ## Still open before public launch
 
-- Personal activity photos remain placeholders
 - Visual snapshots are Darwin-specific; Linux CI skips the visual file until matching baselines exist
 - No GitHub remote, Pages, DNS, email routing, or production PostHog yet
 

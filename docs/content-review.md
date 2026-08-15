@@ -14,13 +14,13 @@ This document is the Task 12 record. It is not publication approval.
 
 Warm traffic already knows the person. The first viewport must still answer: who, what kind of engineer, what caliber, how to continue.
 
-| Finding                                                                                                                                                                                                                                                      | Disposition      |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
-| Header identity `RG` / Rinat Gumarov is immediate.                                                                                                                                                                                                           | Keep             |
-| H1 states Senior Frontend Engineer in both locales before any project card.                                                                                                                                                                                  | Keep             |
-| Caliber is implied by the role line and the work CTA, not by a named company in the first screen. TradingView appears after one scroll. For warm Instagram traffic this is acceptable; naming a current employer in the hero would add confidentiality risk. | Keep             |
-| Contact path is the in-hero “Get in touch” / “Связаться” jump to `#contact`. Telegram is not in the first viewport. For this audience the jump is enough; duplicating `@RinatGumarov` in the hero would compete with the heading.                            | Keep             |
-| Personal-strip photo frames are empty placeholders. A warm visitor will notice. They must not be filled with stock or generated images.                                                                                                                      | Publication gate |
+| Finding                                                                                                                                                                                                                                                                 | Disposition |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| Header identity `RG` / Rinat Gumarov is immediate.                                                                                                                                                                                                                      | Keep        |
+| H1 states Senior Frontend Engineer in both locales before any project card.                                                                                                                                                                                             | Keep        |
+| Caliber is implied by the role line and the work CTA, not by a named company in the first screen. TradingView appears after one scroll. For warm Instagram traffic this is acceptable; naming a current employer in the hero would add confidentiality risk.            | Keep        |
+| Contact path is the in-hero “Get in touch” / “Связаться” jump to `#contact`. Telegram is not in the first viewport. For this audience the jump is enough; duplicating `@RinatGumarov` in the hero would compete with the heading.                                       | Keep        |
+| Personal-strip photo frames were empty placeholders. Rinat approved three of his own photographs (surfing, skating, snowboarding) on 2026-08-15; no stock or generated images were used. Frame opacity was raised from `0.34` to `0.78` so the night skate frame reads. | Resolved    |
 
 ## Recruiter / HR
 
@@ -77,7 +77,7 @@ Publication (Task 14) must not proceed until Rinat explicitly approves:
 
 1. Complete English page at `/en/` and Russian page at `/ru/`.
 2. Every public claim in `src/content/en.ts` and `src/content/ru.ts`, including the narrowed Evercity wording.
-3. Hero portrait crop and the still-empty personal-strip slots (approve 2–3 personal photos with crops and localized alt text, or confirm the placeholders may ship).
+3. Hero portrait crop, and the three approved personal photographs with their crops and localized alt text. Two watermarked third-party drift photographs of the BMW E30 were deliberately excluded for lack of cleared redistribution rights; publishing them needs the photographers' permission.
 4. Contact destinations `https://t.me/RinatGumarov` and `mailto:hi@gumarov.com`.
 
 Until that approval exists, this review is recorded and the site stays unpublished.

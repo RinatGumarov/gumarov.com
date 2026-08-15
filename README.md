@@ -85,6 +85,54 @@ project screenshots are committed: the approved project scenes remain
 CSS-native geometry because redistribution rights and provenance for
 third-party screenshots have not been cleared.
 
+### Personal photographs
+
+Rinat selected three of his own activity photographs for the "Beyond the
+screen" film strip and approved the crops below. Two further drift photographs
+of his BMW E30 were offered but excluded: both carry a third-party
+photographer's watermark (`LET'S DRIFT.ru`, credited to `AK.VET666` and
+`TATA_PHOTOSPB`), so redistribution rights are not cleared.
+
+Each original is copied byte-for-byte into the ignored
+`assets-source/personal/` directory before processing. Sharp auto-orients,
+extracts the fixed rectangle recorded below, resizes with Lanczos3 to `4:3`,
+converts to sRGB, applies the same brightness `0.92` / saturation `0.88` as the
+portrait, and excludes all metadata. No attention detection, generated pixels,
+or retouching is involved, so re-running the pipeline cannot re-frame a photo.
+
+| Slug        | Original       |      Bytes | Source SHA-256                                                     | Extracted rectangle (`left`, `top`, `w`×`h`) |
+| ----------- | -------------- | ---------: | ------------------------------------------------------------------ | -------------------------------------------- |
+| `surf`      | `IMG_9902.JPG` | 14,033,254 | `52a7de95ba7da0e95f9ef9fd245e47723883ca912acbd678db16a740065023f4` | `1000`, `200`, `4000×3000` (of `6000×4000`)  |
+| `skate`     | `IMG_9080.JPG` |  8,871,629 | `86ee2c416cea3a0cf1ab8560ba540e3c30592dae069aa0bbb6baa8dec0a3ad7f` | `0`, `390`, `3680×2760` (of `3680×5444`)     |
+| `snowboard` | `IMG_1374.JPG` |  2,097,553 | `8fceebec257df1f33f90bbf553a269b40abc9e37bd190cd1c6826ed4543b0258` | `480`, `0`, `2880×2160` (of `3840×2160`)     |
+
+| Output               |  Bytes | SHA-256                                                            |
+| -------------------- | -----: | ------------------------------------------------------------------ |
+| `surf-480.avif`      | 12,826 | `e4ae63d0fcc47245dcd3e3510f2bbe613f30b140d76ac5f656311dc8a4846a13` |
+| `surf-480.webp`      | 17,490 | `6f8252c7277724fc99177e3dc4920448d40a21e2fce3e1103a047405df548498` |
+| `surf-480.jpg`       | 23,233 | `e77fee4838d6c8daf51b75e22294047b1304b1f8c38cbb2e05e7574053e8ebfc` |
+| `surf-768.avif`      | 28,129 | `73b5f97221299c87a80f743646ed01d9705ce9f33b71c272b69cb616bfa3fc22` |
+| `surf-768.webp`      | 38,424 | `1c0de3faaeac94884de1be6fa9070350ac619bb482438eed10ff80c9cf611568` |
+| `surf-768.jpg`       | 52,970 | `71e40eafb34583c31f57950f7c0e8d571e1318e364c894c7ffdd8c43b091ac41` |
+| `skate-480.avif`     |  8,997 | `932fc64814ce7f6adee1c14d50846e2c72a82cf6045d69afacdff0e6f647c576` |
+| `skate-480.webp`     | 12,202 | `32d44dc0695eeb90b6acd51b101cce9cd692bd53090eeda89f4d3d7ff5da7431` |
+| `skate-480.jpg`      | 19,801 | `9a174fd4bff75f9cb5e1d80422671cc0222246226be033babfba125d8ce328ab` |
+| `skate-768.avif`     | 15,997 | `623f675069c76374de5e7b0356933ead69263eb0f115ac99be22ced9af07ccca` |
+| `skate-768.webp`     | 24,462 | `a73fc83c8427201a6f3aa9129bede9cc6da9db4cb28dc0b1adbfae3ad92e8c66` |
+| `skate-768.jpg`      | 44,641 | `6e66191cf5b72631a426584b12bdde2db621f6156e16c513e3630760f5c20fe1` |
+| `snowboard-480.avif` | 22,411 | `32a8bb8e9fe59ef44f112bf2fb0c3476a4b92b6abd3d6d4dbee724c5c3a4ce0e` |
+| `snowboard-480.webp` | 27,318 | `fdf8b7e344312c18701dd0c583c02675e7899e785959ef4f6e19767caf6a3100` |
+| `snowboard-480.jpg`  | 33,512 | `6aa372e27db47a8b2409b573af206c87e7a061c5016adf21a72253a7e8c77e3c` |
+| `snowboard-768.avif` | 50,281 | `27eb93d13975610b51db9bfa14257725caf7e0d23cd1f6cc7b50fba59101ff7b` |
+| `snowboard-768.webp` | 61,184 | `102eaa6e42639c54cee14e0d4462e778d58dbf813e2a2b2f74fe8bdbe93059ca` |
+| `snowboard-768.jpg`  | 77,834 | `4aaadc58bf4a5ba0fd272e45c9481c08b045d321aa9c740f41f555e6de89cf9d` |
+
+Regenerate with `node scripts/process-images.mjs --personal`. A second complete
+run produced byte-identical outputs. `public/assets/personal/approved-manifest.json`
+records the pinned source hashes, crops, and output hashes, and the
+distribution build rejects missing, changed, mis-sized, or metadata-bearing
+personal derivatives.
+
 ### Fonts
 
 The complete upstream WOFF2 files remain un-subset because each covers Latin
