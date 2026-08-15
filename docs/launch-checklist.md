@@ -173,6 +173,37 @@ Mobile form factor, Lantern `simulate`, 3 runs per URL, medians:
 
 All gates pass (scores ≥ 0.90, LCP ≤ 2500 ms, CLS < 0.1).
 
+## Follow-up, 2026-08-15
+
+### Email routing
+
+Cloudflare Email Routing enabled for `gumarov.com`. One rule: `hi@gumarov.com`
+forwards to a verified destination address (recorded only in Cloudflare, never
+in this repository). Cloudflare added its own MX and TXT records; `route1`,
+`route2`, and `route3.mx.cloudflare.net`, the SPF include, and the
+`cf2024-1._domainkey` DKIM record all resolve through `1.1.1.1` and `8.8.8.8`.
+The apex `A`/`AAAA` records for Pages are untouched and the site still serves
+`200`. End-to-end delivery still needs a real external test message.
+
+### Personal strip expanded to six photographs
+
+Rinat approved all six candidates, so the strip now runs two rows of three:
+surf, skate, snowboard, drift-rear, powder, drift-front. `PersonalPhotos`
+changed from a fixed three-tuple to a readonly array and every frame offset
+alternates via `nth-child(even)`.
+
+The two drift frames carried event photographers' credit bars. Rinat confirmed
+he may publish them and asked for the bars to be cropped out; the bar rows were
+measured programmatically (row `1819` of `1887`, row `1640` of `1706`) and each
+crop height stops short of them. Provenance is recorded in `README.md`.
+
+Both drift frames show the car's licence plate, which Rinat accepted.
+
+Two full pipeline runs produced **36 byte-identical files**.
+
+`pnpm verify`: **17 files / 157 tests**. `pnpm test:e2e`: **77 passed**. Visual
+baselines re-recorded for the taller strip and reviewed before commit.
+
 ## Still open before public launch
 
 - Visual snapshots are Darwin-specific; Linux CI skips the visual file until matching baselines exist

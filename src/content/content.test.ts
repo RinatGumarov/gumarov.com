@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getContent } from './index';
+import { personalPhotoSlugs } from './types';
 
 const expectedProjectSlugs = ['tradingview', 'stoic', 'splithub', 'evercity'];
 const expectedProjectLinks = [
@@ -58,11 +59,7 @@ describe('landing content', () => {
     const en = getContent('en').personal.photos;
     const ru = getContent('ru').personal.photos;
 
-    expect(en.map((photo) => photo.slug)).toEqual([
-      'surf',
-      'skate',
-      'snowboard',
-    ]);
+    expect(en.map((photo) => photo.slug)).toEqual([...personalPhotoSlugs]);
     expect(ru.map((photo) => photo.slug)).toEqual(en.map((p) => p.slug));
 
     for (const [index, photo] of en.entries()) {

@@ -86,6 +86,18 @@ const approvedPersonalSources = [
     slug: 'snowboard',
     sha256: '8fceebec257df1f33f90bbf553a269b40abc9e37bd190cd1c6826ed4543b0258',
   },
+  {
+    slug: 'drift-rear',
+    sha256: '1c881495bd421e7ca056efb1fecf09cbc1e428bb779360f32e719ec051fa2224',
+  },
+  {
+    slug: 'powder',
+    sha256: 'd8f6176cbde98511e66ee297e79ac99b1e1c1b9334ef9cdbbbf94abca729468e',
+  },
+  {
+    slug: 'drift-front',
+    sha256: '371ce8799176881205728e5fbd6cafd4b8e8f9d3af30968c40815e1e73e1b575',
+  },
 ];
 const requiredPersonalAssets = approvedPersonalSources.flatMap(({ slug }) =>
   [480, 768].flatMap((width) =>

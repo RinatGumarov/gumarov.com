@@ -3,7 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { readPreferredLocale } from '../lib/locale';
 import { Footer } from './Footer';
-import { PersonalStrip, type PersonalPhotos } from './PersonalStrip';
+import {
+  PersonalStrip,
+  type PersonalPhoto,
+  type PersonalPhotos,
+} from './PersonalStrip';
 
 const neutralImage =
   'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
@@ -14,10 +18,14 @@ const personalContent = {
   items: ['Surfing', 'Snowboarding', 'Skating', 'Motorcycles', 'Drifting'],
 };
 
+function placeholder(alt = ''): PersonalPhoto {
+  return { src: neutralImage, width: 800, height: 600, alt };
+}
+
 const placeholderPhotos: PersonalPhotos = [
-  { src: neutralImage, width: 800, height: 600, alt: '' },
-  { src: neutralImage, width: 800, height: 600, alt: '' },
-  { src: neutralImage, width: 800, height: 600, alt: '' },
+  placeholder(),
+  placeholder(),
+  placeholder(),
 ];
 
 const contact = {
@@ -99,8 +107,8 @@ describe('PersonalStrip', () => {
         height: 576,
         alt: 'Rinat riding the face of a breaking wave.',
       },
-      placeholderPhotos[1],
-      placeholderPhotos[2],
+      placeholder(),
+      placeholder(),
     ];
 
     const { container } = render(
@@ -130,12 +138,9 @@ describe('PersonalStrip', () => {
 
   it('exposes localized alt text when a future photo adds information', () => {
     const photos: PersonalPhotos = [
-      {
-        ...placeholderPhotos[0],
-        alt: 'Rinat working on the BMW E30 project',
-      },
-      placeholderPhotos[1],
-      placeholderPhotos[2],
+      placeholder('Rinat working on the BMW E30 project'),
+      placeholder(),
+      placeholder(),
     ];
 
     render(<PersonalStrip content={personalContent} photos={photos} />);

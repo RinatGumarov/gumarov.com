@@ -19,7 +19,14 @@ export interface Project {
   href: string;
 }
 
-export const personalPhotoSlugs = ['surf', 'skate', 'snowboard'] as const;
+export const personalPhotoSlugs = [
+  'surf',
+  'skate',
+  'snowboard',
+  'drift-rear',
+  'powder',
+  'drift-front',
+] as const;
 export type PersonalPhotoSlug = (typeof personalPhotoSlugs)[number];
 
 export interface PersonalPhotoAlt {

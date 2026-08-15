@@ -36,6 +36,42 @@
         "width": 2880,
         "height": 2160
       }
+    },
+    {
+      "slug": "drift-rear",
+      "file": "assets-source/personal/drift-rear.png",
+      "bytes": 6173850,
+      "sha256": "1c881495bd421e7ca056efb1fecf09cbc1e428bb779360f32e719ec051fa2224",
+      "crop": {
+        "left": 200,
+        "top": 0,
+        "width": 2160,
+        "height": 1620
+      }
+    },
+    {
+      "slug": "powder",
+      "file": "assets-source/personal/powder.png",
+      "bytes": 12043027,
+      "sha256": "d8f6176cbde98511e66ee297e79ac99b1e1c1b9334ef9cdbbbf94abca729468e",
+      "crop": {
+        "left": 480,
+        "top": 0,
+        "width": 2880,
+        "height": 2160
+      }
+    },
+    {
+      "slug": "drift-front",
+      "file": "assets-source/personal/drift-front.jpg",
+      "bytes": 503123,
+      "sha256": "371ce8799176881205728e5fbd6cafd4b8e8f9d3af30968c40815e1e73e1b575",
+      "crop": {
+        "left": 240,
+        "top": 0,
+        "width": 2400,
+        "height": 1800
+      }
     }
   ],
   "processing": {
@@ -209,6 +245,168 @@
       "height": 576,
       "bytes": 77834,
       "sha256": "4aaadc58bf4a5ba0fd272e45c9481c08b045d321aa9c740f41f555e6de89cf9d"
+    },
+    {
+      "file": "assets/personal/drift-rear-480.avif",
+      "slug": "drift-rear",
+      "format": "avif",
+      "width": 480,
+      "height": 360,
+      "bytes": 13072,
+      "sha256": "b2be62b80841155776d66778b65978b98b6264e96c010bbcfc2033222eb2a7e2"
+    },
+    {
+      "file": "assets/personal/drift-rear-480.webp",
+      "slug": "drift-rear",
+      "format": "webp",
+      "width": 480,
+      "height": 360,
+      "bytes": 19676,
+      "sha256": "ca05b37df26dd602fe903e1c1688ab23c8f8bd392ceec7333b377922649ee537"
+    },
+    {
+      "file": "assets/personal/drift-rear-480.jpg",
+      "slug": "drift-rear",
+      "format": "jpeg",
+      "width": 480,
+      "height": 360,
+      "bytes": 27820,
+      "sha256": "6176a2fdb21d9246ffbaaab060c79578b490746ebdd0399318c20160aa47be57"
+    },
+    {
+      "file": "assets/personal/drift-rear-768.avif",
+      "slug": "drift-rear",
+      "format": "avif",
+      "width": 768,
+      "height": 576,
+      "bytes": 23320,
+      "sha256": "1988a5f0e021d2e73fd708e99356b1d6ea0da7b36659e0d5e88265e974f677d1"
+    },
+    {
+      "file": "assets/personal/drift-rear-768.webp",
+      "slug": "drift-rear",
+      "format": "webp",
+      "width": 768,
+      "height": 576,
+      "bytes": 37546,
+      "sha256": "09e309c223dcbd1aa3b851b4ad360d9f560576864b1dcec112e8bceb9d4fa69c"
+    },
+    {
+      "file": "assets/personal/drift-rear-768.jpg",
+      "slug": "drift-rear",
+      "format": "jpeg",
+      "width": 768,
+      "height": 576,
+      "bytes": 58512,
+      "sha256": "039ec18dbf24e195cdd433b0e939e04243204d32d1c7afae60cd9e48d1279936"
+    },
+    {
+      "file": "assets/personal/powder-480.avif",
+      "slug": "powder",
+      "format": "avif",
+      "width": 480,
+      "height": 360,
+      "bytes": 18484,
+      "sha256": "2e5712218dc37222f4ebe5692e19b94f921fa191ca461f7d904c5efb313e250c"
+    },
+    {
+      "file": "assets/personal/powder-480.webp",
+      "slug": "powder",
+      "format": "webp",
+      "width": 480,
+      "height": 360,
+      "bytes": 22772,
+      "sha256": "f5df5b071e39fa925b443702d1d3ff6f7986d95f2b5542b5089a8a8f0cb409a2"
+    },
+    {
+      "file": "assets/personal/powder-480.jpg",
+      "slug": "powder",
+      "format": "jpeg",
+      "width": 480,
+      "height": 360,
+      "bytes": 29699,
+      "sha256": "cbf138478eaf9b42bdd25adc113c316f2d4614f7cceb718720cee881d4da3087"
+    },
+    {
+      "file": "assets/personal/powder-768.avif",
+      "slug": "powder",
+      "format": "avif",
+      "width": 768,
+      "height": 576,
+      "bytes": 41894,
+      "sha256": "ebeda809ae2c0bb132cf5851563870619c3634814cb20e4c4cea6a7396128862"
+    },
+    {
+      "file": "assets/personal/powder-768.webp",
+      "slug": "powder",
+      "format": "webp",
+      "width": 768,
+      "height": 576,
+      "bytes": 50446,
+      "sha256": "169b32645a75816a1ff14956a3de8f0116997e708a8f0283b4ac35dc3b9e9dd2"
+    },
+    {
+      "file": "assets/personal/powder-768.jpg",
+      "slug": "powder",
+      "format": "jpeg",
+      "width": 768,
+      "height": 576,
+      "bytes": 69680,
+      "sha256": "a00d5e5817a69d95163c9f29157d9a190162e44c1d796c1cd06ada98184b9864"
+    },
+    {
+      "file": "assets/personal/drift-front-480.avif",
+      "slug": "drift-front",
+      "format": "avif",
+      "width": 480,
+      "height": 360,
+      "bytes": 15689,
+      "sha256": "0def860d7707558a7e61fec34609c868826aa77c47a48be0e6ecc965530fcc05"
+    },
+    {
+      "file": "assets/personal/drift-front-480.webp",
+      "slug": "drift-front",
+      "format": "webp",
+      "width": 480,
+      "height": 360,
+      "bytes": 22740,
+      "sha256": "d6c37000b2e204d570d1d876bb2933c3cb9fafac4ca2fa4497564ed3535ba8b2"
+    },
+    {
+      "file": "assets/personal/drift-front-480.jpg",
+      "slug": "drift-front",
+      "format": "jpeg",
+      "width": 480,
+      "height": 360,
+      "bytes": 30805,
+      "sha256": "876e1010879a8d13f4adbca82b34ade075f6ae1f325e941d58de84de82a912d3"
+    },
+    {
+      "file": "assets/personal/drift-front-768.avif",
+      "slug": "drift-front",
+      "format": "avif",
+      "width": 768,
+      "height": 576,
+      "bytes": 30483,
+      "sha256": "388ba597070960ff2d4d29df9001ea88b9c9e827c846e75118e9146a77e8c9f8"
+    },
+    {
+      "file": "assets/personal/drift-front-768.webp",
+      "slug": "drift-front",
+      "format": "webp",
+      "width": 768,
+      "height": 576,
+      "bytes": 45914,
+      "sha256": "d385e9584acad77b6b76ab80bf8dd0243d0555c6bca829ed78985c9c78dfef15"
+    },
+    {
+      "file": "assets/personal/drift-front-768.jpg",
+      "slug": "drift-front",
+      "format": "jpeg",
+      "width": 768,
+      "height": 576,
+      "bytes": 70376,
+      "sha256": "d81a3d4adb2b0382a1b4af7c0ef8bc68fde8ec399a853471d4e1ae9ff0763180"
     }
   ]
 }
