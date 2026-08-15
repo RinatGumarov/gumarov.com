@@ -105,8 +105,6 @@ describe('privacy-first analytics adapter', () => {
         disable_surveys_automatic_display: true,
         advanced_disable_feature_flags: true,
         advanced_disable_feature_flags_on_first_load: true,
-        advanced_disable_flags: true,
-        advanced_disable_decide: true,
         capture_exceptions: false,
         capture_performance: false,
         enable_recording_console_log: false,
@@ -117,6 +115,19 @@ describe('privacy-first analytics adapter', () => {
         request_batching: false,
       }),
     );
+    /*
+     * `advanced_disable_decide` and `advanced_disable_flags` stop the SDK
+     * fetching its remote config, and without that fetch it never delivers
+     * events at all — the deployed site sent nothing. Feature flags stay off
+     * through `advanced_disable_feature_flags*` and the project settings.
+     */
+    const [, appliedConfig] = provider.init.mock.calls[0] as unknown as [
+      string,
+      Record<string, unknown>,
+    ];
+    expect(appliedConfig).not.toHaveProperty('advanced_disable_decide');
+    expect(appliedConfig).not.toHaveProperty('advanced_disable_flags');
+
     expect(provider.capture.mock.calls).toEqual(
       allowedEvents.map((event) => [
         event.name,
