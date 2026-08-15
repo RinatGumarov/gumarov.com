@@ -45,8 +45,8 @@ const expectedProjects = [
     slug: 'evercity',
     href: 'https://evercity.io/',
     contribution:
-      'Contributed to frontend and full-stack work on a sustainable-finance platform.',
-    capabilities: 'Frontend · Full stack · Sustainable finance',
+      'Contributed frontend work on a sustainable-finance platform.',
+    capabilities: 'Frontend · Sustainable finance',
     visualName: 'Evercity: Sustainable finance',
   },
 ] as const;

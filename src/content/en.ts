@@ -71,8 +71,8 @@ export const en = {
       summary:
         'A platform for sustainable-finance management, issuance, and monitoring.',
       contribution:
-        'Contributed to frontend and full-stack work on a sustainable-finance platform.',
-      capabilities: 'Frontend · Full stack · Sustainable finance',
+        'Contributed frontend work on a sustainable-finance platform.',
+      capabilities: 'Frontend · Sustainable finance',
       href: 'https://evercity.io/',
     },
   ],
