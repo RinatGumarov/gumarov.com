@@ -54,6 +54,11 @@ describe('landing content', () => {
     },
   );
 
+  it('localizes the contact section label instead of hard-coding English', () => {
+    expect(getContent('en').contact.indexLabel).toBe('Contact');
+    expect(getContent('ru').contact.indexLabel).toBe('Контакты');
+  });
+
   it.each(['en', 'ru'] as const)(
     'carries complete sharing metadata in %s',
     (locale) => {

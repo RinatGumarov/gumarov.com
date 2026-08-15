@@ -20,6 +20,8 @@ export interface Project {
 }
 
 export interface Contact {
+  /** Localized section label rendered beside the section number. */
+  indexLabel: string;
   heading: string;
   body: string;
   telegramLabel: string;

@@ -21,6 +21,7 @@ const placeholderPhotos: PersonalPhotos = [
 ];
 
 const contact = {
+  indexLabel: 'Contact',
   heading: 'Contact',
   body: 'Let’s talk.',
   telegramLabel: 'Telegram',

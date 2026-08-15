@@ -91,6 +91,7 @@ export const en = {
     items: ['Surfing', 'Snowboarding', 'Skating', 'Motorcycles', 'Drifting'],
   },
   contact: {
+    indexLabel: 'Contact',
     heading: 'Let’s build something ambitious',
     body: 'Have an ambitious frontend challenge or a product worth building? Let’s talk.',
     telegramLabel: 'Telegram',
