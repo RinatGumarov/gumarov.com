@@ -54,6 +54,24 @@ describe('landing content', () => {
     },
   );
 
+  it('describes every personal photo in both locales without reusing English', () => {
+    const en = getContent('en').personal.photos;
+    const ru = getContent('ru').personal.photos;
+
+    expect(en.map((photo) => photo.slug)).toEqual([
+      'surf',
+      'skate',
+      'snowboard',
+    ]);
+    expect(ru.map((photo) => photo.slug)).toEqual(en.map((p) => p.slug));
+
+    for (const [index, photo] of en.entries()) {
+      expect(photo.alt.trim().length).toBeGreaterThan(0);
+      expect(ru[index]?.alt.trim().length).toBeGreaterThan(0);
+      expect(ru[index]?.alt).not.toBe(photo.alt);
+    }
+  });
+
   it('localizes the contact section label instead of hard-coding English', () => {
     expect(getContent('en').contact.indexLabel).toBe('Contact');
     expect(getContent('ru').contact.indexLabel).toBe('Контакты');

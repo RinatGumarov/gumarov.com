@@ -19,6 +19,15 @@ export interface Project {
   href: string;
 }
 
+export const personalPhotoSlugs = ['surf', 'skate', 'snowboard'] as const;
+export type PersonalPhotoSlug = (typeof personalPhotoSlugs)[number];
+
+export interface PersonalPhotoAlt {
+  slug: PersonalPhotoSlug;
+  /** Localized description of what the photo shows. */
+  alt: string;
+}
+
 export interface Contact {
   /** Localized section label rendered beside the section number. */
   indexLabel: string;
@@ -64,7 +73,12 @@ export interface LandingContent {
   projectsHeading: string;
   projects: readonly Project[];
   principles: { heading: string; items: readonly string[] };
-  personal: { heading: string; body: string; items: readonly string[] };
+  personal: {
+    heading: string;
+    body: string;
+    items: readonly string[];
+    photos: readonly PersonalPhotoAlt[];
+  };
   contact: Contact;
   footer: { privacy: string };
 }

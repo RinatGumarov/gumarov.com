@@ -1,0 +1,214 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "slug": "surf",
+      "file": "assets-source/personal/surf.jpg",
+      "bytes": 14033254,
+      "sha256": "52a7de95ba7da0e95f9ef9fd245e47723883ca912acbd678db16a740065023f4",
+      "crop": {
+        "left": 1000,
+        "top": 200,
+        "width": 4000,
+        "height": 3000
+      }
+    },
+    {
+      "slug": "skate",
+      "file": "assets-source/personal/skate.jpg",
+      "bytes": 8871629,
+      "sha256": "86ee2c416cea3a0cf1ab8560ba540e3c30592dae069aa0bbb6baa8dec0a3ad7f",
+      "crop": {
+        "left": 0,
+        "top": 390,
+        "width": 3680,
+        "height": 2760
+      }
+    },
+    {
+      "slug": "snowboard",
+      "file": "assets-source/personal/snowboard.jpg",
+      "bytes": 2097553,
+      "sha256": "8fceebec257df1f33f90bbf553a269b40abc9e37bd190cd1c6826ed4543b0258",
+      "crop": {
+        "left": 480,
+        "top": 0,
+        "width": 2880,
+        "height": 2160
+      }
+    }
+  ],
+  "processing": {
+    "crop": "fixed-rectangle-extract",
+    "aspectRatio": "4:3",
+    "resizeKernel": "lanczos3",
+    "colourspace": "srgb",
+    "brightness": 0.92,
+    "saturation": 0.88,
+    "metadataPolicy": "exclude"
+  },
+  "outputs": [
+    {
+      "file": "assets/personal/surf-480.avif",
+      "slug": "surf",
+      "format": "avif",
+      "width": 480,
+      "height": 360,
+      "bytes": 12826,
+      "sha256": "e4ae63d0fcc47245dcd3e3510f2bbe613f30b140d76ac5f656311dc8a4846a13"
+    },
+    {
+      "file": "assets/personal/surf-480.webp",
+      "slug": "surf",
+      "format": "webp",
+      "width": 480,
+      "height": 360,
+      "bytes": 17490,
+      "sha256": "6f8252c7277724fc99177e3dc4920448d40a21e2fce3e1103a047405df548498"
+    },
+    {
+      "file": "assets/personal/surf-480.jpg",
+      "slug": "surf",
+      "format": "jpeg",
+      "width": 480,
+      "height": 360,
+      "bytes": 23233,
+      "sha256": "e77fee4838d6c8daf51b75e22294047b1304b1f8c38cbb2e05e7574053e8ebfc"
+    },
+    {
+      "file": "assets/personal/surf-768.avif",
+      "slug": "surf",
+      "format": "avif",
+      "width": 768,
+      "height": 576,
+      "bytes": 28129,
+      "sha256": "73b5f97221299c87a80f743646ed01d9705ce9f33b71c272b69cb616bfa3fc22"
+    },
+    {
+      "file": "assets/personal/surf-768.webp",
+      "slug": "surf",
+      "format": "webp",
+      "width": 768,
+      "height": 576,
+      "bytes": 38424,
+      "sha256": "1c0de3faaeac94884de1be6fa9070350ac619bb482438eed10ff80c9cf611568"
+    },
+    {
+      "file": "assets/personal/surf-768.jpg",
+      "slug": "surf",
+      "format": "jpeg",
+      "width": 768,
+      "height": 576,
+      "bytes": 52970,
+      "sha256": "71e40eafb34583c31f57950f7c0e8d571e1318e364c894c7ffdd8c43b091ac41"
+    },
+    {
+      "file": "assets/personal/skate-480.avif",
+      "slug": "skate",
+      "format": "avif",
+      "width": 480,
+      "height": 360,
+      "bytes": 8997,
+      "sha256": "932fc64814ce7f6adee1c14d50846e2c72a82cf6045d69afacdff0e6f647c576"
+    },
+    {
+      "file": "assets/personal/skate-480.webp",
+      "slug": "skate",
+      "format": "webp",
+      "width": 480,
+      "height": 360,
+      "bytes": 12202,
+      "sha256": "32d44dc0695eeb90b6acd51b101cce9cd692bd53090eeda89f4d3d7ff5da7431"
+    },
+    {
+      "file": "assets/personal/skate-480.jpg",
+      "slug": "skate",
+      "format": "jpeg",
+      "width": 480,
+      "height": 360,
+      "bytes": 19801,
+      "sha256": "9a174fd4bff75f9cb5e1d80422671cc0222246226be033babfba125d8ce328ab"
+    },
+    {
+      "file": "assets/personal/skate-768.avif",
+      "slug": "skate",
+      "format": "avif",
+      "width": 768,
+      "height": 576,
+      "bytes": 15997,
+      "sha256": "623f675069c76374de5e7b0356933ead69263eb0f115ac99be22ced9af07ccca"
+    },
+    {
+      "file": "assets/personal/skate-768.webp",
+      "slug": "skate",
+      "format": "webp",
+      "width": 768,
+      "height": 576,
+      "bytes": 24462,
+      "sha256": "a73fc83c8427201a6f3aa9129bede9cc6da9db4cb28dc0b1adbfae3ad92e8c66"
+    },
+    {
+      "file": "assets/personal/skate-768.jpg",
+      "slug": "skate",
+      "format": "jpeg",
+      "width": 768,
+      "height": 576,
+      "bytes": 44641,
+      "sha256": "6e66191cf5b72631a426584b12bdde2db621f6156e16c513e3630760f5c20fe1"
+    },
+    {
+      "file": "assets/personal/snowboard-480.avif",
+      "slug": "snowboard",
+      "format": "avif",
+      "width": 480,
+      "height": 360,
+      "bytes": 22411,
+      "sha256": "32a8bb8e9fe59ef44f112bf2fb0c3476a4b92b6abd3d6d4dbee724c5c3a4ce0e"
+    },
+    {
+      "file": "assets/personal/snowboard-480.webp",
+      "slug": "snowboard",
+      "format": "webp",
+      "width": 480,
+      "height": 360,
+      "bytes": 27318,
+      "sha256": "fdf8b7e344312c18701dd0c583c02675e7899e785959ef4f6e19767caf6a3100"
+    },
+    {
+      "file": "assets/personal/snowboard-480.jpg",
+      "slug": "snowboard",
+      "format": "jpeg",
+      "width": 480,
+      "height": 360,
+      "bytes": 33512,
+      "sha256": "6aa372e27db47a8b2409b573af206c87e7a061c5016adf21a72253a7e8c77e3c"
+    },
+    {
+      "file": "assets/personal/snowboard-768.avif",
+      "slug": "snowboard",
+      "format": "avif",
+      "width": 768,
+      "height": 576,
+      "bytes": 50281,
+      "sha256": "27eb93d13975610b51db9bfa14257725caf7e0d23cd1f6cc7b50fba59101ff7b"
+    },
+    {
+      "file": "assets/personal/snowboard-768.webp",
+      "slug": "snowboard",
+      "format": "webp",
+      "width": 768,
+      "height": 576,
+      "bytes": 61184,
+      "sha256": "102eaa6e42639c54cee14e0d4462e778d58dbf813e2a2b2f74fe8bdbe93059ca"
+    },
+    {
+      "file": "assets/personal/snowboard-768.jpg",
+      "slug": "snowboard",
+      "format": "jpeg",
+      "width": 768,
+      "height": 576,
+      "bytes": 77834,
+      "sha256": "4aaadc58bf4a5ba0fd272e45c9481c08b045d321aa9c740f41f555e6de89cf9d"
+    }
+  ]
+}

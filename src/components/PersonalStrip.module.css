@@ -114,12 +114,17 @@
   block-size: auto;
   aspect-ratio: 4 / 3;
   object-fit: cover;
-  opacity: 0.34;
+  /*
+   * Tuned for the approved photographs rather than the neutral placeholders
+   * they replaced: restrained enough to stay subordinate to the professional
+   * sections, bright enough that a night skate frame still reads.
+   */
+  opacity: 0.78;
   background:
     linear-gradient(135deg, rgb(70 217 245 / 0.1), transparent 48%),
     linear-gradient(315deg, rgb(231 173 101 / 0.12), transparent 52%),
     var(--color-graphite-800);
-  filter: saturate(0.55) contrast(0.9);
+  filter: saturate(0.82) contrast(0.96);
 }
 
 /* A failed photo keeps its film frame and never disturbs the surrounding story. */

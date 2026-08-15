@@ -12,6 +12,21 @@ import { renderPageMetadata, siteUrl } from './page-metadata.mjs';
 const checkerPath = path.resolve(process.cwd(), 'scripts/check-dist.mjs');
 const approvedPortraitSourceSha256 =
   '82a737263a795f74b39bca2b78710cfdca336d8408566f458c8bb4e8c35d9310';
+const approvedPersonalSources = [
+  {
+    slug: 'surf',
+    sha256: '52a7de95ba7da0e95f9ef9fd245e47723883ca912acbd678db16a740065023f4',
+  },
+  {
+    slug: 'skate',
+    sha256: '86ee2c416cea3a0cf1ab8560ba540e3c30592dae069aa0bbb6baa8dec0a3ad7f',
+  },
+  {
+    slug: 'snowboard',
+    sha256: '8fceebec257df1f33f90bbf553a269b40abc9e37bd190cd1c6826ed4543b0258',
+  },
+];
+
 const temporaryDirectories = [];
 
 afterEach(async () => {
@@ -134,6 +149,96 @@ describe('distribution checker', () => {
       'Portrait asset assets/portrait/portrait-480.jpg contains orientation metadata.',
     );
     expect(orientationResult.status).toBe(1);
+  });
+
+  it('requires every approved personal photo variant at its declared dimensions', async () => {
+    const missingFixture = await createDistributionFixture();
+    await rm(
+      path.join(missingFixture.distDirectory, 'assets/personal/surf-768.webp'),
+    );
+
+    const missingResult = runChecker(missingFixture.distDirectory);
+
+    expect(missingResult.stderr).toContain(
+      'Required personal asset is missing: assets/personal/surf-768.webp',
+    );
+    expect(missingResult.status).toBe(1);
+
+    const dimensionsFixture = await createDistributionFixture();
+    await sharp({
+      create: { width: 20, height: 20, channels: 3, background: '#123456' },
+    })
+      .avif()
+      .toFile(
+        path.join(
+          dimensionsFixture.distDirectory,
+          'assets/personal/skate-480.avif',
+        ),
+      );
+
+    const dimensionsResult = runChecker(dimensionsFixture.distDirectory);
+
+    expect(dimensionsResult.stderr).toContain(
+      'Personal asset assets/personal/skate-480.avif is 20x20; expected 480x360.',
+    );
+    expect(dimensionsResult.status).toBe(1);
+
+    const metadataFixture = await createDistributionFixture();
+    await sharp({
+      create: { width: 768, height: 576, channels: 3, background: '#123456' },
+    })
+      .withExif({ IFD0: { Make: 'Fixture Camera' } })
+      .jpeg({ quality: 10 })
+      .toFile(
+        path.join(
+          metadataFixture.distDirectory,
+          'assets/personal/snowboard-768.jpg',
+        ),
+      );
+
+    const metadataResult = runChecker(metadataFixture.distDirectory);
+
+    expect(metadataResult.stderr).toContain(
+      'Personal asset assets/personal/snowboard-768.jpg contains EXIF metadata.',
+    );
+    expect(metadataResult.status).toBe(1);
+  });
+
+  it('requires localized personal photo alt text as an image attribute', async () => {
+    const fixture = await createDistributionFixture({
+      omittedValuesByRoute: {
+        'ru/index.html': new Set(['Ринат на волне.']),
+      },
+    });
+
+    const result = runChecker(fixture.distDirectory);
+
+    expect(result.stderr).toContain(
+      'ru/index.html: missing image alt text personal.photos[0].alt "Ринат на волне."',
+    );
+    // Alt text must not be accepted merely because it appears as page text.
+    expect(result.stderr).not.toContain(
+      'missing visible content personal.photos[0].alt',
+    );
+    expect(result.status).toBe(1);
+  });
+
+  it('rejects a personal photo whose source is not the approved one', async () => {
+    const fixture = await createDistributionFixture();
+    const manifestPath = path.join(
+      fixture.distDirectory,
+      'assets/personal/approved-manifest.json',
+    );
+    const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+    manifest.sources[1].sha256 = 'b'.repeat(64);
+    await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+    const result = runChecker(fixture.distDirectory);
+
+    expect(result.stderr).toContain(
+      'assets/personal/approved-manifest.json: source SHA-256 for skate is not the pinned approved source.',
+    );
+    expect(result.status).toBe(1);
   });
 
   it('rejects unrelated metadata-free pixels that do not match the approved output manifest', async () => {
@@ -808,6 +913,7 @@ async function createDistributionFixture(options = {}) {
   await mkdir(serverDirectory, { recursive: true });
   await writeFile(path.join(fixtureRoot, 'package.json'), '{"type":"module"}');
   await writeValidPortraitAssets(distDirectory);
+  await writeValidPersonalAssets(distDirectory);
 
   const contentByLocale = {
     en: createContent(
@@ -886,6 +992,51 @@ async function writeValidPortraitAssets(distDirectory) {
         source: { sha256: approvedPortraitSourceSha256 },
         outputs,
       },
+      null,
+      2,
+    )}\n`,
+  );
+}
+
+async function writeValidPersonalAssets(distDirectory) {
+  const personalDirectory = path.join(distDirectory, 'assets/personal');
+  await mkdir(personalDirectory, { recursive: true });
+  const outputs = [];
+
+  for (const slug of ['surf', 'skate', 'snowboard']) {
+    for (const width of [480, 768]) {
+      for (const format of ['avif', 'webp', 'jpeg']) {
+        const extension = format === 'jpeg' ? 'jpg' : format;
+        const file = `${slug}-${width}.${extension}`;
+        const outputPath = path.join(personalDirectory, file);
+        await sharp({
+          create: {
+            width,
+            height: Math.round((width * 3) / 4),
+            channels: 3,
+            background: '#123456',
+          },
+        })
+          .toFormat(format, { quality: 10 })
+          .toFile(outputPath);
+        const contents = await readFile(outputPath);
+        outputs.push({
+          file: `assets/personal/${file}`,
+          slug,
+          format,
+          width,
+          height: Math.round((width * 3) / 4),
+          bytes: contents.byteLength,
+          sha256: createHash('sha256').update(contents).digest('hex'),
+        });
+      }
+    }
+  }
+
+  await writeFile(
+    path.join(personalDirectory, 'approved-manifest.json'),
+    `${JSON.stringify(
+      { schemaVersion: 1, sources: approvedPersonalSources, outputs },
       null,
       2,
     )}\n`,
@@ -1040,6 +1191,12 @@ function createContent(locale, heroBody) {
       heading: isRussian ? 'Вне экрана' : 'Beyond the screen',
       body: isRussian ? 'Личный текст.' : 'Personal story.',
       items: [isRussian ? 'Сёрфинг' : 'Surfing'],
+      photos: [
+        {
+          slug: 'surf',
+          alt: isRussian ? 'Ринат на волне.' : 'Rinat riding a wave.',
+        },
+      ],
     },
     contact: {
       heading: isRussian ? 'Давайте поговорим' : 'Let’s talk',
@@ -1078,6 +1235,13 @@ function renderFixtureDocument({
       return `<${element}>${escapeHtml(value)}</${element}>`;
     })
     .join('');
+  const personalFrames = content.personal.photos
+    .filter((photo) => !omittedValues.has(photo.alt))
+    .map(
+      (photo) =>
+        `<figure><img src="/assets/personal/${photo.slug}-768.jpg" width="768" height="576" alt="${escapeHtml(photo.alt)}" loading="lazy" /></figure>`,
+    )
+    .join('');
   const bootstrap = root
     ? `<script data-root-locale-bootstrap>(()=>{if(window.location.pathname!=='/')return;let locale=null;try{locale=window.localStorage.getItem('preferred-locale')}catch{}if(locale!=='en'&&locale!=='ru'){const languages=Array.isArray(window.navigator.languages)?window.navigator.languages:[window.navigator.language];locale=languages.some((language)=>typeof language==='string'&&language.toLowerCase().startsWith('ru'))?'ru':'en'}if(locale==='ru')window.location.replace(\`/ru/\${window.location.search}\${window.location.hash}\`)})();</script>`
     : '';
@@ -1087,7 +1251,7 @@ function renderFixtureDocument({
     content,
   }).join('');
 
-  return `<!doctype html><html lang="${locale}"><head>${pageMetadata}${head}${bootstrap}</head><body><div id="root"><a href="#main-content">Skip to content</a><header></header><main id="main-content" data-fixture-route="${file}"><section data-hero>${heroMarkup}</section>${renderedValues}</main><footer></footer></div></body></html>`;
+  return `<!doctype html><html lang="${locale}"><head>${pageMetadata}${head}${bootstrap}</head><body><div id="root"><a href="#main-content">Skip to content</a><header></header><main id="main-content" data-fixture-route="${file}"><section data-hero>${heroMarkup}</section>${renderedValues}${personalFrames}</main><footer></footer></div></body></html>`;
 }
 
 function collectHeadingElements(content) {
@@ -1110,7 +1274,8 @@ function collectVisibleStrings(content) {
 
 function visit(value, key, values) {
   if (typeof value === 'string') {
-    if (key !== 'slug' && value !== '') values.push(value);
+    // `alt` is rendered as an image attribute, not as page text.
+    if (key !== 'slug' && key !== 'alt' && value !== '') values.push(value);
     return;
   }
   if (Array.isArray(value)) {

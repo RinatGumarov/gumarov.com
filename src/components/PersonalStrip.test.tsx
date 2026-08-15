@@ -85,6 +85,49 @@ describe('PersonalStrip', () => {
     ).toBeInTheDocument();
   });
 
+  it('offers AVIF and WebP responsive sources beside the JPEG fallback', () => {
+    const photos: PersonalPhotos = [
+      {
+        src: '/assets/personal/surf-768.jpg',
+        srcSet: '/assets/personal/surf-480.jpg 480w',
+        sources: {
+          avif: '/assets/personal/surf-480.avif 480w',
+          webp: '/assets/personal/surf-480.webp 480w',
+        },
+        sizes: '(min-width: 60rem) 20rem, 45vw',
+        width: 768,
+        height: 576,
+        alt: 'Rinat riding the face of a breaking wave.',
+      },
+      placeholderPhotos[1],
+      placeholderPhotos[2],
+    ];
+
+    const { container } = render(
+      <PersonalStrip content={personalContent} photos={photos} />,
+    );
+
+    const picture = container.querySelector('figure picture');
+    expect(picture).not.toBeNull();
+    expect(picture?.querySelector('source[type="image/avif"]')).toHaveAttribute(
+      'srcset',
+      '/assets/personal/surf-480.avif 480w',
+    );
+    expect(picture?.querySelector('source[type="image/webp"]')).toHaveAttribute(
+      'srcset',
+      '/assets/personal/surf-480.webp 480w',
+    );
+
+    const image = picture?.querySelector('img');
+    expect(image).toHaveAttribute('src', '/assets/personal/surf-768.jpg');
+    expect(image).toHaveAttribute('sizes', '(min-width: 60rem) 20rem, 45vw');
+    expect(image).toHaveAttribute('loading', 'lazy');
+
+    // Frames without responsive sources must still render a plain image.
+    expect(container.querySelectorAll('figure picture')).toHaveLength(1);
+    expect(container.querySelectorAll('figure img')).toHaveLength(3);
+  });
+
   it('exposes localized alt text when a future photo adds information', () => {
     const photos: PersonalPhotos = [
       {
