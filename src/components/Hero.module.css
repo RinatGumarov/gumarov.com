@@ -52,7 +52,7 @@
   max-inline-size: 10.5ch;
   margin: 0;
   color: var(--color-text-strong);
-  font-family: var(--font-display);
+  font-family: ui-sans-serif, system-ui, sans-serif;
   font-size: clamp(3rem, 7.4vw, 7.75rem);
   font-weight: 660;
   letter-spacing: -0.055em;
