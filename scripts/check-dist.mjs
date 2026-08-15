@@ -172,6 +172,8 @@ for (const route of routeContracts) {
     );
   }
 
+  validateAccessibilityContract(route.file, renderedDocument);
+
   const heroMarkup = extractSemanticRegion(html, 'data-hero');
   if (heroMarkup === null) {
     failures.push(`${route.file}: semantic hero region is missing`);
@@ -185,6 +187,8 @@ for (const route of routeContracts) {
   if (html.includes('<!--app-html-->') || html.includes('<!--page-meta-->')) {
     failures.push(`${route.file}: unresolved prerender marker`);
   }
+
+  validateRenderBlockingStylesheets(route.file, html);
 
   const hasRootBootstrap = html.includes('data-root-locale-bootstrap');
   if (route.root && !hasRootBootstrap) {
@@ -377,6 +381,24 @@ function collectMetadataContracts(route, content) {
   ];
 }
 
+function validateRenderBlockingStylesheets(routeFile, html) {
+  const assetTagPattern = /<(?:link)\b[^>]*>/gu;
+
+  for (const tagMatch of html.matchAll(assetTagPattern)) {
+    const tag = tagMatch[0];
+    const linkRelations = new Set(
+      (readHtmlAttribute(tag, 'rel') ?? '').toLowerCase().split(/\s+/u),
+    );
+    if (!linkRelations.has('stylesheet')) continue;
+
+    const media = (readHtmlAttribute(tag, 'media') ?? 'all').toLowerCase();
+    if (media === 'print') continue;
+
+    const href = readHtmlAttribute(tag, 'href') ?? 'unknown';
+    failures.push(`${routeFile}: render-blocking stylesheet ${href}`);
+  }
+}
+
 function validateStructuredData(route, html, content) {
   const serialized = html.match(
     /<script type="application\/ld\+json">([\s\S]*?)<\/script>/u,
@@ -414,6 +436,52 @@ function validateStructuredData(route, html, content) {
       );
     }
   }
+}
+
+function validateAccessibilityContract(routeFile, document) {
+  const skipLink = document.querySelector('a[href="#main-content"]');
+  const skipTarget = document.getElementById('main-content');
+  if (!skipLink || skipTarget?.tagName !== 'MAIN') {
+    failures.push(`${routeFile}: missing skip link to #main-content`);
+  }
+
+  const headingOnes = document.querySelectorAll('h1');
+  if (headingOnes.length !== 1) {
+    failures.push(`${routeFile}: expected exactly one h1`);
+  }
+
+  const banner = document.querySelector('header, [role="banner"]');
+  const main = document.querySelector('main, [role="main"]');
+  const contentinfo = document.querySelector('footer, [role="contentinfo"]');
+
+  if (!banner || !main || !isDocumentBefore(banner, main)) {
+    failures.push(`${routeFile}: missing banner landmark before main`);
+  }
+
+  if (!contentinfo || !main || !isDocumentBefore(main, contentinfo)) {
+    failures.push(`${routeFile}: missing contentinfo landmark after main`);
+  }
+}
+
+function validateHeadingFontDisplay(css, relativeFile) {
+  for (const face of css.matchAll(/@font-face\s*\{([\s\S]*?)\}/gu)) {
+    if (!/font-family\s*:\s*(?:Onest|['"]Onest['"])/u.test(face[1])) {
+      continue;
+    }
+
+    if (!/font-display\s*:\s*optional(?:\s|;|$)/u.test(face[1])) {
+      failures.push(
+        `${relativeFile}: Onest must use font-display: optional so the LCP heading is not delayed by a webfont swap.`,
+      );
+    }
+  }
+}
+
+function isDocumentBefore(earlier, later) {
+  return Boolean(
+    earlier.compareDocumentPosition(later) &
+    earlier.DOCUMENT_POSITION_FOLLOWING,
+  );
 }
 
 function validateScriptlessDocument(routeFile, html, content) {
@@ -714,6 +782,9 @@ async function validateInitialVisibility(cssFiles) {
       '',
     );
 
+    validateHeroCopyLcpVisibility(css, path.relative(distDirectory, file));
+    validateHeadingFontDisplay(css, path.relative(distDirectory, file));
+
     for (const rule of styleRules.matchAll(motionRulePattern)) {
       const selector = normalizeText(rule[1]);
       const declarations = rule[2];
@@ -727,6 +798,31 @@ async function validateInitialVisibility(cssFiles) {
       if (hides && !selector.includes('data-motion-state')) {
         failures.push(
           `${path.relative(distDirectory, file)}: rule ${JSON.stringify(selector)} changes the initial state without the [data-motion-state='enabled'] gate.`,
+        );
+      }
+    }
+  }
+}
+
+function validateHeroCopyLcpVisibility(css, relativeFile) {
+  const copyRules = css.matchAll(
+    /([^{}]*\[data-motion-enter=(['"]?)copy\2\][^{]*)\{([^{}]*)\}/gu,
+  );
+  const keyframes = new Map(
+    [...css.matchAll(/@keyframes\s+([\w-]+)\s*\{([\s\S]*?)\}/gu)].map(
+      (match) => [match[1], match[2]],
+    ),
+  );
+
+  for (const rule of copyRules) {
+    const animation = rule[3].match(/animation(?:-name)?\s*:\s*([^;]+)/u)?.[1];
+    if (!animation) continue;
+
+    for (const token of animation.split(/[\s,]+/u)) {
+      const frames = keyframes.get(token);
+      if (frames && /(?:^|;|\{)\s*opacity\s*:\s*0(?:\s|;|$)/u.test(frames)) {
+        failures.push(
+          `${relativeFile}: hero copy animation ${JSON.stringify(token)} hides the LCP heading.`,
         );
       }
     }
@@ -1190,6 +1286,14 @@ async function collectInitialAssetPaths(html, documentPath, routeFile) {
       routeFile,
     );
     if (largestCandidate) paths.add(largestCandidate);
+  }
+
+  const stylePattern = /<style\b[^>]*>([\s\S]*?)<\/style>/gu;
+  for (const styleMatch of html.matchAll(stylePattern)) {
+    for (const reference of collectCssReferences(styleMatch[1])) {
+      const assetPath = resolveLocalAsset(reference, documentPath);
+      if (assetPath) paths.add(assetPath);
+    }
   }
 
   await collectCssDependencies(paths, routeFile);

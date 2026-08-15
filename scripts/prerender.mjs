@@ -40,6 +40,8 @@ for (const route of routes) {
     document = document.replace(rootBootstrapPattern, '');
   }
 
+  document = await inlineStylesheets(document);
+
   await mkdir(outputDirectory, { recursive: true });
   await writeFile(outputPath, document);
 }
@@ -54,4 +56,40 @@ function replaceUnique(source, marker, replacement) {
   }
 
   return source.replace(marker, replacement);
+}
+
+async function inlineStylesheets(html) {
+  const stylesheetPattern = /<link\b[^>]*>/gu;
+  let inlined = html;
+
+  for (const tagMatch of html.matchAll(stylesheetPattern)) {
+    const tag = tagMatch[0];
+    const rel = (readHtmlAttribute(tag, 'rel') ?? '').toLowerCase();
+    if (!rel.split(/\s+/u).includes('stylesheet')) continue;
+
+    const href = readHtmlAttribute(tag, 'href');
+    if (!href || /^(?:https?:)?\/\//u.test(href)) {
+      throw new Error(
+        `Cannot inline remote stylesheet ${href ?? '(missing)'}.`,
+      );
+    }
+
+    const relativePath = decodeURIComponent(href.replace(/^\/+/u, ''));
+    const cssPath = path.resolve(distDirectory, relativePath);
+    if (!cssPath.startsWith(distDirectory)) {
+      throw new Error(`Stylesheet path escapes dist: ${href}`);
+    }
+
+    const css = await readFile(cssPath, 'utf8');
+    inlined = inlined.replace(tag, `<style>${css}</style>`);
+  }
+
+  return inlined;
+}
+
+function readHtmlAttribute(tag, name) {
+  const match = tag.match(
+    new RegExp(`(?:^|\\s)${name}=(?:"([^"]*)"|'([^']*)')`, 'iu'),
+  );
+  return match?.[1] ?? match?.[2];
 }

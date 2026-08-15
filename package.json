@@ -17,6 +17,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:a11y": "playwright test tests/e2e/accessibility.spec.ts",
+    "test:lighthouse": "lhci autorun",
     "media:portrait": "node scripts/process-images.mjs",
     "media:brand": "node scripts/process-brand-assets.mjs",
     "typecheck": "tsc -b",

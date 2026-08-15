@@ -540,6 +540,106 @@ describe('distribution checker', () => {
     expect(result.status).toBe(1);
   });
 
+  it('rejects hero copy enter motion that hides the LCP heading', async () => {
+    const fixture = await createDistributionFixture();
+    const assetsDirectory = path.join(fixture.distDirectory, 'assets');
+    await mkdir(assetsDirectory, { recursive: true });
+    await writeFile(
+      path.join(assetsDirectory, 'lcp.css'),
+      "@keyframes motion-hero-copy-enter{from{opacity:0;transform:translate3d(0,1.25rem,0)}to{opacity:1;transform:none}}[data-motion-state='enabled'] [data-motion-enter='copy']{animation:motion-hero-copy-enter 640ms both}\n",
+    );
+
+    const result = runChecker(fixture.distDirectory);
+
+    expect(result.stderr).toContain(
+      'assets/lcp.css: hero copy animation "motion-hero-copy-enter" hides the LCP heading.',
+    );
+    expect(result.status).toBe(1);
+  });
+
+  it('rejects a heading font that can swap in after first paint', async () => {
+    const fixture = await createDistributionFixture();
+    const assetsDirectory = path.join(fixture.distDirectory, 'assets');
+    await mkdir(assetsDirectory, { recursive: true });
+    await writeFile(
+      path.join(assetsDirectory, 'fonts.css'),
+      "@font-face{font-family:Onest;src:url('/assets/fonts/Onest-Variable.woff2') format('woff2');font-display:swap}\n",
+    );
+
+    const result = runChecker(fixture.distDirectory);
+
+    expect(result.stderr).toContain(
+      'assets/fonts.css: Onest must use font-display: optional so the LCP heading is not delayed by a webfont swap.',
+    );
+    expect(result.status).toBe(1);
+  });
+
+  it('rejects a render-blocking external stylesheet', async () => {
+    const fixture = await createDistributionFixture({
+      headByRoute: {
+        'en/index.html': '<link rel="stylesheet" href="/assets/app.css" />',
+      },
+    });
+    const assetsDirectory = path.join(fixture.distDirectory, 'assets');
+    await mkdir(assetsDirectory, { recursive: true });
+    await writeFile(path.join(assetsDirectory, 'app.css'), 'body{margin:0}\n');
+
+    const result = runChecker(fixture.distDirectory);
+
+    expect(result.stderr).toContain(
+      'en/index.html: render-blocking stylesheet /assets/app.css',
+    );
+    expect(result.status).toBe(1);
+  });
+
+  it('requires a skip link to the main landmark', async () => {
+    const fixture = await createDistributionFixture({
+      transformHtmlByRoute: {
+        'en/index.html': (html) =>
+          html.replace(/<a href="#main-content">[^<]*<\/a>/u, ''),
+      },
+    });
+
+    const result = runChecker(fixture.distDirectory);
+
+    expect(result.stderr).toContain(
+      'en/index.html: missing skip link to #main-content',
+    );
+    expect(result.status).toBe(1);
+  });
+
+  it('requires banner, main, and contentinfo landmarks in document order', async () => {
+    const fixture = await createDistributionFixture({
+      transformHtmlByRoute: {
+        'ru/index.html': (html) =>
+          html
+            .replace('<header>', '<div data-not-banner>')
+            .replace('</header>', '</div>'),
+      },
+    });
+
+    const result = runChecker(fixture.distDirectory);
+
+    expect(result.stderr).toContain(
+      'ru/index.html: missing banner landmark before main',
+    );
+    expect(result.status).toBe(1);
+  });
+
+  it('requires exactly one h1 in the prerendered document', async () => {
+    const fixture = await createDistributionFixture({
+      transformHtmlByRoute: {
+        'en/index.html': (html) =>
+          html.replace('<h1>', '<h2>').replace('</h1>', '</h2>'),
+      },
+    });
+
+    const result = runChecker(fixture.distDirectory);
+
+    expect(result.stderr).toContain('en/index.html: expected exactly one h1');
+    expect(result.status).toBe(1);
+  });
+
   it('enforces each route transfer budget through recursive CSS dependencies', async () => {
     const fixture = await createDistributionFixture({
       headByRoute: {
@@ -566,6 +666,26 @@ describe('distribution checker', () => {
     const result = runChecker(fixture.distDirectory);
 
     expect(result.stderr).toContain('ru/index.html: initial transfer is');
+    expect(result.status).toBe(1);
+  });
+
+  it('budgets assets referenced from inlined styles', async () => {
+    const fixture = await createDistributionFixture({
+      headByRoute: {
+        'en/index.html':
+          '<style>.hero { background-image: url("/media/large-background.bin"); }</style>',
+      },
+    });
+    const mediaDirectory = path.join(fixture.distDirectory, 'media');
+    await mkdir(mediaDirectory, { recursive: true });
+    await writeFile(
+      path.join(mediaDirectory, 'large-background.bin'),
+      Buffer.alloc(701 * 1024),
+    );
+
+    const result = runChecker(fixture.distDirectory);
+
+    expect(result.stderr).toContain('en/index.html: initial transfer is');
     expect(result.status).toBe(1);
   });
 });
@@ -857,7 +977,7 @@ function renderFixtureDocument({
     content,
   }).join('');
 
-  return `<!doctype html><html lang="${locale}"><head>${pageMetadata}${head}${bootstrap}</head><body><div id="root"><main data-fixture-route="${file}"><section data-hero>${heroMarkup}</section>${renderedValues}</main></div></body></html>`;
+  return `<!doctype html><html lang="${locale}"><head>${pageMetadata}${head}${bootstrap}</head><body><div id="root"><a href="#main-content">Skip to content</a><header></header><main id="main-content" data-fixture-route="${file}"><section data-hero>${heroMarkup}</section>${renderedValues}</main><footer></footer></div></body></html>`;
 }
 
 function collectHeadingElements(content) {
