@@ -1,4 +1,6 @@
-import type { Project } from '../content';
+import { useCallback, useEffect, useRef } from 'react';
+import type { Locale, Project } from '../content';
+import { observeProjectViewOnce } from '../lib/analytics';
 import { usePointerParallax } from '../lib/motion';
 import { useViewedOnce } from '../lib/useViewedOnce';
 import styles from './ProjectScene.module.css';
@@ -6,16 +8,35 @@ import styles from './ProjectScene.module.css';
 interface ProjectSceneProps {
   index: number;
   project: Project;
+  locale: Locale;
 }
 
-export function ProjectScene({ index, project }: ProjectSceneProps) {
+export function ProjectScene({ index, project, locale }: ProjectSceneProps) {
   const headingId = `project-${project.slug}-heading`;
-  const { observed, ref } = useViewedOnce<HTMLElement>();
+  const { observed, ref: motionRef } = useViewedOnce<HTMLElement>();
+  const analyticsRef = useRef<HTMLElement>(null);
   const visualMotion = usePointerParallax<HTMLDivElement>();
+  const setSceneRef = useCallback(
+    (element: HTMLElement | null) => {
+      motionRef.current = element;
+      analyticsRef.current = element;
+    },
+    [motionRef],
+  );
+
+  useEffect(() => {
+    const element = analyticsRef.current;
+    if (!element) return;
+
+    return observeProjectViewOnce(element, {
+      name: 'project_viewed',
+      properties: { slug: project.slug, locale },
+    });
+  }, [locale, project.slug]);
 
   return (
     <article
-      ref={ref}
+      ref={setSceneRef}
       className={styles.scene}
       data-project-slug={project.slug}
       data-motion-project="true"

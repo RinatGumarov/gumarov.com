@@ -1,4 +1,5 @@
 import type { LandingContent, Locale } from '../content';
+import { trackAnalyticsEvent } from '../lib/analytics';
 import { setPreferredLocale } from '../lib/locale';
 import styles from './Navigation.module.css';
 
@@ -17,6 +18,12 @@ export function Navigation(_props: NavigationProps) {
 
   const activateLocale =
     (nextLocale: Locale) => (event: React.MouseEvent<HTMLAnchorElement>) => {
+      if (nextLocale !== locale) {
+        trackAnalyticsEvent({
+          name: 'language_changed',
+          properties: { from: locale, to: nextLocale },
+        });
+      }
       setPreferredLocale(nextLocale);
 
       if (window.location.hash) {

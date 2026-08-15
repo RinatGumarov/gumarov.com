@@ -1,4 +1,5 @@
 import type { Contact, Locale } from '../content';
+import { trackAnalyticsEvent, type ContactChannel } from '../lib/analytics';
 import { setPreferredLocale } from '../lib/locale';
 import styles from './Footer.module.css';
 
@@ -15,6 +16,12 @@ export function Footer(_props: FooterProps) {
 
   const activateLocale =
     (nextLocale: Locale) => (event: React.MouseEvent<HTMLAnchorElement>) => {
+      if (nextLocale !== locale) {
+        trackAnalyticsEvent({
+          name: 'language_changed',
+          properties: { from: locale, to: nextLocale },
+        });
+      }
       setPreferredLocale(nextLocale);
 
       if (window.location.hash) {
@@ -24,6 +31,12 @@ export function Footer(_props: FooterProps) {
         );
       }
     };
+  const captureContact = (channel: ContactChannel) => () => {
+    trackAnalyticsEvent({
+      name: 'contact_clicked',
+      properties: { channel, section: 'footer', locale },
+    });
+  };
 
   return (
     <footer className={styles.footer}>
@@ -38,6 +51,7 @@ export function Footer(_props: FooterProps) {
           <a
             href={contact.telegramHref}
             aria-label={`${contact.telegramLabel}: ${contact.telegramHandle}`}
+            onClick={captureContact('telegram')}
           >
             <span>{contact.telegramLabel}</span>
             <strong>{contact.telegramHandle}</strong>
@@ -45,6 +59,7 @@ export function Footer(_props: FooterProps) {
           <a
             href={contact.emailHref}
             aria-label={`${contact.emailLabel}: ${contact.emailAddress}`}
+            onClick={captureContact('email')}
           >
             <span>{contact.emailLabel}</span>
             <strong>{contact.emailAddress}</strong>

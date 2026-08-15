@@ -1,12 +1,20 @@
-import type { Contact as ContactContent } from '../content';
+import type { Contact as ContactContent, Locale } from '../content';
+import { trackAnalyticsEvent, type ContactChannel } from '../lib/analytics';
 import styles from './Contact.module.css';
 
 interface ContactProps {
   content: ContactContent;
+  locale: Locale;
 }
 
 export function Contact(_props: ContactProps) {
-  const { content } = _props;
+  const { content, locale } = _props;
+  const captureContact = (channel: ContactChannel) => () => {
+    trackAnalyticsEvent({
+      name: 'contact_clicked',
+      properties: { channel, section: 'contact', locale },
+    });
+  };
 
   return (
     <section
@@ -26,6 +34,7 @@ export function Contact(_props: ContactProps) {
         <a
           href={content.telegramHref}
           aria-label={`${content.telegramLabel}: ${content.telegramHandle}`}
+          onClick={captureContact('telegram')}
         >
           <span>{content.telegramLabel}</span>
           <strong>{content.telegramHandle}</strong>
@@ -36,6 +45,7 @@ export function Contact(_props: ContactProps) {
         <a
           href={content.emailHref}
           aria-label={`${content.emailLabel}: ${content.emailAddress}`}
+          onClick={captureContact('email')}
         >
           <span>{content.emailLabel}</span>
           <strong>{content.emailAddress}</strong>

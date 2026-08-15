@@ -1,5 +1,6 @@
 import { hydrateRoot } from 'react-dom/client';
 import { App, type Locale } from './App';
+import { scheduleLandingViewed } from './lib/analytics';
 import './styles/global.css';
 
 const rootElement = document.getElementById('root');
@@ -11,6 +12,8 @@ function getDocumentLocale(): Locale {
 }
 
 if (rootElement?.hasChildNodes()) {
+  const locale = getDocumentLocale();
+  scheduleLandingViewed(locale);
   const serverMarkup = rootElement.innerHTML;
   let hydrationRoot: ReturnType<typeof hydrateRoot> | undefined;
   let restorationScheduled = false;
@@ -39,14 +42,10 @@ if (rootElement?.hasChildNodes()) {
   };
 
   try {
-    hydrationRoot = hydrateRoot(
-      rootElement,
-      <App locale={getDocumentLocale()} />,
-      {
-        onUncaughtError: restoreServerMarkup,
-        onRecoverableError: restoreServerMarkup,
-      },
-    );
+    hydrationRoot = hydrateRoot(rootElement, <App locale={locale} />, {
+      onUncaughtError: restoreServerMarkup,
+      onRecoverableError: restoreServerMarkup,
+    });
   } catch (error) {
     restoreServerMarkup(error);
   }

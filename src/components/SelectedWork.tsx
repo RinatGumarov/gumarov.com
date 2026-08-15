@@ -1,13 +1,14 @@
-import type { Project } from '../content';
+import type { Locale, Project } from '../content';
 import { ProjectScene } from './ProjectScene';
 import styles from './SelectedWork.module.css';
 
 interface SelectedWorkProps {
   heading: string;
   projects: readonly Project[];
+  locale: Locale;
 }
 
-export function SelectedWork({ heading, projects }: SelectedWorkProps) {
+export function SelectedWork({ heading, projects, locale }: SelectedWorkProps) {
   return (
     <section
       className={styles.selectedWork}
@@ -20,7 +21,12 @@ export function SelectedWork({ heading, projects }: SelectedWorkProps) {
       </div>
       <div className={styles.scenes}>
         {projects.map((project, index) => (
-          <ProjectScene key={project.slug} index={index} project={project} />
+          <ProjectScene
+            key={project.slug}
+            index={index}
+            project={project}
+            locale={locale}
+          />
         ))}
       </div>
     </section>

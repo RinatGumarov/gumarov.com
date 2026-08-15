@@ -1,16 +1,21 @@
 import type { HydrationOptions, Root } from 'react-dom/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { hydrateRootMock } = vi.hoisted(() => ({
+const { hydrateRootMock, scheduleLandingViewedMock } = vi.hoisted(() => ({
   hydrateRootMock: vi.fn(),
+  scheduleLandingViewedMock: vi.fn(),
 }));
 
 vi.mock('react-dom/client', () => ({ hydrateRoot: hydrateRootMock }));
+vi.mock('./lib/analytics', () => ({
+  scheduleLandingViewed: scheduleLandingViewedMock,
+}));
 
 describe('client hydration fallback', () => {
   beforeEach(() => {
     vi.resetModules();
     hydrateRootMock.mockReset();
+    scheduleLandingViewedMock.mockReset();
     document.documentElement.lang = 'en';
     document.body.innerHTML =
       '<div id="root"><main><a href="mailto:hi@gumarov.com">Email</a></main></div>';
@@ -62,6 +67,19 @@ describe('client hydration fallback', () => {
     await settleMicrotasks();
 
     expect(document.getElementById('root')).toHaveTextContent('Email');
+  });
+
+  it('schedules one localized landing view after hydration starts', async () => {
+    hydrateRootMock.mockReturnValue({
+      render: vi.fn(),
+      unmount: vi.fn(),
+    } satisfies Root);
+    document.documentElement.lang = 'ru';
+
+    await import('./entry-client');
+
+    expect(scheduleLandingViewedMock).toHaveBeenCalledTimes(1);
+    expect(scheduleLandingViewedMock).toHaveBeenCalledWith('ru');
   });
 });
 
