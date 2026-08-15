@@ -2,7 +2,7 @@
 
 Recorded **2026-08-15** on the unpublished `gumarov.com` landing.
 
-Evidence commit (contains the quality gates): `PENDING_EVIDENCE_SHA`. Identify it with `git log -1 --format='%H %s'`. A follow-up docs commit may only fill this SHA.
+Evidence commit (contains the quality gates): `1b76a1f689e7c7dc89ac7b608aac11a73f2d09e1` (`fix: close landing quality-gate gaps`). Identify this docs note with `git log -1 --format='%H %s'`.
 
 No remotes, DNS, or analytics were enabled.
 
