@@ -118,9 +118,36 @@ describe('privacy-first analytics adapter', () => {
       }),
     );
     expect(provider.capture.mock.calls).toEqual(
-      allowedEvents.map((event) => [event.name, event.properties]),
+      allowedEvents.map((event) => [
+        event.name,
+        event.properties,
+        { transport: 'sendBeacon' },
+      ]),
     );
     expect(provider.identify).not.toHaveBeenCalled();
+  });
+
+  it('sends every event through a transport that survives navigation', async () => {
+    const provider = createProvider();
+    const adapter = createAnalyticsAdapter({
+      key: 'phc_public_test',
+      host: 'https://eu.i.posthog.com',
+      loadProvider: async () => provider,
+      doNotTrack: false,
+      currentUrl: 'https://gumarov.com/en/',
+    });
+
+    adapter.capture({
+      name: 'language_changed',
+      properties: { from: 'en', to: 'ru' },
+    });
+
+    await vi.waitFor(() => expect(provider.capture).toHaveBeenCalledTimes(1));
+    expect(provider.capture).toHaveBeenCalledWith(
+      'language_changed',
+      { from: 'en', to: 'ru' },
+      { transport: 'sendBeacon' },
+    );
   });
 
   it.each([

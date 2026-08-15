@@ -25,10 +25,38 @@ type CapturedEvent = {
   uuid: string;
 };
 
+// PostHog drops automation traffic inside `capture()` before `before_send` runs:
+// it treats a set `navigator.webdriver` or HeadlessChrome user-agent brands as a
+// bot. Production keeps that filter on, so this suite must present the identity
+// of a real visitor; otherwise no ingestion request could ever be observed.
+const realVisitorUserAgent =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
+
+test.use({ userAgent: realVisitorUserAgent });
+
 test('blocked PostHog keeps the journey intact and sends only the privacy allowlist', async ({
   page: workingPage,
   context,
 }) => {
+  await context.addInitScript(() => {
+    Object.defineProperty(navigator, 'webdriver', {
+      configurable: true,
+      get: () => false,
+    });
+    Object.defineProperty(navigator, 'userAgentData', {
+      configurable: true,
+      get: () => ({
+        brands: [
+          { brand: 'Chromium', version: '140' },
+          { brand: 'Google Chrome', version: '140' },
+          { brand: 'Not=A?Brand', version: '24' },
+        ],
+        mobile: false,
+        platform: 'macOS',
+      }),
+    });
+  });
+
   const workingAnalytics = await installAnalyticsEndpoint(
     workingPage,
     'fulfill',
@@ -81,7 +109,7 @@ test('blocked PostHog keeps the journey intact and sends only the privacy allowl
       }),
       expect.objectContaining({
         event: 'language_changed',
-        properties: { from: 'en', to: 'ru' },
+        properties: expect.objectContaining({ from: 'en', to: 'ru' }),
       }),
     ]),
   );

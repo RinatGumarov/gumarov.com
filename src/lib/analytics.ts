@@ -71,9 +71,17 @@ export interface PostHogConfig {
   before_send: (event: ProviderEvent) => ProviderEvent | null;
 }
 
+export interface PostHogCaptureOptions {
+  transport: 'sendBeacon';
+}
+
 export interface PostHogProvider {
   init(key: string, config: PostHogConfig): PostHogProvider | void;
-  capture(name: AnalyticsEvent['name'], properties: AnalyticsProperties): void;
+  capture(
+    name: AnalyticsEvent['name'],
+    properties: AnalyticsProperties,
+    options: PostHogCaptureOptions,
+  ): void;
 }
 
 export interface AnalyticsAdapter {
@@ -116,6 +124,13 @@ const safeProviderProperties = [
   '$cookieless_mode',
 ] as const;
 
+// Language and contact events fire while the browser is already leaving the
+// page, which cancels an in-flight request. A beacon is the only transport the
+// browser still delivers after the document unloads.
+const navigationSafeTransport: PostHogCaptureOptions = {
+  transport: 'sendBeacon',
+};
+
 export function createAnalyticsAdapter({
   key,
   host,
@@ -153,7 +168,11 @@ export function createAnalyticsAdapter({
         .then((provider) => {
           if (!provider) return;
           try {
-            provider.capture(payload.name, payload.properties);
+            provider.capture(
+              payload.name,
+              payload.properties,
+              navigationSafeTransport,
+            );
           } catch {
             // Analytics is optional and must never affect the visitor journey.
           }
