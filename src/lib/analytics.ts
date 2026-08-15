@@ -53,8 +53,6 @@ export interface PostHogConfig {
   disable_surveys_automatic_display: true;
   advanced_disable_feature_flags: true;
   advanced_disable_feature_flags_on_first_load: true;
-  advanced_disable_flags: true;
-  advanced_disable_decide: true;
   capture_exceptions: false;
   capture_performance: false;
   enable_recording_console_log: false;
@@ -204,8 +202,12 @@ export function createPostHogConfig(
     disable_surveys_automatic_display: true,
     advanced_disable_feature_flags: true,
     advanced_disable_feature_flags_on_first_load: true,
-    advanced_disable_flags: true,
-    advanced_disable_decide: true,
+    /*
+     * `advanced_disable_decide` and `advanced_disable_flags` are deliberately
+     * absent: they stop the SDK fetching its remote config, and without that
+     * fetch it delivers no events at all. Flag evaluation stays disabled
+     * through the two options above and through the project settings.
+     */
     capture_exceptions: false,
     capture_performance: false,
     enable_recording_console_log: false,
