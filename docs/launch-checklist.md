@@ -62,4 +62,4 @@ Task 13 local verification, **2026-08-15**:
 
 - `pnpm verify`: Prettier, ESLint, typecheck, **17 files / 146 tests**, production build, distribution check (**3 routes, 110.8 KiB JS, worst transfer `ru/index.html` 225.5 KiB**). `CNAME` and `.nojekyll` are required in `dist/`.
 - `pnpm test:e2e`: **51 passed**
-- SHA of the commit that introduces the workflows will be recorded immediately after that commit.
+- SHA of the workflows commit: `944ccd0d7cc228673b07c23f1ed7bcfee6b75bf2` (`ci: prepare GitHub Pages deployment`).
