@@ -57,8 +57,20 @@
   font-weight: 660;
   letter-spacing: -0.055em;
   line-height: 0.91;
-  overflow-wrap: break-word;
+  overflow-wrap: normal;
+  hyphens: manual;
   text-wrap: balance;
+}
+
+/*
+ * Russian headline words are longer than the English measure, so the shared
+ * 10.5ch line length used to break words such as "амбициозные" in the middle.
+ * Widening the measure and softening the type scale keeps every word intact
+ * while staying inside the hero column at 320px and above.
+ */
+:global(html[lang='ru']) .title {
+  max-inline-size: 12.5ch;
+  font-size: clamp(2.5rem, 6.4vw, 6.75rem);
 }
 
 .body {
@@ -217,6 +229,11 @@
 @media (max-width: 28rem) {
   .title {
     font-size: clamp(2.65rem, 14vw, 4rem);
+  }
+
+  /* "амбициозные" is wider than the English longest word at the same size. */
+  :global(html[lang='ru']) .title {
+    font-size: clamp(2.05rem, 11.2vw, 3.4rem);
   }
 
   .actions {
