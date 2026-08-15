@@ -2,7 +2,7 @@
 
 Recorded **2026-08-15** on the unpublished `gumarov.com` landing.
 
-Evidence commit (contains the quality gates): `PENDING_EVIDENCE_SHA`. Identify it with `git log -1 --format='%H %s'`.
+Evidence commit (contains the quality gates): `4b895bb60722f51541b0ae37fe498ee059e728e9` (`fix: load brand fonts after first paint`). Identify this docs note with `git log -1 --format='%H %s'`.
 
 No remotes, DNS, or analytics were enabled.
 
