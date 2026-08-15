@@ -93,6 +93,15 @@ export const en = {
       { slug: 'surf', alt: 'Rinat riding the face of a breaking wave.' },
       { slug: 'skate', alt: 'Rinat riding a skatepark ramp at night.' },
       { slug: 'snowboard', alt: 'Rinat mid-air on a snowboard.' },
+      {
+        slug: 'drift-rear',
+        alt: 'Rinat’s BMW E30 sliding through a corner in tyre smoke.',
+      },
+      { slug: 'powder', alt: 'Rinat riding powder between snowy trees.' },
+      {
+        slug: 'drift-front',
+        alt: 'Rinat’s BMW E30 mid-drift on track, seen head-on.',
+      },
     ],
   },
   contact: {

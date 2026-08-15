@@ -80,7 +80,8 @@
   box-shadow: 0 1rem 2.8rem rgb(0 0 0 / 0.24);
 }
 
-.frame:nth-child(2) {
+/* Offsets every second frame so both rows keep the loose film-strip rhythm. */
+.frame:nth-child(even) {
   margin-block-start: var(--space-3);
 }
 

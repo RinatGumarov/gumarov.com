@@ -11,15 +11,16 @@ import { useMotionEnhancementGate } from './lib/motion';
 export type { Locale } from './content';
 
 /**
- * Three frames share the strip, so each one is roughly a third of the visual
- * column. 480w covers phones and tablets; 768w covers wide desktops and 2x.
+ * The strip is three frames wide at every breakpoint, so each frame is roughly
+ * a third of the visual column. 480w covers phones and tablets; 768w covers
+ * wide desktops and 2x displays.
  */
 const personalPhotoSizes = '(min-width: 60rem) 22rem, 30vw';
 
 function buildPersonalPhotos(
   descriptions: ReturnType<typeof getContent>['personal']['photos'],
 ): PersonalPhotos {
-  const frames = descriptions.map(({ slug, alt }) => ({
+  return descriptions.map(({ slug, alt }) => ({
     src: `/assets/personal/${slug}-768.jpg`,
     srcSet: `/assets/personal/${slug}-480.jpg 480w, /assets/personal/${slug}-768.jpg 768w`,
     sources: {
@@ -31,8 +32,6 @@ function buildPersonalPhotos(
     height: 576,
     alt,
   }));
-
-  return [frames[0], frames[1], frames[2]] as unknown as PersonalPhotos;
 }
 
 export function App({ locale }: { locale: Locale }) {

@@ -16,11 +16,7 @@ export interface PersonalPhoto {
   alt: string;
 }
 
-export type PersonalPhotos = readonly [
-  PersonalPhoto,
-  PersonalPhoto,
-  PersonalPhoto,
-];
+export type PersonalPhotos = readonly PersonalPhoto[];
 
 interface PersonalStripProps {
   content: {

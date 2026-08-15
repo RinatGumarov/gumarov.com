@@ -215,14 +215,20 @@
     inset-inline-start: 1.25rem;
   }
 
-  .copy,
-  .portrait {
+  .copy {
     margin-inline-start: var(--space-5);
   }
 
+  /*
+   * Stacked under the copy, the portrait no longer forms the right edge of a
+   * two-column composition, so the desktop `justify-self: end` would pin it to
+   * the trailing edge once the column grew past the portrait's own 28rem cap.
+   * Centre it instead, and keep it free of the copy's leading indent so the
+   * centring stays symmetric.
+   */
   .portrait {
     width: min(100%, 28rem);
-    justify-self: end;
+    justify-self: center;
   }
 }
 

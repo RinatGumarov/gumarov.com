@@ -159,6 +159,28 @@ export const approvedPersonalPhotos = [
     sha256: '8fceebec257df1f33f90bbf553a269b40abc9e37bd190cd1c6826ed4543b0258',
     crop: { left: 480, top: 0, width: 2880, height: 2160 },
   },
+  {
+    slug: 'drift-rear',
+    file: 'drift-rear.png',
+    sha256: '1c881495bd421e7ca056efb1fecf09cbc1e428bb779360f32e719ec051fa2224',
+    // Source is 2560x1706 with a credit bar occupying the bottom 66px
+    // (from row 1640). Height 1620 clears it with margin.
+    crop: { left: 200, top: 0, width: 2160, height: 1620 },
+  },
+  {
+    slug: 'powder',
+    file: 'powder.png',
+    sha256: 'd8f6176cbde98511e66ee297e79ac99b1e1c1b9334ef9cdbbbf94abca729468e',
+    crop: { left: 480, top: 0, width: 2880, height: 2160 },
+  },
+  {
+    slug: 'drift-front',
+    file: 'drift-front.jpg',
+    sha256: '371ce8799176881205728e5fbd6cafd4b8e8f9d3af30968c40815e1e73e1b575',
+    // Source is 2880x1887 with a credit bar occupying the bottom 68px
+    // (from row 1819). Height 1800 clears it with margin.
+    crop: { left: 240, top: 0, width: 2400, height: 1800 },
+  },
 ];
 
 export async function processPersonalPhotos({
