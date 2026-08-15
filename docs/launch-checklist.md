@@ -106,10 +106,77 @@ custom domain → wait for certificate issuance → enable Enforce HTTPS → ver
 `http`→`https`, apex, `www`, `/en/`, `/ru/`, and unknown paths → Russian access
 probes → production Lighthouse.
 
+## Production verification, 2026-08-15
+
+`gumarov.com` is live. Local `HEAD`, remote `main`, and the deployed SHA all
+read `7d8290884d80d24881a86ca3eb24327a048490c7`; `CI` and `Deploy` are green on
+it.
+
+### DNS
+
+Nine records imported into Cloudflare as a BIND file, every one **DNS only**
+(no proxy), matching GitHub's current documented apex addresses:
+
+- `A` → `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`
+- `AAAA` → `2606:50c0:8000::153`, `:8001::153`, `:8002::153`, `:8003::153`
+- `www` `CNAME` → `rinatgumarov.github.io`
+
+Confirmed resolving through both `1.1.1.1` and `8.8.8.8`.
+
+Cloudflare's dashboard recommends enabling the proxy for DDoS protection and
+caching; it was deliberately left off per the global constraint.
+
+`PUT /pages` rejects `cname` and `https_enforced` in the same request while no
+certificate exists (`404 The certificate does not exist yet`). Sending `cname`
+alone succeeds; `https_enforced` is a second call after issuance.
+
+### Routes
+
+| Check                                                                            | Result                         |
+| -------------------------------------------------------------------------------- | ------------------------------ |
+| `http://gumarov.com/`                                                            | `301` → `https://gumarov.com/` |
+| `https://gumarov.com/`                                                           | `200`                          |
+| `https://gumarov.com/en/`                                                        | `200`                          |
+| `https://gumarov.com/ru/`                                                        | `200`                          |
+| `https://www.gumarov.com/`                                                       | `301` → `https://gumarov.com/` |
+| `https://gumarov.com/no-such-page`                                               | `404`                          |
+| `/assets/personal/surf-480.avif`, `/assets/portrait/portrait-768.avif`, `/CNAME` | `200`                          |
+
+Canonicals, reciprocal `hreflang`, and the English root `x-default` are present
+on the live documents. Both locales serve the full copy, all four project links,
+Telegram, email, and the localized personal photo alt text.
+
+### Rendering
+
+Measured against production in Chromium. Hero portrait leading/trailing gaps:
+`16`/`16` at 390px, `76`/`76` at 600px (the width that exposed the defect), and
+the intended right-hand composition at 1440px. All three personal photographs
+load as AVIF at every viewport.
+
+### Russian access
+
+11 probes from three independent Russian nodes (`ru1`, `ru2`, `ru3` via
+check-host.net) across `/`, `/en/`, and `/ru/`: **11 of 11 returned `200`**,
+41–650 ms, resolving to all four GitHub Pages addresses. A wider 25-node sweep
+returned `200` from 24 nodes; the one miss was a Swiss node that returned no
+result at all, not a failure response. No mirror is warranted.
+
+### Lighthouse against production
+
+Mobile form factor, Lantern `simulate`, 3 runs per URL, medians:
+
+| URL    | Performance | Accessibility | Best practices |  SEO |     LCP |    CLS |
+| ------ | ----------: | ------------: | -------------: | ---: | ------: | -----: |
+| `/`    |        0.99 |          1.00 |           0.96 | 1.00 | 1553 ms | 0.0001 |
+| `/en/` |        0.99 |          1.00 |           0.96 | 1.00 | 1544 ms | 0.0001 |
+| `/ru/` |        0.99 |          1.00 |           0.96 | 1.00 | 1431 ms | 0.0001 |
+
+All gates pass (scores ≥ 0.90, LCP ≤ 2500 ms, CLS < 0.1).
+
 ## Still open before public launch
 
 - Visual snapshots are Darwin-specific; Linux CI skips the visual file until matching baselines exist
-- Cloudflare DNS records, custom domain attachment, Enforce HTTPS, email routing, and production PostHog are still pending
+- Email routing for `hi@gumarov.com` and production PostHog are still pending; the `mailto:` link is live but delivers nowhere yet
 
 ## GitHub Actions (local files only)
 
