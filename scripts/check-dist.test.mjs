@@ -37,871 +37,909 @@ afterEach(async () => {
   );
 });
 
-describe('distribution checker', () => {
-  it('requires every exact metadata-free portrait variant at its declared dimensions', async () => {
-    const missingFixture = await createDistributionFixture();
-    await rm(
-      path.join(
-        missingFixture.distDirectory,
-        'assets/portrait/portrait-768.webp',
-      ),
-    );
+/*
+ * These suites encode AVIF/WebP/JPEG with Sharp and spawn the distribution
+ * checker as a subprocess. Shared CI runners need far more than Vitest's
+ * 5s default, so the whole suite gets an explicit ceiling.
+ */
+const slowSuiteTimeout = 60_000;
 
-    const missingResult = runChecker(missingFixture.distDirectory);
-
-    expect(missingResult.stderr).toContain(
-      'Required portrait asset is missing: assets/portrait/portrait-768.webp',
-    );
-    expect(missingResult.status).toBe(1);
-
-    const dimensionsFixture = await createDistributionFixture();
-    await sharp({
-      create: {
-        width: 20,
-        height: 20,
-        channels: 3,
-        background: '#123456',
-      },
-    })
-      .avif()
-      .toFile(
+describe(
+  'distribution checker',
+  () => {
+    it('requires every exact metadata-free portrait variant at its declared dimensions', async () => {
+      const missingFixture = await createDistributionFixture();
+      await rm(
         path.join(
-          dimensionsFixture.distDirectory,
-          'assets/portrait/portrait-1024.avif',
+          missingFixture.distDirectory,
+          'assets/portrait/portrait-768.webp',
         ),
       );
 
-    const dimensionsResult = runChecker(dimensionsFixture.distDirectory);
+      const missingResult = runChecker(missingFixture.distDirectory);
 
-    expect(dimensionsResult.stderr).toContain(
-      'Portrait asset assets/portrait/portrait-1024.avif is 20x20; expected 1024x1280.',
-    );
-    expect(dimensionsResult.status).toBe(1);
-
-    const metadataFixture = await createDistributionFixture();
-    await sharp({
-      create: {
-        width: 480,
-        height: 600,
-        channels: 3,
-        background: '#123456',
-      },
-    })
-      .jpeg()
-      .withExif({ IFD0: { Make: 'Fixture Camera' } })
-      .toFile(
-        path.join(
-          metadataFixture.distDirectory,
-          'assets/portrait/portrait-480.jpg',
-        ),
+      expect(missingResult.stderr).toContain(
+        'Required portrait asset is missing: assets/portrait/portrait-768.webp',
       );
+      expect(missingResult.status).toBe(1);
 
-    const metadataResult = runChecker(metadataFixture.distDirectory);
+      const dimensionsFixture = await createDistributionFixture();
+      await sharp({
+        create: {
+          width: 20,
+          height: 20,
+          channels: 3,
+          background: '#123456',
+        },
+      })
+        .avif()
+        .toFile(
+          path.join(
+            dimensionsFixture.distDirectory,
+            'assets/portrait/portrait-1024.avif',
+          ),
+        );
 
-    expect(metadataResult.stderr).toContain(
-      'Portrait asset assets/portrait/portrait-480.jpg contains EXIF metadata.',
-    );
-    expect(metadataResult.status).toBe(1);
+      const dimensionsResult = runChecker(dimensionsFixture.distDirectory);
 
-    const iccFixture = await createDistributionFixture();
-    await sharp({
-      create: {
-        width: 480,
-        height: 600,
-        channels: 3,
-        background: '#123456',
-      },
-    })
-      .jpeg()
-      .withIccProfile('srgb')
-      .toFile(
-        path.join(iccFixture.distDirectory, 'assets/portrait/portrait-480.jpg'),
+      expect(dimensionsResult.stderr).toContain(
+        'Portrait asset assets/portrait/portrait-1024.avif is 20x20; expected 1024x1280.',
       );
+      expect(dimensionsResult.status).toBe(1);
 
-    const iccResult = runChecker(iccFixture.distDirectory);
+      const metadataFixture = await createDistributionFixture();
+      await sharp({
+        create: {
+          width: 480,
+          height: 600,
+          channels: 3,
+          background: '#123456',
+        },
+      })
+        .jpeg()
+        .withExif({ IFD0: { Make: 'Fixture Camera' } })
+        .toFile(
+          path.join(
+            metadataFixture.distDirectory,
+            'assets/portrait/portrait-480.jpg',
+          ),
+        );
 
-    expect(iccResult.stderr).toContain(
-      'Portrait asset assets/portrait/portrait-480.jpg contains ICC metadata.',
-    );
-    expect(iccResult.status).toBe(1);
+      const metadataResult = runChecker(metadataFixture.distDirectory);
 
-    const orientationFixture = await createDistributionFixture();
-    await sharp({
-      create: {
-        width: 480,
-        height: 600,
-        channels: 3,
-        background: '#123456',
-      },
-    })
-      .jpeg()
-      .withMetadata({ orientation: 6 })
-      .toFile(
-        path.join(
-          orientationFixture.distDirectory,
-          'assets/portrait/portrait-480.jpg',
-        ),
+      expect(metadataResult.stderr).toContain(
+        'Portrait asset assets/portrait/portrait-480.jpg contains EXIF metadata.',
       );
+      expect(metadataResult.status).toBe(1);
 
-    const orientationResult = runChecker(orientationFixture.distDirectory);
+      const iccFixture = await createDistributionFixture();
+      await sharp({
+        create: {
+          width: 480,
+          height: 600,
+          channels: 3,
+          background: '#123456',
+        },
+      })
+        .jpeg()
+        .withIccProfile('srgb')
+        .toFile(
+          path.join(
+            iccFixture.distDirectory,
+            'assets/portrait/portrait-480.jpg',
+          ),
+        );
 
-    expect(orientationResult.stderr).toContain(
-      'Portrait asset assets/portrait/portrait-480.jpg contains orientation metadata.',
-    );
-    expect(orientationResult.status).toBe(1);
-  });
+      const iccResult = runChecker(iccFixture.distDirectory);
 
-  it('requires every approved personal photo variant at its declared dimensions', async () => {
-    const missingFixture = await createDistributionFixture();
-    await rm(
-      path.join(missingFixture.distDirectory, 'assets/personal/surf-768.webp'),
-    );
-
-    const missingResult = runChecker(missingFixture.distDirectory);
-
-    expect(missingResult.stderr).toContain(
-      'Required personal asset is missing: assets/personal/surf-768.webp',
-    );
-    expect(missingResult.status).toBe(1);
-
-    const dimensionsFixture = await createDistributionFixture();
-    await sharp({
-      create: { width: 20, height: 20, channels: 3, background: '#123456' },
-    })
-      .avif()
-      .toFile(
-        path.join(
-          dimensionsFixture.distDirectory,
-          'assets/personal/skate-480.avif',
-        ),
+      expect(iccResult.stderr).toContain(
+        'Portrait asset assets/portrait/portrait-480.jpg contains ICC metadata.',
       );
+      expect(iccResult.status).toBe(1);
 
-    const dimensionsResult = runChecker(dimensionsFixture.distDirectory);
+      const orientationFixture = await createDistributionFixture();
+      await sharp({
+        create: {
+          width: 480,
+          height: 600,
+          channels: 3,
+          background: '#123456',
+        },
+      })
+        .jpeg()
+        .withMetadata({ orientation: 6 })
+        .toFile(
+          path.join(
+            orientationFixture.distDirectory,
+            'assets/portrait/portrait-480.jpg',
+          ),
+        );
 
-    expect(dimensionsResult.stderr).toContain(
-      'Personal asset assets/personal/skate-480.avif is 20x20; expected 480x360.',
-    );
-    expect(dimensionsResult.status).toBe(1);
+      const orientationResult = runChecker(orientationFixture.distDirectory);
 
-    const metadataFixture = await createDistributionFixture();
-    await sharp({
-      create: { width: 768, height: 576, channels: 3, background: '#123456' },
-    })
-      .withExif({ IFD0: { Make: 'Fixture Camera' } })
-      .jpeg({ quality: 10 })
-      .toFile(
-        path.join(
-          metadataFixture.distDirectory,
-          'assets/personal/snowboard-768.jpg',
-        ),
+      expect(orientationResult.stderr).toContain(
+        'Portrait asset assets/portrait/portrait-480.jpg contains orientation metadata.',
       );
-
-    const metadataResult = runChecker(metadataFixture.distDirectory);
-
-    expect(metadataResult.stderr).toContain(
-      'Personal asset assets/personal/snowboard-768.jpg contains EXIF metadata.',
-    );
-    expect(metadataResult.status).toBe(1);
-  });
-
-  it('requires localized personal photo alt text as an image attribute', async () => {
-    const fixture = await createDistributionFixture({
-      omittedValuesByRoute: {
-        'ru/index.html': new Set(['Ринат на волне.']),
-      },
+      expect(orientationResult.status).toBe(1);
     });
 
-    const result = runChecker(fixture.distDirectory);
-
-    expect(result.stderr).toContain(
-      'ru/index.html: missing image alt text personal.photos[0].alt "Ринат на волне."',
-    );
-    // Alt text must not be accepted merely because it appears as page text.
-    expect(result.stderr).not.toContain(
-      'missing visible content personal.photos[0].alt',
-    );
-    expect(result.status).toBe(1);
-  });
-
-  it('rejects a personal photo whose source is not the approved one', async () => {
-    const fixture = await createDistributionFixture();
-    const manifestPath = path.join(
-      fixture.distDirectory,
-      'assets/personal/approved-manifest.json',
-    );
-    const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
-    manifest.sources[1].sha256 = 'b'.repeat(64);
-    await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-
-    const result = runChecker(fixture.distDirectory);
-
-    expect(result.stderr).toContain(
-      'assets/personal/approved-manifest.json: source SHA-256 for skate is not the pinned approved source.',
-    );
-    expect(result.status).toBe(1);
-  });
-
-  it('rejects unrelated metadata-free pixels that do not match the approved output manifest', async () => {
-    const missingManifestFixture = await createDistributionFixture();
-    await rm(
-      path.join(
-        missingManifestFixture.distDirectory,
-        'assets/portrait/approved-manifest.json',
-      ),
-    );
-
-    const missingManifestResult = runChecker(
-      missingManifestFixture.distDirectory,
-    );
-
-    expect(missingManifestResult.stderr).toContain(
-      'Approved portrait manifest is missing or invalid: assets/portrait/approved-manifest.json',
-    );
-    expect(missingManifestResult.status).toBe(1);
-
-    const fixture = await createDistributionFixture();
-    const assetPath = path.join(
-      fixture.distDirectory,
-      'assets/portrait/portrait-480.webp',
-    );
-    await sharp({
-      create: {
-        width: 480,
-        height: 600,
-        channels: 3,
-        background: '#654321',
-      },
-    })
-      .webp({ quality: 10 })
-      .toFile(assetPath);
-
-    const result = runChecker(fixture.distDirectory);
-
-    expect(result.stderr).toContain(
-      'Portrait asset assets/portrait/portrait-480.webp SHA-256 does not match the approved manifest.',
-    );
-    expect(result.status).toBe(1);
-  });
-
-  it('fails for omitted values across the built visible-content contract', async () => {
-    const omittedRequirements = [
-      { path: 'hero.body', value: 'Required contract-only sentence.' },
-      { path: 'nav.about', value: 'About' },
-      {
-        path: 'projects[0].contribution',
-        value: 'TradingView contribution',
-      },
-      { path: 'principles.items[0]', value: 'Working principle.' },
-      { path: 'personal.body', value: 'Personal story.' },
-      { path: 'contact.heading', value: 'Let’s talk' },
-    ];
-    const fixture = await createDistributionFixture({
-      omittedValuesByRoute: {
-        'en/index.html': new Set(
-          omittedRequirements.map((requirement) => requirement.value),
+    it('requires every approved personal photo variant at its declared dimensions', async () => {
+      const missingFixture = await createDistributionFixture();
+      await rm(
+        path.join(
+          missingFixture.distDirectory,
+          'assets/personal/surf-768.webp',
         ),
-      },
-      extraEnglishHeroBody: 'Required contract-only sentence.',
+      );
+
+      const missingResult = runChecker(missingFixture.distDirectory);
+
+      expect(missingResult.stderr).toContain(
+        'Required personal asset is missing: assets/personal/surf-768.webp',
+      );
+      expect(missingResult.status).toBe(1);
+
+      const dimensionsFixture = await createDistributionFixture();
+      await sharp({
+        create: { width: 20, height: 20, channels: 3, background: '#123456' },
+      })
+        .avif()
+        .toFile(
+          path.join(
+            dimensionsFixture.distDirectory,
+            'assets/personal/skate-480.avif',
+          ),
+        );
+
+      const dimensionsResult = runChecker(dimensionsFixture.distDirectory);
+
+      expect(dimensionsResult.stderr).toContain(
+        'Personal asset assets/personal/skate-480.avif is 20x20; expected 480x360.',
+      );
+      expect(dimensionsResult.status).toBe(1);
+
+      const metadataFixture = await createDistributionFixture();
+      await sharp({
+        create: { width: 768, height: 576, channels: 3, background: '#123456' },
+      })
+        .withExif({ IFD0: { Make: 'Fixture Camera' } })
+        .jpeg({ quality: 10 })
+        .toFile(
+          path.join(
+            metadataFixture.distDirectory,
+            'assets/personal/snowboard-768.jpg',
+          ),
+        );
+
+      const metadataResult = runChecker(metadataFixture.distDirectory);
+
+      expect(metadataResult.stderr).toContain(
+        'Personal asset assets/personal/snowboard-768.jpg contains EXIF metadata.',
+      );
+      expect(metadataResult.status).toBe(1);
     });
 
-    const result = runChecker(fixture.distDirectory);
+    it('requires localized personal photo alt text as an image attribute', async () => {
+      const fixture = await createDistributionFixture({
+        omittedValuesByRoute: {
+          'ru/index.html': new Set(['Ринат на волне.']),
+        },
+      });
 
-    for (const requirement of omittedRequirements) {
+      const result = runChecker(fixture.distDirectory);
+
       expect(result.stderr).toContain(
-        `en/index.html: missing visible content ${requirement.path} ${JSON.stringify(requirement.value)}`,
+        'ru/index.html: missing image alt text personal.photos[0].alt "Ринат на волне."',
       );
-    }
-    expect(result.status).toBe(1);
-  });
+      // Alt text must not be accepted merely because it appears as page text.
+      expect(result.stderr).not.toContain(
+        'missing visible content personal.photos[0].alt',
+      );
+      expect(result.status).toBe(1);
+    });
 
-  it.each([
-    {
-      label: 'project',
-      path: 'projects[0].href',
-      destination: 'https://www.tradingview.com/',
-    },
-    {
-      label: 'Telegram',
-      path: 'contact.telegramHref',
-      destination: 'https://t.me/RinatGumarov',
-    },
-    {
-      label: 'email',
-      path: 'contact.emailHref',
-      destination: 'mailto:hi@gumarov.com',
-    },
-  ])(
-    'requires the $label destination in an exact href attribute',
-    async ({ path: contentPath, destination }) => {
+    it('rejects a personal photo whose source is not the approved one', async () => {
+      const fixture = await createDistributionFixture();
+      const manifestPath = path.join(
+        fixture.distDirectory,
+        'assets/personal/approved-manifest.json',
+      );
+      const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+      manifest.sources[1].sha256 = 'b'.repeat(64);
+      await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+      const result = runChecker(fixture.distDirectory);
+
+      expect(result.stderr).toContain(
+        'assets/personal/approved-manifest.json: source SHA-256 for skate is not the pinned approved source.',
+      );
+      expect(result.status).toBe(1);
+    });
+
+    it('rejects unrelated metadata-free pixels that do not match the approved output manifest', async () => {
+      const missingManifestFixture = await createDistributionFixture();
+      await rm(
+        path.join(
+          missingManifestFixture.distDirectory,
+          'assets/portrait/approved-manifest.json',
+        ),
+      );
+
+      const missingManifestResult = runChecker(
+        missingManifestFixture.distDirectory,
+      );
+
+      expect(missingManifestResult.stderr).toContain(
+        'Approved portrait manifest is missing or invalid: assets/portrait/approved-manifest.json',
+      );
+      expect(missingManifestResult.status).toBe(1);
+
+      const fixture = await createDistributionFixture();
+      const assetPath = path.join(
+        fixture.distDirectory,
+        'assets/portrait/portrait-480.webp',
+      );
+      await sharp({
+        create: {
+          width: 480,
+          height: 600,
+          channels: 3,
+          background: '#654321',
+        },
+      })
+        .webp({ quality: 10 })
+        .toFile(assetPath);
+
+      const result = runChecker(fixture.distDirectory);
+
+      expect(result.stderr).toContain(
+        'Portrait asset assets/portrait/portrait-480.webp SHA-256 does not match the approved manifest.',
+      );
+      expect(result.status).toBe(1);
+    });
+
+    it('fails for omitted values across the built visible-content contract', async () => {
+      const omittedRequirements = [
+        { path: 'hero.body', value: 'Required contract-only sentence.' },
+        { path: 'nav.about', value: 'About' },
+        {
+          path: 'projects[0].contribution',
+          value: 'TradingView contribution',
+        },
+        { path: 'principles.items[0]', value: 'Working principle.' },
+        { path: 'personal.body', value: 'Personal story.' },
+        { path: 'contact.heading', value: 'Let’s talk' },
+      ];
+      const fixture = await createDistributionFixture({
+        omittedValuesByRoute: {
+          'en/index.html': new Set(
+            omittedRequirements.map((requirement) => requirement.value),
+          ),
+        },
+        extraEnglishHeroBody: 'Required contract-only sentence.',
+      });
+
+      const result = runChecker(fixture.distDirectory);
+
+      for (const requirement of omittedRequirements) {
+        expect(result.stderr).toContain(
+          `en/index.html: missing visible content ${requirement.path} ${JSON.stringify(requirement.value)}`,
+        );
+      }
+      expect(result.status).toBe(1);
+    });
+
+    it.each([
+      {
+        label: 'project',
+        path: 'projects[0].href',
+        destination: 'https://www.tradingview.com/',
+      },
+      {
+        label: 'Telegram',
+        path: 'contact.telegramHref',
+        destination: 'https://t.me/RinatGumarov',
+      },
+      {
+        label: 'email',
+        path: 'contact.emailHref',
+        destination: 'mailto:hi@gumarov.com',
+      },
+    ])(
+      'requires the $label destination in an exact href attribute',
+      async ({ path: contentPath, destination }) => {
+        const fixture = await createDistributionFixture({
+          transformHtmlByRoute: {
+            'en/index.html': (html) =>
+              replaceDestinationLinkWithUnrelatedText(html, destination),
+          },
+        });
+
+        const result = runChecker(fixture.distDirectory);
+
+        expect(result.stderr).toContain(
+          `en/index.html: missing destination ${contentPath} href=${JSON.stringify(destination)}`,
+        );
+        expect(result.status).toBe(1);
+      },
+    );
+
+    it('requires the visible email address in rendered text independently of mailto', async () => {
       const fixture = await createDistributionFixture({
         transformHtmlByRoute: {
           'en/index.html': (html) =>
-            replaceDestinationLinkWithUnrelatedText(html, destination),
+            html
+              .replace(
+                '<a href="mailto:hi@gumarov.com">mailto:hi@gumarov.com</a>',
+                '<a href="mailto:hi@gumarov.com">Email destination</a>',
+              )
+              .replace('<p>hi@gumarov.com</p>', ''),
         },
       });
 
       const result = runChecker(fixture.distDirectory);
 
       expect(result.stderr).toContain(
-        `en/index.html: missing destination ${contentPath} href=${JSON.stringify(destination)}`,
+        'en/index.html: missing visible content contact.emailAddress "hi@gumarov.com"',
       );
       expect(result.status).toBe(1);
-    },
-  );
+    });
 
-  it('requires the visible email address in rendered text independently of mailto', async () => {
-    const fixture = await createDistributionFixture({
-      transformHtmlByRoute: {
-        'en/index.html': (html) =>
-          html
-            .replace(
-              '<a href="mailto:hi@gumarov.com">mailto:hi@gumarov.com</a>',
-              '<a href="mailto:hi@gumarov.com">Email destination</a>',
-            )
-            .replace('<p>hi@gumarov.com</p>', ''),
+    it('budgets actual image sources inside semantic hero markup regardless of path', async () => {
+      const fixture = await createDistributionFixture({
+        heroMarkup:
+          '<picture><source srcset="/media/portrait-small.jpg 480w, /media/portrait-large.jpg 1024w" /><img src="/media/portrait-small.jpg" alt="" /></picture>',
+      });
+      const mediaDirectory = path.join(fixture.distDirectory, 'media');
+      await mkdir(mediaDirectory, { recursive: true });
+      await writeFile(
+        path.join(mediaDirectory, 'portrait-large.jpg'),
+        Buffer.alloc(301 * 1024),
+      );
+      await writeFile(
+        path.join(mediaDirectory, 'portrait-small.jpg'),
+        Buffer.alloc(10 * 1024),
+      );
+
+      const result = runChecker(fixture.distDirectory);
+
+      expect(result.stderr).toContain(
+        'Hero source media/portrait-large.jpg is 301.0 KiB; budget is 300.0 KiB.',
+      );
+      expect(result.status).toBe(1);
+    });
+
+    it('budgets responsive hero sources emitted by React SSR', async () => {
+      const heroMarkup = renderToStaticMarkup(
+        createElement(
+          'picture',
+          null,
+          createElement('source', {
+            srcSet:
+              '/media/portrait-small.jpg 480w, /media/portrait-large.jpg 1024w',
+          }),
+          createElement('img', {
+            src: '/media/portrait-small.jpg',
+            alt: '',
+          }),
+        ),
+      );
+      expect(heroMarkup).toContain('srcSet=');
+
+      const fixture = await createDistributionFixture({ heroMarkup });
+      const mediaDirectory = path.join(fixture.distDirectory, 'media');
+      await mkdir(mediaDirectory, { recursive: true });
+      await writeFile(
+        path.join(mediaDirectory, 'portrait-large.jpg'),
+        Buffer.alloc(301 * 1024),
+      );
+      await writeFile(
+        path.join(mediaDirectory, 'portrait-small.jpg'),
+        Buffer.alloc(10 * 1024),
+      );
+
+      const result = runChecker(fixture.distDirectory);
+
+      expect(result.stderr).toContain(
+        'Hero source media/portrait-large.jpg is 301.0 KiB; budget is 300.0 KiB.',
+      );
+      expect(result.status).toBe(1);
+    });
+
+    it('accepts an embedded data-image hero fallback as an inline asset', async () => {
+      const fallback =
+        'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+      const fixture = await createDistributionFixture({
+        heroMarkup: `<picture><source srcset="${fallback}" /><img src="${fallback}" alt="" /></picture>`,
+      });
+
+      const result = runChecker(fixture.distDirectory);
+
+      expect(result.stderr).not.toContain('initial asset is missing');
+      expect(result.stderr).not.toContain('Hero source is missing');
+      expect(result.status).toBe(0);
+    });
+
+    it('still budgets local hero sources listed after an inline fallback', async () => {
+      const fallback =
+        'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+      const fixture = await createDistributionFixture({
+        heroMarkup: `<picture><source srcset="${fallback} 1x, /media/portrait-large.jpg 2x" /><img src="${fallback}" alt="" /></picture>`,
+      });
+      const mediaDirectory = path.join(fixture.distDirectory, 'media');
+      await mkdir(mediaDirectory, { recursive: true });
+      await writeFile(
+        path.join(mediaDirectory, 'portrait-large.jpg'),
+        Buffer.alloc(301 * 1024),
+      );
+
+      const result = runChecker(fixture.distDirectory);
+
+      expect(result.stderr).toContain(
+        'Hero source media/portrait-large.jpg is 301.0 KiB; budget is 300.0 KiB.',
+      );
+      expect(result.status).toBe(1);
+    });
+
+    it.each([
+      {
+        label: 'og:image',
+        removed:
+          '<meta property="og:image" content="https://gumarov.com/og-en.jpg" />',
       },
+      {
+        label: 'og:locale',
+        removed: '<meta property="og:locale" content="en_US" />',
+      },
+      {
+        label: 'og:title',
+        removed: '<meta property="og:title" content="Fixture page" />',
+      },
+      {
+        label: 'og:description',
+        removed:
+          '<meta property="og:description" content="Fixture page description." />',
+      },
+      {
+        label: 'twitter:card',
+        removed: '<meta name="twitter:card" content="summary_large_image" />',
+      },
+      {
+        label: 'favicon',
+        removed: '<link rel="icon" href="/favicon.svg" type="image/svg+xml" />',
+      },
+      {
+        label: 'web app manifest',
+        removed: '<link rel="manifest" href="/site.webmanifest" />',
+      },
+      {
+        label: 'canonical https://gumarov.com/en/',
+        removed: '<link rel="canonical" href="https://gumarov.com/en/" />',
+      },
+      {
+        label: 'reciprocal Russian alternate',
+        removed:
+          '<link rel="alternate" hreflang="ru" href="https://gumarov.com/ru/" />',
+      },
+    ])(
+      'requires $label in every prerendered document',
+      async ({ label, removed }) => {
+        const fixture = await createDistributionFixture({
+          transformHtmlByRoute: {
+            'en/index.html': (html) => html.replace(removed, ''),
+          },
+        });
+
+        const result = runChecker(fixture.distDirectory);
+
+        expect(result.stderr).toContain(`en/index.html: missing ${label}`);
+        expect(result.status).toBe(1);
+      },
+    );
+
+    it('rejects social imagery that is missing, resized, or unapproved', async () => {
+      const missingFixture = await createDistributionFixture();
+      await rm(path.join(missingFixture.distDirectory, 'og-ru.jpg'));
+
+      const missingResult = runChecker(missingFixture.distDirectory);
+
+      expect(missingResult.stderr).toContain(
+        'Required brand asset is missing: og-ru.jpg',
+      );
+      expect(missingResult.status).toBe(1);
+
+      const resizedFixture = await createDistributionFixture();
+      await sharp({
+        create: { width: 600, height: 315, channels: 3, background: '#0d1117' },
+      })
+        .jpeg({ quality: 60 })
+        .toFile(path.join(resizedFixture.distDirectory, 'og-en.jpg'));
+
+      const resizedResult = runChecker(resizedFixture.distDirectory);
+
+      expect(resizedResult.stderr).toContain(
+        'Brand asset og-en.jpg is 600x315; expected 1200x630.',
+      );
+      expect(resizedResult.stderr).toContain(
+        'Brand asset og-en.jpg SHA-256 does not match the approved manifest.',
+      );
+      expect(resizedResult.status).toBe(1);
+
+      const monogramFixture = await createDistributionFixture();
+      await writeFile(
+        path.join(monogramFixture.distDirectory, 'favicon.svg'),
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><script>fetch("https://example.com")</script></svg>\n',
+      );
+
+      const monogramResult = runChecker(monogramFixture.distDirectory);
+
+      expect(monogramResult.stderr).toContain(
+        'Brand asset favicon.svg embeds scripts or external content.',
+      );
+      expect(monogramResult.stderr).toContain(
+        'Brand asset favicon.svg SHA-256 does not match the approved manifest.',
+      );
+      expect(monogramResult.status).toBe(1);
     });
 
-    const result = runChecker(fixture.distDirectory);
+    it('rejects a web app manifest that drifts from the content or icons', async () => {
+      const fixture = await createDistributionFixture();
+      await writeFile(
+        path.join(fixture.distDirectory, 'site.webmanifest'),
+        `${JSON.stringify({
+          name: 'Unrelated application',
+          short_name: 'Fixture site',
+          description: 'Fixture page description.',
+          lang: 'en',
+          dir: 'ltr',
+          start_url: '/',
+          scope: '/',
+          display: 'minimal-ui',
+          background_color: '#ffffff',
+          theme_color: '#080b0f',
+          icons: [
+            { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+          ],
+        })}\n`,
+      );
 
-    expect(result.stderr).toContain(
-      'en/index.html: missing visible content contact.emailAddress "hi@gumarov.com"',
-    );
-    expect(result.status).toBe(1);
-  });
+      const result = runChecker(fixture.distDirectory);
 
-  it('budgets actual image sources inside semantic hero markup regardless of path', async () => {
-    const fixture = await createDistributionFixture({
-      heroMarkup:
-        '<picture><source srcset="/media/portrait-small.jpg 480w, /media/portrait-large.jpg 1024w" /><img src="/media/portrait-small.jpg" alt="" /></picture>',
-    });
-    const mediaDirectory = path.join(fixture.distDirectory, 'media');
-    await mkdir(mediaDirectory, { recursive: true });
-    await writeFile(
-      path.join(mediaDirectory, 'portrait-large.jpg'),
-      Buffer.alloc(301 * 1024),
-    );
-    await writeFile(
-      path.join(mediaDirectory, 'portrait-small.jpg'),
-      Buffer.alloc(10 * 1024),
-    );
-
-    const result = runChecker(fixture.distDirectory);
-
-    expect(result.stderr).toContain(
-      'Hero source media/portrait-large.jpg is 301.0 KiB; budget is 300.0 KiB.',
-    );
-    expect(result.status).toBe(1);
-  });
-
-  it('budgets responsive hero sources emitted by React SSR', async () => {
-    const heroMarkup = renderToStaticMarkup(
-      createElement(
-        'picture',
-        null,
-        createElement('source', {
-          srcSet:
-            '/media/portrait-small.jpg 480w, /media/portrait-large.jpg 1024w',
-        }),
-        createElement('img', {
-          src: '/media/portrait-small.jpg',
-          alt: '',
-        }),
-      ),
-    );
-    expect(heroMarkup).toContain('srcSet=');
-
-    const fixture = await createDistributionFixture({ heroMarkup });
-    const mediaDirectory = path.join(fixture.distDirectory, 'media');
-    await mkdir(mediaDirectory, { recursive: true });
-    await writeFile(
-      path.join(mediaDirectory, 'portrait-large.jpg'),
-      Buffer.alloc(301 * 1024),
-    );
-    await writeFile(
-      path.join(mediaDirectory, 'portrait-small.jpg'),
-      Buffer.alloc(10 * 1024),
-    );
-
-    const result = runChecker(fixture.distDirectory);
-
-    expect(result.stderr).toContain(
-      'Hero source media/portrait-large.jpg is 301.0 KiB; budget is 300.0 KiB.',
-    );
-    expect(result.status).toBe(1);
-  });
-
-  it('accepts an embedded data-image hero fallback as an inline asset', async () => {
-    const fallback =
-      'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
-    const fixture = await createDistributionFixture({
-      heroMarkup: `<picture><source srcset="${fallback}" /><img src="${fallback}" alt="" /></picture>`,
+      expect(result.stderr).toContain(
+        'site.webmanifest: member name is "Unrelated application".',
+      );
+      expect(result.stderr).toContain(
+        'site.webmanifest: member background_color is "#ffffff".',
+      );
+      expect(result.stderr).toContain(
+        'site.webmanifest: no 192x192 icon is declared.',
+      );
+      expect(result.status).toBe(1);
     });
 
-    const result = runChecker(fixture.distDirectory);
+    it('requires a GitHub Pages CNAME and .nojekyll file', async () => {
+      const missingFixture = await createDistributionFixture();
+      await rm(path.join(missingFixture.distDirectory, 'CNAME'), {
+        force: true,
+      });
+      await rm(path.join(missingFixture.distDirectory, '.nojekyll'), {
+        force: true,
+      });
+      const result = runChecker(missingFixture.distDirectory);
 
-    expect(result.stderr).not.toContain('initial asset is missing');
-    expect(result.stderr).not.toContain('Hero source is missing');
-    expect(result.status).toBe(0);
-  });
+      expect(result.stderr).toContain('Required Pages file is missing: CNAME');
+      expect(result.stderr).toContain(
+        'Required Pages file is missing: .nojekyll',
+      );
+      expect(result.status).toBe(1);
 
-  it('still budgets local hero sources listed after an inline fallback', async () => {
-    const fallback =
-      'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
-    const fixture = await createDistributionFixture({
-      heroMarkup: `<picture><source srcset="${fallback} 1x, /media/portrait-large.jpg 2x" /><img src="${fallback}" alt="" /></picture>`,
+      const wrongHost = await createDistributionFixture();
+      await writeFile(
+        path.join(wrongHost.distDirectory, 'CNAME'),
+        'example.com\n',
+      );
+      await writeFile(path.join(wrongHost.distDirectory, '.nojekyll'), '');
+      const wrongHostResult = runChecker(wrongHost.distDirectory);
+
+      expect(wrongHostResult.stderr).toContain(
+        'CNAME must contain only gumarov.com',
+      );
+      expect(wrongHostResult.status).toBe(1);
     });
-    const mediaDirectory = path.join(fixture.distDirectory, 'media');
-    await mkdir(mediaDirectory, { recursive: true });
-    await writeFile(
-      path.join(mediaDirectory, 'portrait-large.jpg'),
-      Buffer.alloc(301 * 1024),
-    );
 
-    const result = runChecker(fixture.distDirectory);
-
-    expect(result.stderr).toContain(
-      'Hero source media/portrait-large.jpg is 301.0 KiB; budget is 300.0 KiB.',
-    );
-    expect(result.status).toBe(1);
-  });
-
-  it.each([
-    {
-      label: 'og:image',
-      removed:
-        '<meta property="og:image" content="https://gumarov.com/og-en.jpg" />',
-    },
-    {
-      label: 'og:locale',
-      removed: '<meta property="og:locale" content="en_US" />',
-    },
-    {
-      label: 'og:title',
-      removed: '<meta property="og:title" content="Fixture page" />',
-    },
-    {
-      label: 'og:description',
-      removed:
-        '<meta property="og:description" content="Fixture page description." />',
-    },
-    {
-      label: 'twitter:card',
-      removed: '<meta name="twitter:card" content="summary_large_image" />',
-    },
-    {
-      label: 'favicon',
-      removed: '<link rel="icon" href="/favicon.svg" type="image/svg+xml" />',
-    },
-    {
-      label: 'web app manifest',
-      removed: '<link rel="manifest" href="/site.webmanifest" />',
-    },
-    {
-      label: 'canonical https://gumarov.com/en/',
-      removed: '<link rel="canonical" href="https://gumarov.com/en/" />',
-    },
-    {
-      label: 'reciprocal Russian alternate',
-      removed:
-        '<link rel="alternate" hreflang="ru" href="https://gumarov.com/ru/" />',
-    },
-  ])(
-    'requires $label in every prerendered document',
-    async ({ label, removed }) => {
+    it('fails when headings or contact details need JavaScript to appear', async () => {
       const fixture = await createDistributionFixture({
         transformHtmlByRoute: {
-          'en/index.html': (html) => html.replace(removed, ''),
+          'ru/index.html': (html) =>
+            html
+              .replace(
+                '<h3>TradingView</h3>',
+                '<script>document.write("<h3>TradingView</h3>")</script>',
+              )
+              .replace(
+                '<p>@RinatGumarov</p>',
+                '<script>document.write("<p>@RinatGumarov</p>")</script>',
+              ),
         },
       });
 
       const result = runChecker(fixture.distDirectory);
 
-      expect(result.stderr).toContain(`en/index.html: missing ${label}`);
+      expect(result.stderr).toContain(
+        'ru/index.html: heading "TradingView" is missing without JavaScript',
+      );
+      expect(result.stderr).toContain(
+        'ru/index.html: Telegram handle "@RinatGumarov" is missing without JavaScript',
+      );
       expect(result.status).toBe(1);
-    },
-  );
-
-  it('rejects social imagery that is missing, resized, or unapproved', async () => {
-    const missingFixture = await createDistributionFixture();
-    await rm(path.join(missingFixture.distDirectory, 'og-ru.jpg'));
-
-    const missingResult = runChecker(missingFixture.distDirectory);
-
-    expect(missingResult.stderr).toContain(
-      'Required brand asset is missing: og-ru.jpg',
-    );
-    expect(missingResult.status).toBe(1);
-
-    const resizedFixture = await createDistributionFixture();
-    await sharp({
-      create: { width: 600, height: 315, channels: 3, background: '#0d1117' },
-    })
-      .jpeg({ quality: 60 })
-      .toFile(path.join(resizedFixture.distDirectory, 'og-en.jpg'));
-
-    const resizedResult = runChecker(resizedFixture.distDirectory);
-
-    expect(resizedResult.stderr).toContain(
-      'Brand asset og-en.jpg is 600x315; expected 1200x630.',
-    );
-    expect(resizedResult.stderr).toContain(
-      'Brand asset og-en.jpg SHA-256 does not match the approved manifest.',
-    );
-    expect(resizedResult.status).toBe(1);
-
-    const monogramFixture = await createDistributionFixture();
-    await writeFile(
-      path.join(monogramFixture.distDirectory, 'favicon.svg'),
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><script>fetch("https://example.com")</script></svg>\n',
-    );
-
-    const monogramResult = runChecker(monogramFixture.distDirectory);
-
-    expect(monogramResult.stderr).toContain(
-      'Brand asset favicon.svg embeds scripts or external content.',
-    );
-    expect(monogramResult.stderr).toContain(
-      'Brand asset favicon.svg SHA-256 does not match the approved manifest.',
-    );
-    expect(monogramResult.status).toBe(1);
-  });
-
-  it('rejects a web app manifest that drifts from the content or icons', async () => {
-    const fixture = await createDistributionFixture();
-    await writeFile(
-      path.join(fixture.distDirectory, 'site.webmanifest'),
-      `${JSON.stringify({
-        name: 'Unrelated application',
-        short_name: 'Fixture site',
-        description: 'Fixture page description.',
-        lang: 'en',
-        dir: 'ltr',
-        start_url: '/',
-        scope: '/',
-        display: 'minimal-ui',
-        background_color: '#ffffff',
-        theme_color: '#080b0f',
-        icons: [{ src: '/icon-512.png', sizes: '512x512', type: 'image/png' }],
-      })}\n`,
-    );
-
-    const result = runChecker(fixture.distDirectory);
-
-    expect(result.stderr).toContain(
-      'site.webmanifest: member name is "Unrelated application".',
-    );
-    expect(result.stderr).toContain(
-      'site.webmanifest: member background_color is "#ffffff".',
-    );
-    expect(result.stderr).toContain(
-      'site.webmanifest: no 192x192 icon is declared.',
-    );
-    expect(result.status).toBe(1);
-  });
-
-  it('requires a GitHub Pages CNAME and .nojekyll file', async () => {
-    const missingFixture = await createDistributionFixture();
-    await rm(path.join(missingFixture.distDirectory, 'CNAME'), { force: true });
-    await rm(path.join(missingFixture.distDirectory, '.nojekyll'), {
-      force: true,
-    });
-    const result = runChecker(missingFixture.distDirectory);
-
-    expect(result.stderr).toContain('Required Pages file is missing: CNAME');
-    expect(result.stderr).toContain(
-      'Required Pages file is missing: .nojekyll',
-    );
-    expect(result.status).toBe(1);
-
-    const wrongHost = await createDistributionFixture();
-    await writeFile(
-      path.join(wrongHost.distDirectory, 'CNAME'),
-      'example.com\n',
-    );
-    await writeFile(path.join(wrongHost.distDirectory, '.nojekyll'), '');
-    const wrongHostResult = runChecker(wrongHost.distDirectory);
-
-    expect(wrongHostResult.stderr).toContain(
-      'CNAME must contain only gumarov.com',
-    );
-    expect(wrongHostResult.status).toBe(1);
-  });
-
-  it('fails when headings or contact details need JavaScript to appear', async () => {
-    const fixture = await createDistributionFixture({
-      transformHtmlByRoute: {
-        'ru/index.html': (html) =>
-          html
-            .replace(
-              '<h3>TradingView</h3>',
-              '<script>document.write("<h3>TradingView</h3>")</script>',
-            )
-            .replace(
-              '<p>@RinatGumarov</p>',
-              '<script>document.write("<p>@RinatGumarov</p>")</script>',
-            ),
-      },
     });
 
-    const result = runChecker(fixture.distDirectory);
+    it('rejects stylesheets that hide content before motion support is confirmed', async () => {
+      const fixture = await createDistributionFixture();
+      const assetsDirectory = path.join(fixture.distDirectory, 'assets');
+      await mkdir(assetsDirectory, { recursive: true });
+      await writeFile(
+        path.join(assetsDirectory, 'ungated.css'),
+        "[data-motion-reveal='copy']{opacity:0}\n[data-motion-state='enabled'] [data-motion-enter='copy']{animation:fade 1s both}\n",
+      );
 
-    expect(result.stderr).toContain(
-      'ru/index.html: heading "TradingView" is missing without JavaScript',
-    );
-    expect(result.stderr).toContain(
-      'ru/index.html: Telegram handle "@RinatGumarov" is missing without JavaScript',
-    );
-    expect(result.status).toBe(1);
-  });
+      const result = runChecker(fixture.distDirectory);
 
-  it('rejects stylesheets that hide content before motion support is confirmed', async () => {
-    const fixture = await createDistributionFixture();
-    const assetsDirectory = path.join(fixture.distDirectory, 'assets');
-    await mkdir(assetsDirectory, { recursive: true });
-    await writeFile(
-      path.join(assetsDirectory, 'ungated.css'),
-      "[data-motion-reveal='copy']{opacity:0}\n[data-motion-state='enabled'] [data-motion-enter='copy']{animation:fade 1s both}\n",
-    );
-
-    const result = runChecker(fixture.distDirectory);
-
-    expect(result.stderr).toContain(
-      "assets/ungated.css: rule \"[data-motion-reveal='copy']\" changes the initial state without the [data-motion-state='enabled'] gate.",
-    );
-    expect(result.stderr).not.toContain("[data-motion-enter='copy']\" changes");
-    expect(result.status).toBe(1);
-  });
-
-  it('rejects hero copy enter motion that hides the LCP heading', async () => {
-    const fixture = await createDistributionFixture();
-    const assetsDirectory = path.join(fixture.distDirectory, 'assets');
-    await mkdir(assetsDirectory, { recursive: true });
-    await writeFile(
-      path.join(assetsDirectory, 'lcp.css'),
-      "@keyframes motion-hero-copy-enter{from{opacity:0;transform:translate3d(0,1.25rem,0)}to{opacity:1;transform:none}}[data-motion-state='enabled'] [data-motion-enter='copy']{animation:motion-hero-copy-enter 640ms both}\n",
-    );
-
-    const result = runChecker(fixture.distDirectory);
-
-    expect(result.stderr).toContain(
-      'assets/lcp.css: hero copy animation "motion-hero-copy-enter" hides the LCP heading.',
-    );
-    expect(result.status).toBe(1);
-  });
-
-  it('rejects webfont face rules inlined into the document', async () => {
-    const fixture = await createDistributionFixture({
-      headByRoute: {
-        'en/index.html':
-          '<style>@font-face{font-family:Onest;src:url("/assets/fonts/Onest-Variable.woff2") format("woff2");font-display:optional}</style>',
-      },
-    });
-    const fontsDirectory = path.join(fixture.distDirectory, 'assets', 'fonts');
-    await mkdir(fontsDirectory, { recursive: true });
-    await writeFile(
-      path.join(fontsDirectory, 'Onest-Variable.woff2'),
-      'woff2-fixture',
-    );
-
-    const result = runChecker(fixture.distDirectory);
-
-    expect(result.stderr).toContain(
-      'en/index.html: inlined CSS must not declare @font-face',
-    );
-    expect(result.status).toBe(1);
-  });
-
-  it('rejects webfont face rules encoded as a data stylesheet', async () => {
-    const encoded = Buffer.from(
-      '@font-face{font-family:Onest;src:url("/assets/fonts/Onest-Variable.woff2") format("woff2");font-display:optional}',
-    ).toString('base64');
-    const fixture = await createDistributionFixture({
-      headByRoute: {
-        'en/index.html': `<link rel="stylesheet" href="data:text/css;base64,${encoded}" media="print" />`,
-      },
+      expect(result.stderr).toContain(
+        "assets/ungated.css: rule \"[data-motion-reveal='copy']\" changes the initial state without the [data-motion-state='enabled'] gate.",
+      );
+      expect(result.stderr).not.toContain(
+        "[data-motion-enter='copy']\" changes",
+      );
+      expect(result.status).toBe(1);
     });
 
-    const result = runChecker(fixture.distDirectory);
+    it('rejects hero copy enter motion that hides the LCP heading', async () => {
+      const fixture = await createDistributionFixture();
+      const assetsDirectory = path.join(fixture.distDirectory, 'assets');
+      await mkdir(assetsDirectory, { recursive: true });
+      await writeFile(
+        path.join(assetsDirectory, 'lcp.css'),
+        "@keyframes motion-hero-copy-enter{from{opacity:0;transform:translate3d(0,1.25rem,0)}to{opacity:1;transform:none}}[data-motion-state='enabled'] [data-motion-enter='copy']{animation:motion-hero-copy-enter 640ms both}\n",
+      );
 
-    expect(result.stderr).toContain(
-      'en/index.html: inlined CSS must not declare @font-face',
-    );
-    expect(result.status).toBe(1);
-  });
+      const result = runChecker(fixture.distDirectory);
 
-  it('rejects the Onest webfont on the critical CSS path', async () => {
-    const fixture = await createDistributionFixture({
-      headByRoute: {
-        'en/index.html':
-          '<style>:root{--font-sans:Onest,ui-sans-serif,sans-serif}</style>',
-      },
+      expect(result.stderr).toContain(
+        'assets/lcp.css: hero copy animation "motion-hero-copy-enter" hides the LCP heading.',
+      );
+      expect(result.status).toBe(1);
     });
 
-    const result = runChecker(fixture.distDirectory);
+    it('rejects webfont face rules inlined into the document', async () => {
+      const fixture = await createDistributionFixture({
+        headByRoute: {
+          'en/index.html':
+            '<style>@font-face{font-family:Onest;src:url("/assets/fonts/Onest-Variable.woff2") format("woff2");font-display:optional}</style>',
+        },
+      });
+      const fontsDirectory = path.join(
+        fixture.distDirectory,
+        'assets',
+        'fonts',
+      );
+      await mkdir(fontsDirectory, { recursive: true });
+      await writeFile(
+        path.join(fontsDirectory, 'Onest-Variable.woff2'),
+        'woff2-fixture',
+      );
 
-    expect(result.stderr).toContain(
-      'en/index.html: inlined CSS must not reference Onest',
-    );
-    expect(result.status).toBe(1);
-  });
+      const result = runChecker(fixture.distDirectory);
 
-  it('rejects a webfont preload in front of the LCP heading', async () => {
-    const fixture = await createDistributionFixture({
-      headByRoute: {
-        'en/index.html':
-          '<link rel="preload" href="/assets/fonts/Onest-Variable.woff2" as="font" type="font/woff2" crossorigin />',
-      },
-    });
-    const fontsDirectory = path.join(fixture.distDirectory, 'assets', 'fonts');
-    await mkdir(fontsDirectory, { recursive: true });
-    await writeFile(
-      path.join(fontsDirectory, 'Onest-Variable.woff2'),
-      'woff2-fixture',
-    );
-
-    const result = runChecker(fixture.distDirectory);
-
-    expect(result.stderr).toContain(
-      'en/index.html: do not preload webfonts in front of the LCP heading',
-    );
-    expect(result.status).toBe(1);
-  });
-
-  it('allows deferred Onest swap outside inlined critical CSS', async () => {
-    const fixture = await createDistributionFixture();
-    const fontsDirectory = path.join(fixture.distDirectory, 'assets', 'fonts');
-    await mkdir(fontsDirectory, { recursive: true });
-    await writeFile(
-      path.join(fontsDirectory, 'faces.css'),
-      "@font-face{font-family:Onest;src:url('/assets/fonts/Onest-Variable.woff2') format('woff2');font-display:swap}\n@font-face{font-family:'Onest Fallback';src:local('Arial');size-adjust:107%}\n",
-    );
-    await writeFile(
-      path.join(fontsDirectory, 'Onest-Variable.woff2'),
-      'woff2-fixture',
-    );
-
-    const result = runChecker(fixture.distDirectory);
-
-    expect(result.stderr).not.toContain('font-display');
-    expect(result.status).toBe(0);
-  });
-
-  it('rejects a render-blocking external stylesheet', async () => {
-    const fixture = await createDistributionFixture({
-      headByRoute: {
-        'en/index.html': '<link rel="stylesheet" href="/assets/app.css" />',
-      },
-    });
-    const assetsDirectory = path.join(fixture.distDirectory, 'assets');
-    await mkdir(assetsDirectory, { recursive: true });
-    await writeFile(path.join(assetsDirectory, 'app.css'), 'body{margin:0}\n');
-
-    const result = runChecker(fixture.distDirectory);
-
-    expect(result.stderr).toContain(
-      'en/index.html: render-blocking stylesheet /assets/app.css',
-    );
-    expect(result.status).toBe(1);
-  });
-
-  it('requires a skip link to the main landmark', async () => {
-    const fixture = await createDistributionFixture({
-      transformHtmlByRoute: {
-        'en/index.html': (html) =>
-          html.replace(/<a href="#main-content">[^<]*<\/a>/u, ''),
-      },
+      expect(result.stderr).toContain(
+        'en/index.html: inlined CSS must not declare @font-face',
+      );
+      expect(result.status).toBe(1);
     });
 
-    const result = runChecker(fixture.distDirectory);
+    it('rejects webfont face rules encoded as a data stylesheet', async () => {
+      const encoded = Buffer.from(
+        '@font-face{font-family:Onest;src:url("/assets/fonts/Onest-Variable.woff2") format("woff2");font-display:optional}',
+      ).toString('base64');
+      const fixture = await createDistributionFixture({
+        headByRoute: {
+          'en/index.html': `<link rel="stylesheet" href="data:text/css;base64,${encoded}" media="print" />`,
+        },
+      });
 
-    expect(result.stderr).toContain(
-      'en/index.html: missing skip link to #main-content',
-    );
-    expect(result.status).toBe(1);
-  });
+      const result = runChecker(fixture.distDirectory);
 
-  it('requires banner, main, and contentinfo landmarks in document order', async () => {
-    const fixture = await createDistributionFixture({
-      transformHtmlByRoute: {
-        'ru/index.html': (html) =>
-          html
-            .replace('<header>', '<div data-not-banner>')
-            .replace('</header>', '</div>'),
-      },
+      expect(result.stderr).toContain(
+        'en/index.html: inlined CSS must not declare @font-face',
+      );
+      expect(result.status).toBe(1);
     });
 
-    const result = runChecker(fixture.distDirectory);
+    it('rejects the Onest webfont on the critical CSS path', async () => {
+      const fixture = await createDistributionFixture({
+        headByRoute: {
+          'en/index.html':
+            '<style>:root{--font-sans:Onest,ui-sans-serif,sans-serif}</style>',
+        },
+      });
 
-    expect(result.stderr).toContain(
-      'ru/index.html: missing banner landmark before main',
-    );
-    expect(result.status).toBe(1);
-  });
+      const result = runChecker(fixture.distDirectory);
 
-  it('requires exactly one h1 in the prerendered document', async () => {
-    const fixture = await createDistributionFixture({
-      transformHtmlByRoute: {
-        'en/index.html': (html) =>
-          html.replace('<h1>', '<h2>').replace('</h1>', '</h2>'),
-      },
+      expect(result.stderr).toContain(
+        'en/index.html: inlined CSS must not reference Onest',
+      );
+      expect(result.status).toBe(1);
     });
 
-    const result = runChecker(fixture.distDirectory);
+    it('rejects a webfont preload in front of the LCP heading', async () => {
+      const fixture = await createDistributionFixture({
+        headByRoute: {
+          'en/index.html':
+            '<link rel="preload" href="/assets/fonts/Onest-Variable.woff2" as="font" type="font/woff2" crossorigin />',
+        },
+      });
+      const fontsDirectory = path.join(
+        fixture.distDirectory,
+        'assets',
+        'fonts',
+      );
+      await mkdir(fontsDirectory, { recursive: true });
+      await writeFile(
+        path.join(fontsDirectory, 'Onest-Variable.woff2'),
+        'woff2-fixture',
+      );
 
-    expect(result.stderr).toContain('en/index.html: expected exactly one h1');
-    expect(result.status).toBe(1);
-  });
+      const result = runChecker(fixture.distDirectory);
 
-  it('enforces each route transfer budget through recursive CSS dependencies', async () => {
-    const fixture = await createDistributionFixture({
-      headByRoute: {
-        'ru/index.html': '<link rel="stylesheet" href="/assets/ru.css" />',
-      },
+      expect(result.stderr).toContain(
+        'en/index.html: do not preload webfonts in front of the LCP heading',
+      );
+      expect(result.status).toBe(1);
     });
-    const assetsDirectory = path.join(fixture.distDirectory, 'assets');
-    const mediaDirectory = path.join(fixture.distDirectory, 'media');
-    await mkdir(assetsDirectory, { recursive: true });
-    await mkdir(mediaDirectory, { recursive: true });
-    await writeFile(
-      path.join(assetsDirectory, 'ru.css'),
-      '@import url("/assets/nested.css");',
-    );
-    await writeFile(
-      path.join(assetsDirectory, 'nested.css'),
-      '.hero { background-image: url("/media/large-background.bin"); }',
-    );
-    await writeFile(
-      path.join(mediaDirectory, 'large-background.bin'),
-      Buffer.alloc(701 * 1024),
-    );
 
-    const result = runChecker(fixture.distDirectory);
+    it('allows deferred Onest swap outside inlined critical CSS', async () => {
+      const fixture = await createDistributionFixture();
+      const fontsDirectory = path.join(
+        fixture.distDirectory,
+        'assets',
+        'fonts',
+      );
+      await mkdir(fontsDirectory, { recursive: true });
+      await writeFile(
+        path.join(fontsDirectory, 'faces.css'),
+        "@font-face{font-family:Onest;src:url('/assets/fonts/Onest-Variable.woff2') format('woff2');font-display:swap}\n@font-face{font-family:'Onest Fallback';src:local('Arial');size-adjust:107%}\n",
+      );
+      await writeFile(
+        path.join(fontsDirectory, 'Onest-Variable.woff2'),
+        'woff2-fixture',
+      );
 
-    expect(result.stderr).toContain('ru/index.html: initial transfer is');
-    expect(result.status).toBe(1);
-  });
+      const result = runChecker(fixture.distDirectory);
 
-  it('budgets assets referenced from inlined styles', async () => {
-    const fixture = await createDistributionFixture({
-      headByRoute: {
-        'en/index.html':
-          '<style>.hero { background-image: url("/media/large-background.bin"); }</style>',
-      },
+      expect(result.stderr).not.toContain('font-display');
+      expect(result.status).toBe(0);
     });
-    const mediaDirectory = path.join(fixture.distDirectory, 'media');
-    await mkdir(mediaDirectory, { recursive: true });
-    await writeFile(
-      path.join(mediaDirectory, 'large-background.bin'),
-      Buffer.alloc(701 * 1024),
-    );
 
-    const result = runChecker(fixture.distDirectory);
+    it('rejects a render-blocking external stylesheet', async () => {
+      const fixture = await createDistributionFixture({
+        headByRoute: {
+          'en/index.html': '<link rel="stylesheet" href="/assets/app.css" />',
+        },
+      });
+      const assetsDirectory = path.join(fixture.distDirectory, 'assets');
+      await mkdir(assetsDirectory, { recursive: true });
+      await writeFile(
+        path.join(assetsDirectory, 'app.css'),
+        'body{margin:0}\n',
+      );
 
-    expect(result.stderr).toContain('en/index.html: initial transfer is');
-    expect(result.status).toBe(1);
-  });
-});
+      const result = runChecker(fixture.distDirectory);
+
+      expect(result.stderr).toContain(
+        'en/index.html: render-blocking stylesheet /assets/app.css',
+      );
+      expect(result.status).toBe(1);
+    });
+
+    it('requires a skip link to the main landmark', async () => {
+      const fixture = await createDistributionFixture({
+        transformHtmlByRoute: {
+          'en/index.html': (html) =>
+            html.replace(/<a href="#main-content">[^<]*<\/a>/u, ''),
+        },
+      });
+
+      const result = runChecker(fixture.distDirectory);
+
+      expect(result.stderr).toContain(
+        'en/index.html: missing skip link to #main-content',
+      );
+      expect(result.status).toBe(1);
+    });
+
+    it('requires banner, main, and contentinfo landmarks in document order', async () => {
+      const fixture = await createDistributionFixture({
+        transformHtmlByRoute: {
+          'ru/index.html': (html) =>
+            html
+              .replace('<header>', '<div data-not-banner>')
+              .replace('</header>', '</div>'),
+        },
+      });
+
+      const result = runChecker(fixture.distDirectory);
+
+      expect(result.stderr).toContain(
+        'ru/index.html: missing banner landmark before main',
+      );
+      expect(result.status).toBe(1);
+    });
+
+    it('requires exactly one h1 in the prerendered document', async () => {
+      const fixture = await createDistributionFixture({
+        transformHtmlByRoute: {
+          'en/index.html': (html) =>
+            html.replace('<h1>', '<h2>').replace('</h1>', '</h2>'),
+        },
+      });
+
+      const result = runChecker(fixture.distDirectory);
+
+      expect(result.stderr).toContain('en/index.html: expected exactly one h1');
+      expect(result.status).toBe(1);
+    });
+
+    it('enforces each route transfer budget through recursive CSS dependencies', async () => {
+      const fixture = await createDistributionFixture({
+        headByRoute: {
+          'ru/index.html': '<link rel="stylesheet" href="/assets/ru.css" />',
+        },
+      });
+      const assetsDirectory = path.join(fixture.distDirectory, 'assets');
+      const mediaDirectory = path.join(fixture.distDirectory, 'media');
+      await mkdir(assetsDirectory, { recursive: true });
+      await mkdir(mediaDirectory, { recursive: true });
+      await writeFile(
+        path.join(assetsDirectory, 'ru.css'),
+        '@import url("/assets/nested.css");',
+      );
+      await writeFile(
+        path.join(assetsDirectory, 'nested.css'),
+        '.hero { background-image: url("/media/large-background.bin"); }',
+      );
+      await writeFile(
+        path.join(mediaDirectory, 'large-background.bin'),
+        Buffer.alloc(701 * 1024),
+      );
+
+      const result = runChecker(fixture.distDirectory);
+
+      expect(result.stderr).toContain('ru/index.html: initial transfer is');
+      expect(result.status).toBe(1);
+    });
+
+    it('budgets assets referenced from inlined styles', async () => {
+      const fixture = await createDistributionFixture({
+        headByRoute: {
+          'en/index.html':
+            '<style>.hero { background-image: url("/media/large-background.bin"); }</style>',
+        },
+      });
+      const mediaDirectory = path.join(fixture.distDirectory, 'media');
+      await mkdir(mediaDirectory, { recursive: true });
+      await writeFile(
+        path.join(mediaDirectory, 'large-background.bin'),
+        Buffer.alloc(701 * 1024),
+      );
+
+      const result = runChecker(fixture.distDirectory);
+
+      expect(result.stderr).toContain('en/index.html: initial transfer is');
+      expect(result.status).toBe(1);
+    });
+  },
+  slowSuiteTimeout,
+);
 
 async function createDistributionFixture(options = {}) {
   const fixtureRoot = await mkdtemp(path.join(tmpdir(), 'check-dist-'));

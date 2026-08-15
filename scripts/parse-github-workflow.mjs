@@ -6,7 +6,9 @@ export function parseGithubWorkflow(source) {
   const lines = source
     .split('\n')
     .map((line) => line.replace(/\s+$/u, ''))
-    .filter((line) => line.length > 0 && !line.startsWith('#'));
+    // Comment-only lines are dropped at any indentation; a comment indented
+    // inside a job otherwise reaches the block parser as an unexpected indent.
+    .filter((line) => line.length > 0 && !line.trimStart().startsWith('#'));
 
   const [document, nextIndex] = parseBlock(lines, 0, 0);
   if (nextIndex !== lines.length) {

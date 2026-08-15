@@ -11,6 +11,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -21,6 +22,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Shells out to apt; bounded so a held package lock fails fast.
       - run: pnpm exec playwright install --with-deps chromium
+        timeout-minutes: 8
       - run: pnpm verify
       - run: pnpm test:e2e

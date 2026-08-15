@@ -69,6 +69,39 @@ describe('GitHub Pages workflows', () => {
     });
     expect(deployJob.steps[0].uses).toBe('actions/deploy-pages@v4');
   });
+
+  /*
+   * The first CI run stalled for 25 minutes inside
+   * `playwright install --with-deps`, which shells out to apt and can block on
+   * a package lock held by the runner image. Without a ceiling GitHub lets a
+   * stuck job occupy a runner for the 360-minute default.
+   */
+  it('bounds every job and the apt-backed browser install', async () => {
+    const ci = parseGithubWorkflow(
+      await readFile(path.join(workflowDirectory, 'ci.yml'), 'utf8'),
+    );
+    const deploy = parseGithubWorkflow(
+      await readFile(path.join(workflowDirectory, 'deploy.yml'), 'utf8'),
+    );
+
+    for (const workflow of [ci, deploy]) {
+      for (const [name, job] of Object.entries(workflow.jobs)) {
+        expect(
+          typeof job['timeout-minutes'],
+          `job ${name} has no timeout-minutes`,
+        ).toBe('number');
+        expect(job['timeout-minutes']).toBeLessThanOrEqual(30);
+      }
+    }
+
+    for (const steps of [ci.jobs.verify.steps, deploy.jobs.build.steps]) {
+      const install = steps.find((step) =>
+        step.run?.includes('playwright install'),
+      );
+      expect(typeof install['timeout-minutes']).toBe('number');
+      expect(install['timeout-minutes']).toBeLessThanOrEqual(10);
+    }
+  });
 });
 
 function packageScriptsFromSteps(steps) {
