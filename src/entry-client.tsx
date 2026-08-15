@@ -1,7 +1,10 @@
 import { hydrateRoot } from 'react-dom/client';
 import { App, type Locale } from './App';
 import { scheduleLandingViewed } from './lib/analytics';
+import { scheduleBrandFonts } from './lib/brand-fonts';
 import './styles/global.css';
+
+scheduleBrandFonts();
 
 const rootElement = document.getElementById('root');
 

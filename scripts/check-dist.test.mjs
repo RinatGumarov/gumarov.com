@@ -635,21 +635,23 @@ describe('distribution checker', () => {
     expect(result.status).toBe(1);
   });
 
-  it('rejects a heading font that can swap in after first paint', async () => {
+  it('allows deferred Onest swap outside inlined critical CSS', async () => {
     const fixture = await createDistributionFixture();
-    const assetsDirectory = path.join(fixture.distDirectory, 'assets');
-    await mkdir(assetsDirectory, { recursive: true });
+    const fontsDirectory = path.join(fixture.distDirectory, 'assets', 'fonts');
+    await mkdir(fontsDirectory, { recursive: true });
     await writeFile(
-      path.join(assetsDirectory, 'fonts.css'),
-      "@font-face{font-family:Onest;src:url('/assets/fonts/Onest-Variable.woff2') format('woff2');font-display:swap}\n",
+      path.join(fontsDirectory, 'faces.css'),
+      "@font-face{font-family:Onest;src:url('/assets/fonts/Onest-Variable.woff2') format('woff2');font-display:swap}\n@font-face{font-family:'Onest Fallback';src:local('Arial');size-adjust:107%}\n",
+    );
+    await writeFile(
+      path.join(fontsDirectory, 'Onest-Variable.woff2'),
+      'woff2-fixture',
     );
 
     const result = runChecker(fixture.distDirectory);
 
-    expect(result.stderr).toContain(
-      'assets/fonts.css: Onest must use font-display: optional so the LCP heading is not delayed by a webfont swap.',
-    );
-    expect(result.status).toBe(1);
+    expect(result.stderr).not.toContain('font-display');
+    expect(result.status).toBe(0);
   });
 
   it('rejects a render-blocking external stylesheet', async () => {

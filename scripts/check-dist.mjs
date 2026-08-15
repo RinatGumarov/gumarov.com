@@ -509,20 +509,6 @@ function validateAccessibilityContract(routeFile, document) {
   }
 }
 
-function validateHeadingFontDisplay(css, relativeFile) {
-  for (const face of css.matchAll(/@font-face\s*\{([\s\S]*?)\}/gu)) {
-    if (!/font-family\s*:\s*(?:Onest|['"]Onest['"])/u.test(face[1])) {
-      continue;
-    }
-
-    if (!/font-display\s*:\s*optional(?:\s|;|$)/u.test(face[1])) {
-      failures.push(
-        `${relativeFile}: Onest must use font-display: optional so the LCP heading is not delayed by a webfont swap.`,
-      );
-    }
-  }
-}
-
 function isDocumentBefore(earlier, later) {
   return Boolean(
     earlier.compareDocumentPosition(later) &
@@ -829,7 +815,6 @@ async function validateInitialVisibility(cssFiles) {
     );
 
     validateHeroCopyLcpVisibility(css, path.relative(distDirectory, file));
-    validateHeadingFontDisplay(css, path.relative(distDirectory, file));
 
     for (const rule of styleRules.matchAll(motionRulePattern)) {
       const selector = normalizeText(rule[1]);

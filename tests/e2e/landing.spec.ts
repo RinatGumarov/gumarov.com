@@ -122,6 +122,22 @@ test('uses a stacked header on the phone and a single-row header on desktop', as
   ).toBeLessThan(12);
 });
 
+test('defers brand fonts until after first paint', async ({ page }) => {
+  const fontStylesheetRequests: string[] = [];
+  page.on('request', (request) => {
+    if (request.url().includes('/assets/fonts/faces.css')) {
+      fontStylesheetRequests.push(request.url());
+    }
+  });
+
+  await page.goto('/en/', { waitUntil: 'commit' });
+  expect(fontStylesheetRequests).toEqual([]);
+  await expect
+    .poll(() => page.locator('link[href="/assets/fonts/faces.css"]').count())
+    .toBe(1);
+  expect(fontStylesheetRequests.length).toBeGreaterThan(0);
+});
+
 test('completes a keyboard traversal with visible focus', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('/en/');
