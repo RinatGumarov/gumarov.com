@@ -22,6 +22,7 @@ pnpm dev
 | `pnpm test:e2e`       | Run Playwright end-to-end tests.                              |
 | `pnpm test:a11y`      | Run the focused Playwright accessibility suite.               |
 | `pnpm media:portrait` | Regenerate approved responsive portrait derivatives.          |
+| `pnpm media:brand`    | Regenerate the monogram icons and localized social cards.     |
 | `pnpm typecheck`      | Type-check the TypeScript project.                            |
 | `pnpm lint`           | Run ESLint with warnings treated as failures.                 |
 | `pnpm format:check`   | Check formatting with Prettier.                               |
@@ -94,6 +95,48 @@ Only the above-the-fold Onest file is preloaded.
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
 | Onest Variable 2.001         | [`simpals/onest` tag `2.001`, commit `8739b1910618a15335e4cc48842052d0ee739ade`](https://github.com/simpals/onest/releases/tag/2.001), archive [`onest-2.001.zip`](https://github.com/simpals/onest/releases/download/2.001/onest-2.001.zip)                                                                                | `public/assets/fonts/Onest-Variable.woff2` (`83,980` bytes)       | `cb4d777c1b146887a2902ef01ba91cb3fb0c85e9804e95794eb289a1966c0782` | Exact upstream `OFL.txt` as `Onest-OFL-1.1.txt` (SIL OFL 1.1)                |
 | IBM Plex Mono Variable Roman | [`IBM/plex` commit `bf260093582f04622aacc1e9f9ca604d7ccd0c42`](https://github.com/IBM/plex/tree/bf260093582f04622aacc1e9f9ca604d7ccd0c42), [upstream WOFF2](https://github.com/IBM/plex/blob/bf260093582f04622aacc1e9f9ca604d7ccd0c42/packages/plex-mono-variable/fonts/complete/woff2/IBM%20Plex%20Mono%20Var-Roman.woff2) | `public/assets/fonts/IBMPlexMono-Variable.woff2` (`83,488` bytes) | `ef55d69e81baa6523a9b6e015d746e707bc7e9579f18703a169cb18c36dd567b` | Exact upstream root `LICENSE.txt` as `IBMPlexMono-OFL-1.1.txt` (SIL OFL 1.1) |
+
+### Icons and social cards
+
+`pnpm media:brand` regenerates every shareable brand asset from committed,
+approved inputs. The monogram is a monoline `RG` drawn with SVG paths in the
+existing token palette, so it needs no font at render time and stays legible as
+a favicon; it is not a separate logo system. Sharp rasterizes the same artwork
+into the two PWA icons. The social cards reuse the approved
+`portrait-1024.jpg` derivative through a fixed centered cover crop, and the
+card copy comes from `meta.socialCard` in the typed content model, typeset with
+the self-hosted Onest and IBM Plex Mono files. No pixel is retouched,
+generated, or sourced from stock imagery.
+
+| Output         |  Bytes | SHA-256                                                            |
+| -------------- | -----: | ------------------------------------------------------------------ |
+| `favicon.svg`  |    552 | `b4a919ed20cff42a98711ef7855b737cbf229c8deccdad44da1cecfa6c2f945e` |
+| `icon-192.png` |  3,695 | `4f9b6464fa55e7aaff43431b1b2c6d31ae45e288e37faf52472b4cca6fecb765` |
+| `icon-512.png` |  9,604 | `2edf66405d4c0e3a60092790b61d85022a4c6e04a816ec01afaa95eac6ecd3da` |
+| `og-en.jpg`    | 71,849 | `1d027a80b3d175494cb2d60bbea5dee74c9276078780f4452713ef64b5688337` |
+| `og-ru.jpg`    | 73,625 | `336b3fe9ad91325f5f4e990ecc47ca3a0ce4675ce716818d1c44f19b64dc1bb1` |
+
+`public/assets/brand/approved-manifest.json` records the pinned portrait
+lineage and every output hash, and the distribution build rejects missing,
+resized, or unapproved brand assets exactly as it does for the portrait.
+
+### Metadata and static resilience
+
+`scripts/page-metadata.mjs` builds one localized head block per prerendered
+route from the typed content model: title, description, canonical URL,
+reciprocal `en`/`ru` alternates with the English root as `x-default`, the
+Open Graph and Twitter card set, the icon and manifest links, and `Person`
+structured data. `https://gumarov.com/en/` and `https://gumarov.com/ru/` are
+the locale canonicals and the root stays `x-default`.
+
+The distribution check strips every `<script>` element from each built
+document and requires that the headings, all four project names, the Telegram
+handle, and the email address survive in the remaining markup. It also rejects
+any stylesheet rule that hides motion-enhanced content without the
+`[data-motion-state='enabled']` gate, so nothing is hidden before CSS
+animation support is confirmed. Failed portrait or personal-strip images hide
+only the image box and leave the framed container background and all
+surrounding copy in place.
 
 ### Personal-photo publication gate
 

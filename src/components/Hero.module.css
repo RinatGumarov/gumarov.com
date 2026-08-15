@@ -160,6 +160,11 @@
   object-fit: cover;
 }
 
+/* A failed portrait leaves the framed container, its caption, and the hero copy in place. */
+.portrait picture[data-image-state='failed'] img {
+  visibility: hidden;
+}
+
 .portrait figcaption {
   position: absolute;
   z-index: 2;

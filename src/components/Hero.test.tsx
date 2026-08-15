@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { expect, it, vi } from 'vitest';
 import { getContent } from '../content';
@@ -58,6 +58,27 @@ it('presents the localized frontend-first hero with direct conversion links', ()
   expect(image).toHaveAttribute('alt', '');
   expect(image).toHaveAttribute('loading', 'eager');
   expect(image).toHaveAttribute('fetchpriority', 'high');
+});
+
+it('reveals the portrait container when the image fails and keeps the copy', () => {
+  const { container } = render(<Hero content={getContent('en').hero} />);
+  const picture = container.querySelector('[data-hero="landing"] picture');
+  const image = picture?.querySelector('img');
+
+  expect(picture).not.toHaveAttribute('data-image-state');
+  fireEvent.error(image as HTMLImageElement);
+
+  expect(picture).toHaveAttribute('data-image-state', 'failed');
+  expect(
+    screen.getByRole('heading', {
+      level: 1,
+      name: 'Senior Frontend Engineer building ambitious products.',
+    }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('link', { name: 'View selected work' }),
+  ).toBeInTheDocument();
+  expect(screen.getByText('RG')).toBeInTheDocument();
 });
 
 it('keeps the internal hero contact jump out of channel click analytics', async () => {

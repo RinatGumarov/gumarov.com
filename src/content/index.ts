@@ -12,7 +12,9 @@ export type {
   Contact,
   LandingContent,
   Locale,
+  PageMeta,
   Project,
   ProjectSlug,
+  SocialCardCopy,
 } from './types';
 export { projectSlugs } from './types';

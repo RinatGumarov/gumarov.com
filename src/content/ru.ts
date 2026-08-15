@@ -5,6 +5,19 @@ export const ru = {
     title: 'Ринат Гумаров — Senior Frontend Engineer',
     description:
       'Senior Frontend Engineer, который создаёт сложные интерфейсы для трейдинга, финтеха и амбициозных продуктов.',
+    siteName: 'Ринат Гумаров',
+    ogLocale: 'ru_RU',
+    ogAlternateLocale: 'en_US',
+    ogImage: '/og-ru.jpg',
+    ogImageAlt:
+      'Ринат Гумаров, Senior Frontend Engineer, рядом с адресом gumarov.com и контактом в Telegram @RinatGumarov.',
+    socialCard: {
+      name: 'Ринат Гумаров',
+      role: 'Senior Frontend Engineer',
+      headline:
+        'Сложные интерфейсы для трейдинга, финтеха и амбициозных продуктов.',
+      contact: 'gumarov.com · @RinatGumarov',
+    },
   },
   nav: {
     work: 'Проекты',

@@ -7,8 +7,11 @@ import { spawnSync } from 'node:child_process';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import sharp from 'sharp';
+import { renderPageMetadata, siteUrl } from './page-metadata.mjs';
 
 const checkerPath = path.resolve(process.cwd(), 'scripts/check-dist.mjs');
+const approvedPortraitSourceSha256 =
+  '82a737263a795f74b39bca2b78710cfdca336d8408566f458c8bb4e8c35d9310';
 const temporaryDirectories = [];
 
 afterEach(async () => {
@@ -358,6 +361,185 @@ describe('distribution checker', () => {
     expect(result.status).toBe(1);
   });
 
+  it.each([
+    {
+      label: 'og:image',
+      removed:
+        '<meta property="og:image" content="https://gumarov.com/og-en.jpg" />',
+    },
+    {
+      label: 'og:locale',
+      removed: '<meta property="og:locale" content="en_US" />',
+    },
+    {
+      label: 'og:title',
+      removed: '<meta property="og:title" content="Fixture page" />',
+    },
+    {
+      label: 'og:description',
+      removed:
+        '<meta property="og:description" content="Fixture page description." />',
+    },
+    {
+      label: 'twitter:card',
+      removed: '<meta name="twitter:card" content="summary_large_image" />',
+    },
+    {
+      label: 'favicon',
+      removed: '<link rel="icon" href="/favicon.svg" type="image/svg+xml" />',
+    },
+    {
+      label: 'web app manifest',
+      removed: '<link rel="manifest" href="/site.webmanifest" />',
+    },
+    {
+      label: 'canonical https://gumarov.com/en/',
+      removed: '<link rel="canonical" href="https://gumarov.com/en/" />',
+    },
+    {
+      label: 'reciprocal Russian alternate',
+      removed:
+        '<link rel="alternate" hreflang="ru" href="https://gumarov.com/ru/" />',
+    },
+  ])(
+    'requires $label in every prerendered document',
+    async ({ label, removed }) => {
+      const fixture = await createDistributionFixture({
+        transformHtmlByRoute: {
+          'en/index.html': (html) => html.replace(removed, ''),
+        },
+      });
+
+      const result = runChecker(fixture.distDirectory);
+
+      expect(result.stderr).toContain(`en/index.html: missing ${label}`);
+      expect(result.status).toBe(1);
+    },
+  );
+
+  it('rejects social imagery that is missing, resized, or unapproved', async () => {
+    const missingFixture = await createDistributionFixture();
+    await rm(path.join(missingFixture.distDirectory, 'og-ru.jpg'));
+
+    const missingResult = runChecker(missingFixture.distDirectory);
+
+    expect(missingResult.stderr).toContain(
+      'Required brand asset is missing: og-ru.jpg',
+    );
+    expect(missingResult.status).toBe(1);
+
+    const resizedFixture = await createDistributionFixture();
+    await sharp({
+      create: { width: 600, height: 315, channels: 3, background: '#0d1117' },
+    })
+      .jpeg({ quality: 60 })
+      .toFile(path.join(resizedFixture.distDirectory, 'og-en.jpg'));
+
+    const resizedResult = runChecker(resizedFixture.distDirectory);
+
+    expect(resizedResult.stderr).toContain(
+      'Brand asset og-en.jpg is 600x315; expected 1200x630.',
+    );
+    expect(resizedResult.stderr).toContain(
+      'Brand asset og-en.jpg SHA-256 does not match the approved manifest.',
+    );
+    expect(resizedResult.status).toBe(1);
+
+    const monogramFixture = await createDistributionFixture();
+    await writeFile(
+      path.join(monogramFixture.distDirectory, 'favicon.svg'),
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><script>fetch("https://example.com")</script></svg>\n',
+    );
+
+    const monogramResult = runChecker(monogramFixture.distDirectory);
+
+    expect(monogramResult.stderr).toContain(
+      'Brand asset favicon.svg embeds scripts or external content.',
+    );
+    expect(monogramResult.stderr).toContain(
+      'Brand asset favicon.svg SHA-256 does not match the approved manifest.',
+    );
+    expect(monogramResult.status).toBe(1);
+  });
+
+  it('rejects a web app manifest that drifts from the content or icons', async () => {
+    const fixture = await createDistributionFixture();
+    await writeFile(
+      path.join(fixture.distDirectory, 'site.webmanifest'),
+      `${JSON.stringify({
+        name: 'Unrelated application',
+        short_name: 'Fixture site',
+        description: 'Fixture page description.',
+        lang: 'en',
+        dir: 'ltr',
+        start_url: '/',
+        scope: '/',
+        display: 'minimal-ui',
+        background_color: '#ffffff',
+        theme_color: '#080b0f',
+        icons: [{ src: '/icon-512.png', sizes: '512x512', type: 'image/png' }],
+      })}\n`,
+    );
+
+    const result = runChecker(fixture.distDirectory);
+
+    expect(result.stderr).toContain(
+      'site.webmanifest: member name is "Unrelated application".',
+    );
+    expect(result.stderr).toContain(
+      'site.webmanifest: member background_color is "#ffffff".',
+    );
+    expect(result.stderr).toContain(
+      'site.webmanifest: no 192x192 icon is declared.',
+    );
+    expect(result.status).toBe(1);
+  });
+
+  it('fails when headings or contact details need JavaScript to appear', async () => {
+    const fixture = await createDistributionFixture({
+      transformHtmlByRoute: {
+        'ru/index.html': (html) =>
+          html
+            .replace(
+              '<h3>TradingView</h3>',
+              '<script>document.write("<h3>TradingView</h3>")</script>',
+            )
+            .replace(
+              '<p>@RinatGumarov</p>',
+              '<script>document.write("<p>@RinatGumarov</p>")</script>',
+            ),
+      },
+    });
+
+    const result = runChecker(fixture.distDirectory);
+
+    expect(result.stderr).toContain(
+      'ru/index.html: heading "TradingView" is missing without JavaScript',
+    );
+    expect(result.stderr).toContain(
+      'ru/index.html: Telegram handle "@RinatGumarov" is missing without JavaScript',
+    );
+    expect(result.status).toBe(1);
+  });
+
+  it('rejects stylesheets that hide content before motion support is confirmed', async () => {
+    const fixture = await createDistributionFixture();
+    const assetsDirectory = path.join(fixture.distDirectory, 'assets');
+    await mkdir(assetsDirectory, { recursive: true });
+    await writeFile(
+      path.join(assetsDirectory, 'ungated.css'),
+      "[data-motion-reveal='copy']{opacity:0}\n[data-motion-state='enabled'] [data-motion-enter='copy']{animation:fade 1s both}\n",
+    );
+
+    const result = runChecker(fixture.distDirectory);
+
+    expect(result.stderr).toContain(
+      "assets/ungated.css: rule \"[data-motion-reveal='copy']\" changes the initial state without the [data-motion-state='enabled'] gate.",
+    );
+    expect(result.stderr).not.toContain("[data-motion-enter='copy']\" changes");
+    expect(result.status).toBe(1);
+  });
+
   it('enforces each route transfer budget through recursive CSS dependencies', async () => {
     const fixture = await createDistributionFixture({
       headByRoute: {
@@ -406,6 +588,8 @@ async function createDistributionFixture(options = {}) {
     ),
     ru: createContent('ru', 'Русский текст для проверочного документа.'),
   };
+
+  await writeValidBrandAssets(distDirectory, contentByLocale.en);
 
   await writeFile(
     path.join(serverDirectory, 'entry-server.js'),
@@ -471,11 +655,96 @@ async function writeValidPortraitAssets(distDirectory) {
     `${JSON.stringify(
       {
         schemaVersion: 1,
-        source: {
-          sha256:
-            '82a737263a795f74b39bca2b78710cfdca336d8408566f458c8bb4e8c35d9310',
-        },
+        source: { sha256: approvedPortraitSourceSha256 },
         outputs,
+      },
+      null,
+      2,
+    )}\n`,
+  );
+}
+
+async function writeValidBrandAssets(distDirectory, englishContent) {
+  const outputs = [];
+  const record = async (file, contents) => {
+    await writeFile(path.join(distDirectory, file), contents);
+    outputs.push({
+      file,
+      bytes: contents.byteLength,
+      sha256: createHash('sha256').update(contents).digest('hex'),
+    });
+  };
+
+  await record(
+    'favicon.svg',
+    Buffer.from(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><rect width="64" height="64" rx="14" fill="#0d1117" /></svg>\n',
+    ),
+  );
+
+  for (const size of [192, 512]) {
+    await record(
+      `icon-${size}.png`,
+      await sharp({
+        create: {
+          width: size,
+          height: size,
+          channels: 3,
+          background: '#0d1117',
+        },
+      })
+        .png()
+        .toBuffer(),
+    );
+  }
+
+  for (const locale of ['en', 'ru']) {
+    await record(
+      `og-${locale}.jpg`,
+      await sharp({
+        create: {
+          width: 1200,
+          height: 630,
+          channels: 3,
+          background: '#0d1117',
+        },
+      })
+        .jpeg({ quality: 60 })
+        .toBuffer(),
+    );
+  }
+
+  await mkdir(path.join(distDirectory, 'assets/brand'), { recursive: true });
+  await writeFile(
+    path.join(distDirectory, 'assets/brand/approved-manifest.json'),
+    `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        source: { sha256: approvedPortraitSourceSha256 },
+        outputs,
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  await writeFile(
+    path.join(distDirectory, 'site.webmanifest'),
+    `${JSON.stringify(
+      {
+        name: englishContent.meta.title,
+        short_name: englishContent.meta.siteName,
+        description: englishContent.meta.description,
+        lang: 'en',
+        dir: 'ltr',
+        start_url: '/',
+        scope: '/',
+        display: 'minimal-ui',
+        background_color: '#080b0f',
+        theme_color: '#080b0f',
+        icons: [
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+        ],
       },
       null,
       2,
@@ -491,6 +760,19 @@ function createContent(locale, heroBody) {
       description: isRussian
         ? 'Описание проверочной страницы.'
         : 'Fixture page description.',
+      siteName: isRussian ? 'Проверочный сайт' : 'Fixture site',
+      ogLocale: isRussian ? 'ru_RU' : 'en_US',
+      ogAlternateLocale: isRussian ? 'en_US' : 'ru_RU',
+      ogImage: isRussian ? '/og-ru.jpg' : '/og-en.jpg',
+      ogImageAlt: isRussian
+        ? 'Проверочная карточка для соцсетей.'
+        : 'Fixture social card.',
+      socialCard: {
+        name: isRussian ? 'Ринат Гумаров' : 'Rinat Gumarov',
+        role: 'Senior Frontend Engineer',
+        headline: isRussian ? 'Проверочный заголовок.' : 'Fixture headline.',
+        contact: 'gumarov.com · @RinatGumarov',
+      },
     },
     nav: {
       work: isRussian ? 'Проекты' : 'Work',
@@ -555,18 +837,38 @@ function renderFixtureDocument({
   const visibleValues = collectVisibleStrings(content).filter(
     (value) => !omittedValues.has(value),
   );
+  const headingElements = collectHeadingElements(content);
   const renderedValues = visibleValues
-    .map((value) =>
-      /^(?:https?:|mailto:)/u.test(value)
-        ? `<a href="${escapeHtml(value)}">${escapeHtml(value)}</a>`
-        : `<p>${escapeHtml(value)}</p>`,
-    )
+    .map((value) => {
+      if (/^(?:https?:|mailto:)/u.test(value)) {
+        return `<a href="${escapeHtml(value)}">${escapeHtml(value)}</a>`;
+      }
+
+      const element = headingElements.get(value) ?? 'p';
+      return `<${element}>${escapeHtml(value)}</${element}>`;
+    })
     .join('');
   const bootstrap = root
     ? `<script data-root-locale-bootstrap>(()=>{if(window.location.pathname!=='/')return;let locale=null;try{locale=window.localStorage.getItem('preferred-locale')}catch{}if(locale!=='en'&&locale!=='ru'){const languages=Array.isArray(window.navigator.languages)?window.navigator.languages:[window.navigator.language];locale=languages.some((language)=>typeof language==='string'&&language.toLowerCase().startsWith('ru'))?'ru':'en'}if(locale==='ru')window.location.replace(\`/ru/\${window.location.search}\${window.location.hash}\`)})();</script>`
     : '';
 
-  return `<!doctype html><html lang="${locale}"><head><title>${escapeHtml(content.meta.title)}</title><meta name="description" content="${escapeHtml(content.meta.description)}" /><link rel="canonical" href="https://gumarov.com${pathname}" /><link rel="alternate" hreflang="en" href="https://gumarov.com/en/" /><link rel="alternate" hreflang="ru" href="https://gumarov.com/ru/" /><link rel="alternate" hreflang="x-default" href="https://gumarov.com/" />${head}${bootstrap}</head><body><div id="root"><main data-fixture-route="${file}"><section data-hero>${heroMarkup}</section>${renderedValues}</main></div></body></html>`;
+  const pageMetadata = renderPageMetadata({
+    canonical: `${siteUrl}${pathname}`,
+    content,
+  }).join('');
+
+  return `<!doctype html><html lang="${locale}"><head>${pageMetadata}${head}${bootstrap}</head><body><div id="root"><main data-fixture-route="${file}"><section data-hero>${heroMarkup}</section>${renderedValues}</main></div></body></html>`;
+}
+
+function collectHeadingElements(content) {
+  return new Map([
+    [content.hero.title, 'h1'],
+    [content.projectsHeading, 'h2'],
+    [content.principles.heading, 'h2'],
+    [content.personal.heading, 'h2'],
+    [content.contact.heading, 'h2'],
+    ...content.projects.map((project) => [project.name, 'h3']),
+  ]);
 }
 
 function collectVisibleStrings(content) {

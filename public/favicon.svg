@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="RG monogram">
+  <rect width="64" height="64" rx="14" fill="#0d1117" />
+  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="none" stroke="#b3d3e6" stroke-opacity="0.26" stroke-width="1" />
+  <g fill="none" stroke="#46d9f5" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter">
+    <path d="M18 46V18h5.5a5.5 5.5 0 0 1 0 11H18" />
+    <path d="m23.5 29 5 17" />
+    <path d="M46.5 27a8 8 0 1 0 0 10v-5h-4.5" />
+  </g>
+</svg>

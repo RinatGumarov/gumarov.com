@@ -5,6 +5,19 @@ export const en = {
     title: 'Rinat Gumarov — Senior Frontend Engineer',
     description:
       'Senior Frontend Engineer building complex interfaces for trading, fintech, and ambitious products.',
+    siteName: 'Rinat Gumarov',
+    ogLocale: 'en_US',
+    ogAlternateLocale: 'ru_RU',
+    ogImage: '/og-en.jpg',
+    ogImageAlt:
+      'Rinat Gumarov, Senior Frontend Engineer, beside the gumarov.com address and the Telegram contact @RinatGumarov.',
+    socialCard: {
+      name: 'Rinat Gumarov',
+      role: 'Senior Frontend Engineer',
+      headline:
+        'Complex interfaces for trading, fintech, and ambitious products.',
+      contact: 'gumarov.com · @RinatGumarov',
+    },
   },
   nav: {
     work: 'Work',

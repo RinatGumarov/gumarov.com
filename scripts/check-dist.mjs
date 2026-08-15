@@ -20,6 +20,44 @@ const heroSourceBudget = 300 * kibibyte;
 const approvedPortraitSourceSha256 =
   '82a737263a795f74b39bca2b78710cfdca336d8408566f458c8bb4e8c35d9310';
 const approvedPortraitManifestFile = 'assets/portrait/approved-manifest.json';
+const approvedBrandManifestFile = 'assets/brand/approved-manifest.json';
+const themeColor = '#080b0f';
+const socialCardWidth = 1200;
+const socialCardHeight = 630;
+const socialCardBudget = 300 * kibibyte;
+const iconBudget = 64 * kibibyte;
+const webManifestFile = 'site.webmanifest';
+const requiredBrandAssets = [
+  { file: 'favicon.svg', vector: true, budget: 8 * kibibyte },
+  {
+    file: 'icon-192.png',
+    metadataFormat: 'png',
+    width: 192,
+    height: 192,
+    budget: iconBudget,
+  },
+  {
+    file: 'icon-512.png',
+    metadataFormat: 'png',
+    width: 512,
+    height: 512,
+    budget: iconBudget,
+  },
+  {
+    file: 'og-en.jpg',
+    metadataFormat: 'jpeg',
+    width: socialCardWidth,
+    height: socialCardHeight,
+    budget: socialCardBudget,
+  },
+  {
+    file: 'og-ru.jpg',
+    metadataFormat: 'jpeg',
+    width: socialCardWidth,
+    height: socialCardHeight,
+    budget: socialCardBudget,
+  },
+];
 const requiredPortraitAssets = [480, 768, 1024].flatMap((width) =>
   [
     { extension: 'avif', manifestFormat: 'avif', metadataFormat: 'heif' },
@@ -110,37 +148,13 @@ for (const route of routeContracts) {
     new RegExp(`<html[^>]*\\blang=["']${route.lang}["']`, 'u'),
     `${route.file}: expected html lang="${route.lang}"`,
   );
-  requireText(
-    html,
-    `<link rel="canonical" href="${route.canonical}" />`,
-    `${route.file}: missing canonical ${route.canonical}`,
-  );
-  requireText(
-    html,
-    `<link rel="alternate" hreflang="en" href="${siteUrl}/en/" />`,
-    `${route.file}: missing reciprocal English alternate`,
-  );
-  requireText(
-    html,
-    `<link rel="alternate" hreflang="ru" href="${siteUrl}/ru/" />`,
-    `${route.file}: missing reciprocal Russian alternate`,
-  );
-  requireText(
-    html,
-    `<link rel="alternate" hreflang="x-default" href="${siteUrl}/" />`,
-    `${route.file}: missing x-default alternate`,
-  );
   if (content) {
-    requireText(
-      html,
-      `<title>${escapeHtml(content.meta.title)}</title>`,
-      `${route.file}: missing localized metadata title`,
-    );
-    requireText(
-      html,
-      `<meta name="description" content="${escapeHtmlAttribute(content.meta.description)}" />`,
-      `${route.file}: missing localized metadata description`,
-    );
+    for (const [label, tag] of collectMetadataContracts(route, content)) {
+      requireText(html, tag, `${route.file}: missing ${label}`);
+    }
+
+    validateStructuredData(route, html, content);
+    validateScriptlessDocument(route.file, html, content);
 
     if (applicationRoot) {
       validateContentContract(
@@ -244,6 +258,11 @@ for (const file of heroSourcePaths) {
 }
 
 await validateRequiredPortraitAssets();
+await validateRequiredBrandAssets();
+await validateWebManifest(contentByLocale.get('en'));
+await validateInitialVisibility(
+  outputFiles.filter((file) => file.endsWith('.css')),
+);
 
 if (failures.length > 0) {
   console.error('Distribution checks failed:');
@@ -266,6 +285,451 @@ if (failures.length > 0) {
 function requireText(source, expected, failure) {
   if (!source.includes(expected)) {
     failures.push(failure);
+  }
+}
+
+function collectMetadataContracts(route, content) {
+  const meta = content.meta;
+  const socialImageUrl = `${siteUrl}${meta.ogImage}`;
+
+  return [
+    ['localized metadata title', `<title>${escapeHtml(meta.title)}</title>`],
+    [
+      'localized metadata description',
+      `<meta name="description" content="${escapeHtmlAttribute(meta.description)}" />`,
+    ],
+    [
+      `canonical ${route.canonical}`,
+      `<link rel="canonical" href="${route.canonical}" />`,
+    ],
+    [
+      'reciprocal English alternate',
+      `<link rel="alternate" hreflang="en" href="${siteUrl}/en/" />`,
+    ],
+    [
+      'reciprocal Russian alternate',
+      `<link rel="alternate" hreflang="ru" href="${siteUrl}/ru/" />`,
+    ],
+    [
+      'x-default alternate',
+      `<link rel="alternate" hreflang="x-default" href="${siteUrl}/" />`,
+    ],
+    ['favicon', '<link rel="icon" href="/favicon.svg" type="image/svg+xml" />'],
+    [
+      'apple touch icon',
+      '<link rel="apple-touch-icon" href="/icon-192.png" />',
+    ],
+    ['web app manifest', `<link rel="manifest" href="/${webManifestFile}" />`],
+    ['theme colour', `<meta name="theme-color" content="${themeColor}" />`],
+    ['og:type', '<meta property="og:type" content="website" />'],
+    [
+      'og:site_name',
+      `<meta property="og:site_name" content="${escapeHtmlAttribute(meta.siteName)}" />`,
+    ],
+    ['og:locale', `<meta property="og:locale" content="${meta.ogLocale}" />`],
+    [
+      'og:locale:alternate',
+      `<meta property="og:locale:alternate" content="${meta.ogAlternateLocale}" />`,
+    ],
+    ['og:url', `<meta property="og:url" content="${route.canonical}" />`],
+    [
+      'og:title',
+      `<meta property="og:title" content="${escapeHtmlAttribute(meta.title)}" />`,
+    ],
+    [
+      'og:description',
+      `<meta property="og:description" content="${escapeHtmlAttribute(meta.description)}" />`,
+    ],
+    ['og:image', `<meta property="og:image" content="${socialImageUrl}" />`],
+    ['og:image:type', '<meta property="og:image:type" content="image/jpeg" />'],
+    [
+      'og:image:width',
+      `<meta property="og:image:width" content="${socialCardWidth}" />`,
+    ],
+    [
+      'og:image:height',
+      `<meta property="og:image:height" content="${socialCardHeight}" />`,
+    ],
+    [
+      'og:image:alt',
+      `<meta property="og:image:alt" content="${escapeHtmlAttribute(meta.ogImageAlt)}" />`,
+    ],
+    [
+      'twitter:card',
+      '<meta name="twitter:card" content="summary_large_image" />',
+    ],
+    [
+      'twitter:title',
+      `<meta name="twitter:title" content="${escapeHtmlAttribute(meta.title)}" />`,
+    ],
+    [
+      'twitter:description',
+      `<meta name="twitter:description" content="${escapeHtmlAttribute(meta.description)}" />`,
+    ],
+    [
+      'twitter:image',
+      `<meta name="twitter:image" content="${socialImageUrl}" />`,
+    ],
+    [
+      'twitter:image:alt',
+      `<meta name="twitter:image:alt" content="${escapeHtmlAttribute(meta.ogImageAlt)}" />`,
+    ],
+  ];
+}
+
+function validateStructuredData(route, html, content) {
+  const serialized = html.match(
+    /<script type="application\/ld\+json">([\s\S]*?)<\/script>/u,
+  )?.[1];
+
+  if (!serialized) {
+    failures.push(`${route.file}: missing person structured data`);
+    return;
+  }
+
+  let structuredData;
+  try {
+    structuredData = JSON.parse(serialized);
+  } catch (error) {
+    failures.push(
+      `${route.file}: person structured data is not valid JSON (${String(error)})`,
+    );
+    return;
+  }
+
+  const expected = {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: content.meta.socialCard.name,
+    jobTitle: content.meta.socialCard.role,
+    url: route.canonical,
+    image: `${siteUrl}${content.meta.ogImage}`,
+    sameAs: [content.contact.telegramHref],
+  };
+
+  for (const [key, value] of Object.entries(expected)) {
+    if (JSON.stringify(structuredData[key]) !== JSON.stringify(value)) {
+      failures.push(
+        `${route.file}: person structured data ${key} is ${JSON.stringify(structuredData[key])}; expected ${JSON.stringify(value)}`,
+      );
+    }
+  }
+}
+
+function validateScriptlessDocument(routeFile, html, content) {
+  const scriptlessHtml = html
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/giu, '')
+    .replace(/<script\b[^>]*\/?>/giu, '');
+
+  if (/<script\b/iu.test(scriptlessHtml)) {
+    failures.push(`${routeFile}: script removal left executable markup`);
+    return;
+  }
+
+  const scriptlessDom = new JSDOM(scriptlessHtml);
+  const scriptlessDocument = scriptlessDom.window.document;
+  const headings = new Set(
+    [...scriptlessDocument.querySelectorAll('h1, h2, h3')].map((heading) =>
+      normalizeText(heading.textContent ?? ''),
+    ),
+  );
+  const bodyText = normalizeText(scriptlessDocument.body?.textContent ?? '');
+  const destinations = new Set(
+    [...scriptlessDocument.querySelectorAll('a[href]')].map((link) =>
+      link.getAttribute('href'),
+    ),
+  );
+
+  const requiredHeadings = [
+    content.hero.title,
+    content.projectsHeading,
+    content.principles.heading,
+    content.personal.heading,
+    content.contact.heading,
+    ...content.projects.map((project) => project.name),
+  ];
+
+  for (const heading of requiredHeadings) {
+    const expected = normalizeText(heading);
+    if (![...headings].some((rendered) => rendered.includes(expected))) {
+      failures.push(
+        `${routeFile}: heading ${JSON.stringify(heading)} is missing without JavaScript`,
+      );
+    }
+  }
+
+  const requiredContacts = [
+    ['Telegram handle', content.contact.telegramHandle],
+    ['email address', content.contact.emailAddress],
+  ];
+  for (const [label, value] of requiredContacts) {
+    if (!bodyText.includes(normalizeText(value))) {
+      failures.push(
+        `${routeFile}: ${label} ${JSON.stringify(value)} is missing without JavaScript`,
+      );
+    }
+  }
+
+  const requiredDestinations = [
+    ['Telegram link', content.contact.telegramHref],
+    ['email link', content.contact.emailHref],
+    ...content.projects.map((project) => [
+      `${project.name} link`,
+      project.href,
+    ]),
+  ];
+  for (const [label, destination] of requiredDestinations) {
+    if (!destinations.has(destination)) {
+      failures.push(
+        `${routeFile}: ${label} ${JSON.stringify(destination)} is missing without JavaScript`,
+      );
+    }
+  }
+
+  scriptlessDom.window.close();
+}
+
+async function validateRequiredBrandAssets() {
+  const approvedManifest = await readApprovedBrandManifest();
+  const approvedOutputs = new Map(
+    Array.isArray(approvedManifest?.outputs)
+      ? approvedManifest.outputs.map((output) => [output.file, output])
+      : [],
+  );
+
+  if (approvedManifest && approvedManifest.schemaVersion !== 1) {
+    failures.push(`${approvedBrandManifestFile}: expected schemaVersion 1.`);
+  }
+  if (
+    approvedManifest &&
+    approvedManifest.source?.sha256 !== approvedPortraitSourceSha256
+  ) {
+    failures.push(
+      `${approvedBrandManifestFile}: source SHA-256 is not the pinned approved portrait source.`,
+    );
+  }
+  if (
+    approvedManifest &&
+    (!Array.isArray(approvedManifest.outputs) ||
+      approvedManifest.outputs.length !== requiredBrandAssets.length)
+  ) {
+    failures.push(
+      `${approvedBrandManifestFile}: expected exactly ${requiredBrandAssets.length} approved outputs.`,
+    );
+  }
+
+  for (const contract of requiredBrandAssets) {
+    const assetPath = path.join(distDirectory, contract.file);
+    const approvedOutput = approvedOutputs.get(contract.file);
+    let contents;
+
+    try {
+      contents = await readFile(assetPath);
+    } catch {
+      failures.push(`Required brand asset is missing: ${contract.file}`);
+      continue;
+    }
+
+    if (contents.byteLength > contract.budget) {
+      failures.push(
+        `Brand asset ${contract.file} is ${formatKib(contents.byteLength)}; budget is ${formatKib(contract.budget)}.`,
+      );
+    }
+    if (!approvedOutput) {
+      failures.push(
+        `${approvedBrandManifestFile}: missing approved output ${contract.file}.`,
+      );
+    } else {
+      if (approvedOutput.bytes !== contents.byteLength) {
+        failures.push(
+          `Brand asset ${contract.file} byte size does not match the approved manifest.`,
+        );
+      }
+      const actualSha256 = createHash('sha256').update(contents).digest('hex');
+      if (approvedOutput.sha256 !== actualSha256) {
+        failures.push(
+          `Brand asset ${contract.file} SHA-256 does not match the approved manifest.`,
+        );
+      }
+    }
+
+    if (contract.vector) {
+      validateVectorIcon(contract.file, contents.toString('utf8'));
+      continue;
+    }
+
+    let metadata;
+    try {
+      metadata = await sharp(contents).metadata();
+    } catch (error) {
+      failures.push(
+        `Brand asset ${contract.file} could not be inspected: ${String(error)}`,
+      );
+      continue;
+    }
+
+    if (metadata.format !== contract.metadataFormat) {
+      failures.push(
+        `Brand asset ${contract.file} has format ${String(metadata.format)}; expected ${contract.metadataFormat}.`,
+      );
+    }
+    if (
+      metadata.width !== contract.width ||
+      metadata.height !== contract.height
+    ) {
+      failures.push(
+        `Brand asset ${contract.file} is ${String(metadata.width)}x${String(metadata.height)}; expected ${contract.width}x${contract.height}.`,
+      );
+    }
+    for (const metadataType of ['exif', 'xmp', 'iptc', 'icc']) {
+      if (metadata[metadataType] !== undefined) {
+        failures.push(
+          `Brand asset ${contract.file} contains ${metadataType.toUpperCase()} metadata.`,
+        );
+      }
+    }
+  }
+}
+
+function validateVectorIcon(file, markup) {
+  if (!/^<svg\b[^>]*\bviewBox="[^"]+"/mu.test(markup)) {
+    failures.push(`Brand asset ${file} has no <svg> root with a viewBox.`);
+  }
+  if (/<(?:script|foreignObject|image)\b/iu.test(markup)) {
+    failures.push(`Brand asset ${file} embeds scripts or external content.`);
+  }
+  if (/\b(?:href|src)="(?:https?:)?\/\//iu.test(markup)) {
+    failures.push(`Brand asset ${file} references a remote resource.`);
+  }
+}
+
+async function readApprovedBrandManifest() {
+  try {
+    return JSON.parse(
+      await readFile(
+        path.join(distDirectory, approvedBrandManifestFile),
+        'utf8',
+      ),
+    );
+  } catch (error) {
+    failures.push(
+      `Approved brand manifest is missing or invalid: ${approvedBrandManifestFile} (${String(error)}).`,
+    );
+    return null;
+  }
+}
+
+async function validateWebManifest(content) {
+  let manifest;
+  try {
+    manifest = JSON.parse(
+      await readFile(path.join(distDirectory, webManifestFile), 'utf8'),
+    );
+  } catch (error) {
+    failures.push(
+      `Web app manifest is missing or invalid: ${webManifestFile} (${String(error)}).`,
+    );
+    return;
+  }
+
+  const requiredMembers = [
+    ['name', (value) => value === content?.meta.title],
+    ['short_name', (value) => value === content?.meta.siteName],
+    ['description', (value) => value === content?.meta.description],
+    ['lang', (value) => value === 'en'],
+    ['dir', (value) => value === 'ltr'],
+    ['start_url', (value) => value === '/'],
+    ['scope', (value) => value === '/'],
+    [
+      'display',
+      (value) =>
+        ['browser', 'fullscreen', 'minimal-ui', 'standalone'].includes(value),
+    ],
+    ['background_color', (value) => value === themeColor],
+    ['theme_color', (value) => value === themeColor],
+  ];
+
+  for (const [member, isValid] of requiredMembers) {
+    if (!isValid(manifest[member])) {
+      failures.push(
+        `${webManifestFile}: member ${member} is ${JSON.stringify(manifest[member])}.`,
+      );
+    }
+  }
+
+  const icons = Array.isArray(manifest.icons) ? manifest.icons : [];
+  for (const size of [192, 512]) {
+    const icon = icons.find(
+      (candidate) => candidate?.sizes === `${size}x${size}`,
+    );
+
+    if (!icon) {
+      failures.push(`${webManifestFile}: no ${size}x${size} icon is declared.`);
+      continue;
+    }
+    if (icon.type !== 'image/png') {
+      failures.push(
+        `${webManifestFile}: the ${size}x${size} icon type is ${JSON.stringify(icon.type)}.`,
+      );
+    }
+
+    const iconPath = resolveLocalAsset(
+      icon.src,
+      path.join(distDirectory, webManifestFile),
+    );
+    if (!iconPath) {
+      failures.push(
+        `${webManifestFile}: the ${size}x${size} icon src ${JSON.stringify(icon.src)} is not a local asset.`,
+      );
+      continue;
+    }
+
+    try {
+      await stat(iconPath);
+    } catch {
+      failures.push(
+        `${webManifestFile}: the ${size}x${size} icon file is missing: ${path.relative(distDirectory, iconPath)}`,
+      );
+    }
+  }
+}
+
+async function validateInitialVisibility(cssFiles) {
+  const motionRulePattern =
+    /([^{}]*\[data-motion-(?:enter|reveal|sticky)[^{}]*)\{([^{}]*)\}/gu;
+
+  for (const file of cssFiles) {
+    let css;
+    try {
+      css = await readFile(file, 'utf8');
+    } catch {
+      failures.push(
+        `Stylesheet is missing: ${path.relative(distDirectory, file)}`,
+      );
+      continue;
+    }
+
+    const styleRules = css.replace(
+      /@keyframes[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/gu,
+      '',
+    );
+
+    for (const rule of styleRules.matchAll(motionRulePattern)) {
+      const selector = normalizeText(rule[1]);
+      const declarations = rule[2];
+      const hides =
+        /(?:^|;)\s*opacity\s*:\s*0(?:\s|;|$)/u.test(declarations) ||
+        /visibility\s*:\s*hidden/u.test(declarations) ||
+        /display\s*:\s*none/u.test(declarations) ||
+        /animation(?:-name)?\s*:\s*(?!none)/u.test(declarations) ||
+        /position\s*:\s*sticky/u.test(declarations);
+
+      if (hides && !selector.includes('data-motion-state')) {
+        failures.push(
+          `${path.relative(distDirectory, file)}: rule ${JSON.stringify(selector)} changes the initial state without the [data-motion-state='enabled'] gate.`,
+        );
+      }
+    }
   }
 }
 
