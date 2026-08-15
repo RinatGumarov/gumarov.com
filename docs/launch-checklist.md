@@ -204,6 +204,28 @@ Two full pipeline runs produced **36 byte-identical files**.
 `pnpm verify`: **17 files / 157 tests**. `pnpm test:e2e`: **77 passed**. Visual
 baselines re-recorded for the taller strip and reviewed before commit.
 
+### Production shipped the Playwright analytics token
+
+`pnpm test:e2e` rebuilds `dist` through Playwright's `webServer`, which injects
+`VITE_POSTHOG_KEY=phc_playwright_public_transport_token`. In `deploy.yml` that
+step ran _after_ `pnpm verify` and _before_ `actions/upload-pages-artifact`, so
+the uploaded artifact was the Playwright build. The live bundle contained the
+placeholder token and the PostHog EU host, meaning real visitors' browsers
+initialised PostHog and attempted to send events with an invalid token.
+
+Confirmed against production by fetching the live bundle and grepping for the
+token before the fix.
+
+Two changes:
+
+1. `deploy.yml` runs `pnpm build` again after `pnpm test:e2e`, carrying
+   `VITE_POSTHOG_KEY` and `VITE_POSTHOG_HOST` from repository variables, so the
+   artifact is always a production build. `scripts/workflows.test.mjs` asserts
+   that rebuild sits between the end-to-end suite and the upload.
+2. `scripts/check-dist.mjs` fails if any built JavaScript contains the
+   placeholder token. Verified against the poisoned local `dist`, which the
+   checker now rejects.
+
 ## Still open before public launch
 
 - Visual snapshots are Darwin-specific; Linux CI skips the visual file until matching baselines exist
