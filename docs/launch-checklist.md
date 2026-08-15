@@ -68,10 +68,46 @@ Run with Node `22.22.2` (the repository pins Node 22; Node 25 replaces jsdom's
   scrolling the section into view in Chromium and confirming all three images
   reach `complete` with non-zero intrinsic size.
 
+## Task 14 publication, 2026-08-15
+
+Public repository `RinatGumarov/gumarov.com` created and `main` pushed. Pages
+source set to **GitHub Actions** (`build_type: workflow`).
+
+- Deployed SHA `29d6bd672ba6f506e53809ace8391ed1cc418fbd`, matching local `HEAD`
+  and remote `main`.
+- `CI` and `Deploy` both green on that SHA (3m42s / 4m51s).
+- `https://rinatgumarov.github.io/gumarov.com/` and `/ru/` return `200`; the
+  artifact serves `CNAME` containing `gumarov.com`.
+- Root-absolute `/assets/**` paths return `404` at the project URL by design;
+  they resolve once the apex domain points at Pages.
+
+### First-run CI failures, both fixed
+
+1. `pnpm verify` failed on shared runners: the Sharp encoding and
+   subprocess-spawning suites in `scripts/` exceed Vitest's 5s default there.
+   Both now declare a 60s suite ceiling.
+2. `CI` stalled 25 minutes inside `playwright install --with-deps`, which
+   shells out to apt. No job declared `timeout-minutes`, so a stall could hold
+   a runner for GitHub's 360-minute default. Every job is now bounded, that
+   step to 8 minutes, and `scripts/workflows.test.mjs` enforces it.
+
+### Blocked on DNS
+
+`PUT /repos/RinatGumarov/gumarov.com/pages` with `cname=gumarov.com` returns
+`404 The certificate does not exist yet`: GitHub will not attach the custom
+domain until the apex resolves to Pages and a certificate can be issued. The
+zone is on Cloudflare nameservers (`dara`/`nero.ns.cloudflare.com`) with no
+apex A record yet.
+
+Remaining order: apex `A`/`AAAA` plus `www` `CNAME` as **DNS only** → set the
+custom domain → wait for certificate issuance → enable Enforce HTTPS → verify
+`http`→`https`, apex, `www`, `/en/`, `/ru/`, and unknown paths → Russian access
+probes → production Lighthouse.
+
 ## Still open before public launch
 
 - Visual snapshots are Darwin-specific; Linux CI skips the visual file until matching baselines exist
-- No GitHub remote, Pages, DNS, email routing, or production PostHog yet
+- Cloudflare DNS records, custom domain attachment, Enforce HTTPS, email routing, and production PostHog are still pending
 
 ## GitHub Actions (local files only)
 
