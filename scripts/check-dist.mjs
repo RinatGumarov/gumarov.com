@@ -189,6 +189,7 @@ for (const route of routeContracts) {
   }
 
   validateRenderBlockingStylesheets(route.file, html);
+  validateCriticalFonts(route.file, html);
 
   const hasRootBootstrap = html.includes('data-root-locale-bootstrap');
   if (route.root && !hasRootBootstrap) {
@@ -397,6 +398,51 @@ function validateRenderBlockingStylesheets(routeFile, html) {
     const href = readHtmlAttribute(tag, 'href') ?? 'unknown';
     failures.push(`${routeFile}: render-blocking stylesheet ${href}`);
   }
+}
+
+function validateCriticalFonts(routeFile, html) {
+  for (const css of collectDocumentCss(html)) {
+    if (/@font-face\b/u.test(css)) {
+      failures.push(`${routeFile}: inlined CSS must not declare @font-face`);
+    }
+    if (/\bOnest\b/u.test(css)) {
+      failures.push(`${routeFile}: inlined CSS must not reference Onest`);
+    }
+  }
+
+  const assetTagPattern = /<(?:link)\b[^>]*>/gu;
+  for (const tagMatch of html.matchAll(assetTagPattern)) {
+    const tag = tagMatch[0];
+    const linkRelations = new Set(
+      (readHtmlAttribute(tag, 'rel') ?? '').toLowerCase().split(/\s+/u),
+    );
+    const asValue = (readHtmlAttribute(tag, 'as') ?? '').toLowerCase();
+    if (linkRelations.has('preload') && asValue === 'font') {
+      failures.push(
+        `${routeFile}: do not preload webfonts in front of the LCP heading`,
+      );
+    }
+  }
+}
+
+function collectDocumentCss(html) {
+  const cssChunks = [];
+  const stylePattern = /<style\b[^>]*>([\s\S]*?)<\/style>/gu;
+  for (const styleMatch of html.matchAll(stylePattern)) {
+    cssChunks.push(styleMatch[1]);
+  }
+
+  const assetTagPattern = /<(?:link)\b[^>]*>/gu;
+  for (const tagMatch of html.matchAll(assetTagPattern)) {
+    const href = readHtmlAttribute(tagMatch[0], 'href') ?? '';
+    const encoded = href.match(
+      /^data:text\/css(?:;charset=utf-8)?;base64,([\s\S]+)$/iu,
+    )?.[1];
+    if (!encoded) continue;
+    cssChunks.push(Buffer.from(encoded, 'base64').toString('utf8'));
+  }
+
+  return cssChunks;
 }
 
 function validateStructuredData(route, html, content) {

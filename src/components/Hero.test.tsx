@@ -1,5 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect, it, vi } from 'vitest';
 import { getContent } from '../content';
 import { Hero } from './Hero';
@@ -58,6 +61,17 @@ it('presents the localized frontend-first hero with direct conversion links', ()
   expect(image).toHaveAttribute('alt', '');
   expect(image).toHaveAttribute('loading', 'eager');
   expect(image).toHaveAttribute('fetchpriority', 'high');
+});
+
+it('paints the page heading with a system font so LCP does not wait for Onest', async () => {
+  const css = await readFile(
+    path.join(path.dirname(fileURLToPath(import.meta.url)), 'Hero.module.css'),
+    'utf8',
+  );
+  const title = css.match(/\.title \{([\s\S]*?)\n\}/u)?.[1] ?? '';
+
+  expect(title).toMatch(/font-family:\s*(?:ui-sans-serif|system-ui)/u);
+  expect(title).not.toMatch(/var\(--font-display\)/u);
 });
 
 it('reveals the portrait container when the image fails and keeps the copy', () => {

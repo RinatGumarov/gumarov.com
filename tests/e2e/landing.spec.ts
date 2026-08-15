@@ -147,6 +147,88 @@ test('completes a keyboard traversal with visible focus', async ({ page }) => {
   await expect(page.locator('#contact')).toBeInViewport();
 });
 
+test('Russian skip link moves keyboard focus to main content', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/ru/');
+
+  await page.keyboard.press('Tab');
+  const skipLink = page.getByRole('link', { name: 'Перейти к содержанию' });
+  await expect(skipLink).toBeFocused();
+  await assertVisibleFocus(page);
+
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#main-content')).toBeFocused();
+});
+
+test('keyboard traversal reaches primary nav, language switch, and a project link', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/en/');
+
+  await page.keyboard.press('Tab');
+  await expect(
+    page.getByRole('link', { name: 'Skip to content' }),
+  ).toBeFocused();
+
+  await page.keyboard.press('Tab');
+  await expect(
+    page.getByRole('link', { name: 'Rinat Gumarov — home' }),
+  ).toBeFocused();
+
+  await page.keyboard.press('Tab');
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Primary navigation' })
+      .getByRole('link', { name: 'Work' }),
+  ).toBeFocused();
+  await assertVisibleFocus(page);
+
+  const languageNav = page
+    .locator('header')
+    .getByRole('navigation', { name: 'Language selection' });
+
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  await expect(
+    languageNav.getByRole('link', { name: 'English' }),
+  ).toBeFocused();
+
+  await page.keyboard.press('Tab');
+  await expect(
+    languageNav.getByRole('link', { name: 'Русский' }),
+  ).toBeFocused();
+
+  const projectLink = page.getByRole('link', { name: 'TradingView' });
+  await tabUntilFocused(page, projectLink);
+  await expect(projectLink).toBeFocused();
+  await assertVisibleFocus(page);
+  await expect(projectLink).toHaveAttribute(
+    'href',
+    'https://www.tradingview.com/',
+  );
+});
+
+async function tabUntilFocused(
+  page: Page,
+  locator: ReturnType<Page['getByRole']>,
+  maximumTabs = 24,
+) {
+  for (let attempt = 0; attempt < maximumTabs; attempt += 1) {
+    if (
+      await locator.evaluate((element) => element === document.activeElement)
+    ) {
+      return;
+    }
+    await page.keyboard.press('Tab');
+  }
+
+  throw new Error('Keyboard traversal never reached the expected control');
+}
+
 async function readHeaderLayout(page: Page, locale: Locale) {
   const identity = page.getByRole('link', { name: 'Rinat Gumarov — home' });
   const primary = page.getByRole('navigation', {

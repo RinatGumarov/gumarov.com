@@ -11,7 +11,6 @@ module.exports = {
       ],
       numberOfRuns: 3,
       settings: {
-        throttlingMethod: 'devtools',
         chromeFlags:
           '--no-sandbox --host-resolver-rules=MAP eu.i.posthog.com ~NOTFOUND',
       },

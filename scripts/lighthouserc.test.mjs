@@ -7,7 +7,10 @@ const config = require('../lighthouserc.cjs');
 describe('Lighthouse CI quality gates', () => {
   it('asserts launch budgets against the built preview', () => {
     expect(config.ci.collect.startServerCommand).toMatch(/preview/u);
-    expect(config.ci.collect.settings.throttlingMethod).toBe('devtools');
+    expect(config.ci.collect.settings?.throttlingMethod).not.toBe('devtools');
+    expect(config.ci.collect.settings?.throttlingMethod ?? 'simulate').toBe(
+      'simulate',
+    );
     expect(config.ci.collect.url).toEqual(
       expect.arrayContaining([
         'http://127.0.0.1:4173/',

@@ -67,6 +67,9 @@ async function inlineStylesheets(html) {
     const rel = (readHtmlAttribute(tag, 'rel') ?? '').toLowerCase();
     if (!rel.split(/\s+/u).includes('stylesheet')) continue;
 
+    const media = (readHtmlAttribute(tag, 'media') ?? 'all').toLowerCase();
+    if (media === 'print') continue;
+
     const href = readHtmlAttribute(tag, 'href');
     if (!href || /^(?:https?:)?\/\//u.test(href)) {
       throw new Error(

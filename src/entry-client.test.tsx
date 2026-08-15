@@ -1,4 +1,7 @@
 import type { HydrationOptions, Root } from 'react-dom/client';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { hydrateRootMock, scheduleLandingViewedMock } = vi.hoisted(() => ({
@@ -87,3 +90,12 @@ async function settleMicrotasks() {
   await new Promise<void>((resolve) => queueMicrotask(resolve));
   await new Promise<void>((resolve) => queueMicrotask(resolve));
 }
+
+it('does not fetch webfonts from the client entry', async () => {
+  const source = await readFile(
+    path.join(path.dirname(fileURLToPath(import.meta.url)), 'entry-client.tsx'),
+    'utf8',
+  );
+
+  expect(source).not.toMatch(/faces\.css|fonts\.css|@font-face/u);
+});

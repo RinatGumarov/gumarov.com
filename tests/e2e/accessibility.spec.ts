@@ -34,15 +34,24 @@ for (const locale of qualityLocales) {
         await settleHeroMotion(page);
 
         const results = await new AxeBuilder({ page })
-          .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+          .withTags([
+            'wcag2a',
+            'wcag2aa',
+            'wcag21a',
+            'wcag21aa',
+            'wcag22aa',
+            'best-practice',
+          ])
           .analyze();
         const blocking = results.violations.filter((violation) =>
           blockingImpacts.has(violation.impact ?? ''),
         );
+        const executed = axeExecutedRuleIds(results);
 
         expect(blocking, formatViolations(blocking)).toEqual([]);
 
         for (const ruleId of requiredRules) {
+          expect(executed, `axe never ran ${ruleId}`).toContain(ruleId);
           expect(
             results.violations.map((violation) => violation.id),
             `axe rule ${ruleId} failed`,
@@ -180,6 +189,17 @@ async function assertPrimaryTargetSizes(page: Page, locale: 'en' | 'ru') {
     expect(size.width).toBeGreaterThanOrEqual(24);
     expect(size.height).toBeGreaterThanOrEqual(24);
   }
+}
+
+function axeExecutedRuleIds(
+  results: Awaited<ReturnType<AxeBuilder['analyze']>>,
+) {
+  return [
+    ...results.passes,
+    ...results.violations,
+    ...results.incomplete,
+    ...results.inapplicable,
+  ].map((rule) => rule.id);
 }
 
 function formatViolations(

@@ -557,6 +557,84 @@ describe('distribution checker', () => {
     expect(result.status).toBe(1);
   });
 
+  it('rejects webfont face rules inlined into the document', async () => {
+    const fixture = await createDistributionFixture({
+      headByRoute: {
+        'en/index.html':
+          '<style>@font-face{font-family:Onest;src:url("/assets/fonts/Onest-Variable.woff2") format("woff2");font-display:optional}</style>',
+      },
+    });
+    const fontsDirectory = path.join(fixture.distDirectory, 'assets', 'fonts');
+    await mkdir(fontsDirectory, { recursive: true });
+    await writeFile(
+      path.join(fontsDirectory, 'Onest-Variable.woff2'),
+      'woff2-fixture',
+    );
+
+    const result = runChecker(fixture.distDirectory);
+
+    expect(result.stderr).toContain(
+      'en/index.html: inlined CSS must not declare @font-face',
+    );
+    expect(result.status).toBe(1);
+  });
+
+  it('rejects webfont face rules encoded as a data stylesheet', async () => {
+    const encoded = Buffer.from(
+      '@font-face{font-family:Onest;src:url("/assets/fonts/Onest-Variable.woff2") format("woff2");font-display:optional}',
+    ).toString('base64');
+    const fixture = await createDistributionFixture({
+      headByRoute: {
+        'en/index.html': `<link rel="stylesheet" href="data:text/css;base64,${encoded}" media="print" />`,
+      },
+    });
+
+    const result = runChecker(fixture.distDirectory);
+
+    expect(result.stderr).toContain(
+      'en/index.html: inlined CSS must not declare @font-face',
+    );
+    expect(result.status).toBe(1);
+  });
+
+  it('rejects the Onest webfont on the critical CSS path', async () => {
+    const fixture = await createDistributionFixture({
+      headByRoute: {
+        'en/index.html':
+          '<style>:root{--font-sans:Onest,ui-sans-serif,sans-serif}</style>',
+      },
+    });
+
+    const result = runChecker(fixture.distDirectory);
+
+    expect(result.stderr).toContain(
+      'en/index.html: inlined CSS must not reference Onest',
+    );
+    expect(result.status).toBe(1);
+  });
+
+  it('rejects a webfont preload in front of the LCP heading', async () => {
+    const fixture = await createDistributionFixture({
+      headByRoute: {
+        'en/index.html':
+          '<link rel="preload" href="/assets/fonts/Onest-Variable.woff2" as="font" type="font/woff2" crossorigin />',
+      },
+    });
+    const fontsDirectory = path.join(fixture.distDirectory, 'assets', 'fonts');
+    await mkdir(fontsDirectory, { recursive: true });
+    await writeFile(
+      path.join(fontsDirectory, 'Onest-Variable.woff2'),
+      'woff2-fixture',
+    );
+
+    const result = runChecker(fixture.distDirectory);
+
+    expect(result.stderr).toContain(
+      'en/index.html: do not preload webfonts in front of the LCP heading',
+    );
+    expect(result.status).toBe(1);
+  });
+
   it('rejects a heading font that can swap in after first paint', async () => {
     const fixture = await createDistributionFixture();
     const assetsDirectory = path.join(fixture.distDirectory, 'assets');
