@@ -81,6 +81,24 @@ describe('landing content', () => {
   });
 
   it.each(['en', 'ru'] as const)(
+    'keeps Evercity inside frontend-first positioning in %s',
+    (locale) => {
+      const evercity = getContent(locale).projects.find(
+        (project) => project.slug === 'evercity',
+      );
+
+      expect(evercity).toBeDefined();
+      expect(evercity?.contribution.toLowerCase()).not.toMatch(
+        /full[\s-]?stack/u,
+      );
+      expect(evercity?.capabilities.toLowerCase()).not.toMatch(
+        /full[\s-]?stack/u,
+      );
+      expect(evercity?.contribution.toLowerCase()).toContain('frontend');
+    },
+  );
+
+  it.each(['en', 'ru'] as const)(
     'does not make unsupported numeric impact claims in %s',
     (locale) => {
       const content = getContent(locale);

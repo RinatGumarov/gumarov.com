@@ -71,8 +71,8 @@ export const ru = {
       summary:
         'Платформа для управления, выпуска и мониторинга устойчивого финансирования.',
       contribution:
-        'Участвовал во frontend- и full-stack-разработке платформы устойчивого финансирования.',
-      capabilities: 'Frontend · Full stack · Устойчивое финансирование',
+        'Участвовал во frontend-разработке платформы устойчивого финансирования.',
+      capabilities: 'Frontend · Устойчивое финансирование',
       href: 'https://evercity.io/',
     },
   ],

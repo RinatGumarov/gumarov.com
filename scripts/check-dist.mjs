@@ -265,6 +265,7 @@ for (const file of heroSourcePaths) {
 await validateRequiredPortraitAssets();
 await validateRequiredBrandAssets();
 await validateWebManifest(contentByLocale.get('en'));
+await validatePagesHostingFiles();
 await validateInitialVisibility(
   outputFiles.filter((file) => file.endsWith('.css')),
 );
@@ -700,6 +701,32 @@ function validateVectorIcon(file, markup) {
   }
   if (/\b(?:href|src)="(?:https?:)?\/\//iu.test(markup)) {
     failures.push(`Brand asset ${file} references a remote resource.`);
+  }
+}
+
+async function validatePagesHostingFiles() {
+  const pagesFiles = [
+    {
+      file: 'CNAME',
+      validate(contents) {
+        if (contents.trim() !== 'gumarov.com') {
+          failures.push('CNAME must contain only gumarov.com');
+        }
+      },
+    },
+    { file: '.nojekyll' },
+  ];
+
+  for (const contract of pagesFiles) {
+    try {
+      const contents = await readFile(
+        path.join(distDirectory, contract.file),
+        'utf8',
+      );
+      contract.validate?.(contents);
+    } catch {
+      failures.push(`Required Pages file is missing: ${contract.file}`);
+    }
   }
 }
 

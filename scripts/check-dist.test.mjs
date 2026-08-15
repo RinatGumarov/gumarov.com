@@ -495,6 +495,34 @@ describe('distribution checker', () => {
     expect(result.status).toBe(1);
   });
 
+  it('requires a GitHub Pages CNAME and .nojekyll file', async () => {
+    const missingFixture = await createDistributionFixture();
+    await rm(path.join(missingFixture.distDirectory, 'CNAME'), { force: true });
+    await rm(path.join(missingFixture.distDirectory, '.nojekyll'), {
+      force: true,
+    });
+    const result = runChecker(missingFixture.distDirectory);
+
+    expect(result.stderr).toContain('Required Pages file is missing: CNAME');
+    expect(result.stderr).toContain(
+      'Required Pages file is missing: .nojekyll',
+    );
+    expect(result.status).toBe(1);
+
+    const wrongHost = await createDistributionFixture();
+    await writeFile(
+      path.join(wrongHost.distDirectory, 'CNAME'),
+      'example.com\n',
+    );
+    await writeFile(path.join(wrongHost.distDirectory, '.nojekyll'), '');
+    const wrongHostResult = runChecker(wrongHost.distDirectory);
+
+    expect(wrongHostResult.stderr).toContain(
+      'CNAME must contain only gumarov.com',
+    );
+    expect(wrongHostResult.status).toBe(1);
+  });
+
   it('fails when headings or contact details need JavaScript to appear', async () => {
     const fixture = await createDistributionFixture({
       transformHtmlByRoute: {
@@ -950,6 +978,8 @@ async function writeValidBrandAssets(distDirectory, englishContent) {
       2,
     )}\n`,
   );
+  await writeFile(path.join(distDirectory, 'CNAME'), 'gumarov.com\n');
+  await writeFile(path.join(distDirectory, '.nojekyll'), '');
 }
 
 function createContent(locale, heroBody) {
