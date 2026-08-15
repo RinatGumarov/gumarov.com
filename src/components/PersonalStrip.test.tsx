@@ -62,6 +62,28 @@ describe('PersonalStrip', () => {
     expect(within(interests).getAllByRole('listitem')).toHaveLength(5);
   });
 
+  it('marks only the failed photo frame while the story stays complete', () => {
+    const { container } = render(
+      <PersonalStrip content={personalContent} photos={placeholderPhotos} />,
+    );
+    const frames = [...container.querySelectorAll('figure')];
+
+    for (const frame of frames) {
+      expect(frame).not.toHaveAttribute('data-image-state');
+    }
+
+    const firstImage = frames[0]?.querySelector('img');
+    fireEvent.error(firstImage as HTMLImageElement);
+
+    expect(frames[0]).toHaveAttribute('data-image-state', 'failed');
+    expect(frames[1]).not.toHaveAttribute('data-image-state');
+    expect(frames[2]).not.toHaveAttribute('data-image-state');
+    expect(screen.getByText(personalContent.body)).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Beyond the screen' }),
+    ).toBeInTheDocument();
+  });
+
   it('exposes localized alt text when a future photo adds information', () => {
     const photos: PersonalPhotos = [
       {

@@ -30,8 +30,27 @@ export interface Contact {
   emailAddress: string;
 }
 
+/** Localized copy rendered into the pre-generated Open Graph card. */
+export interface SocialCardCopy {
+  name: string;
+  role: string;
+  headline: string;
+  contact: string;
+}
+
+export interface PageMeta {
+  title: string;
+  description: string;
+  siteName: string;
+  ogLocale: string;
+  ogAlternateLocale: string;
+  ogImage: string;
+  ogImageAlt: string;
+  socialCard: SocialCardCopy;
+}
+
 export interface LandingContent {
-  meta: { title: string; description: string };
+  meta: PageMeta;
   nav: { work: string; about: string; contact: string };
   hero: {
     eyebrow: string;

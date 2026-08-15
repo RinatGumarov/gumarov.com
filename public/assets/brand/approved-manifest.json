@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "file": "assets-source/portrait.heic",
+    "width": 2316,
+    "height": 3088,
+    "bytes": 1109592,
+    "sha256": "82a737263a795f74b39bca2b78710cfdca336d8408566f458c8bb4e8c35d9310"
+  },
+  "portraitDerivative": {
+    "file": "assets/portrait/portrait-1024.jpg",
+    "width": 1024,
+    "height": 1280,
+    "bytes": 151291,
+    "sha256": "499ac60a65648cd5af5d0d990203ca2bd96a1b4304a021bc65cddd01e123af67"
+  },
+  "processing": {
+    "monogram": "monoline-rg-paths",
+    "iconRasteriser": "sharp-svg",
+    "socialCardCrop": "fixed-centre-cover",
+    "socialCardSize": "1200x630",
+    "fonts": [
+      "public/assets/fonts/Onest-Variable.woff2",
+      "public/assets/fonts/IBMPlexMono-Variable.woff2"
+    ],
+    "metadataPolicy": "exclude"
+  },
+  "outputs": [
+    {
+      "file": "favicon.svg",
+      "format": "svg",
+      "bytes": 552,
+      "sha256": "b4a919ed20cff42a98711ef7855b737cbf229c8deccdad44da1cecfa6c2f945e"
+    },
+    {
+      "file": "icon-192.png",
+      "format": "png",
+      "width": 192,
+      "height": 192,
+      "bytes": 3695,
+      "sha256": "4f9b6464fa55e7aaff43431b1b2c6d31ae45e288e37faf52472b4cca6fecb765"
+    },
+    {
+      "file": "icon-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "bytes": 9604,
+      "sha256": "2edf66405d4c0e3a60092790b61d85022a4c6e04a816ec01afaa95eac6ecd3da"
+    },
+    {
+      "file": "og-en.jpg",
+      "format": "jpeg",
+      "width": 1200,
+      "height": 630,
+      "bytes": 71849,
+      "sha256": "1d027a80b3d175494cb2d60bbea5dee74c9276078780f4452713ef64b5688337"
+    },
+    {
+      "file": "og-ru.jpg",
+      "format": "jpeg",
+      "width": 1200,
+      "height": 630,
+      "bytes": 73625,
+      "sha256": "336b3fe9ad91325f5f4e990ecc47ca3a0ce4675ce716818d1c44f19b64dc1bb1"
+    }
+  ]
+}

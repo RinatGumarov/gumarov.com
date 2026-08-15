@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { usePointerParallax } from '../lib/motion';
 import { useViewedOnce } from '../lib/useViewedOnce';
 import styles from './PersonalStrip.module.css';
@@ -29,6 +30,7 @@ export function PersonalStrip(_props: PersonalStripProps) {
   const { content, photos } = _props;
   const { observed, ref } = useViewedOnce<HTMLElement>();
   const stripMotion = usePointerParallax<HTMLDivElement>();
+  const [failedPhotos, setFailedPhotos] = useState<readonly number[]>([]);
 
   return (
     <section
@@ -62,6 +64,9 @@ export function PersonalStrip(_props: PersonalStripProps) {
         {photos.map((photo, index) => (
           <figure
             className={styles.frame}
+            data-image-state={
+              failedPhotos.includes(index) ? 'failed' : undefined
+            }
             data-motion-parallax-layer="true"
             key={index}
           >
@@ -72,6 +77,11 @@ export function PersonalStrip(_props: PersonalStripProps) {
               alt={photo.alt}
               loading="lazy"
               decoding="async"
+              onError={() =>
+                setFailedPhotos((failed) =>
+                  failed.includes(index) ? failed : [...failed, index],
+                )
+              }
             />
           </figure>
         ))}

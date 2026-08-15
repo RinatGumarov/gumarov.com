@@ -55,6 +55,32 @@ describe('landing content', () => {
   );
 
   it.each(['en', 'ru'] as const)(
+    'carries complete sharing metadata in %s',
+    (locale) => {
+      const meta = getContent(locale).meta;
+
+      expect(meta.siteName).not.toBe('');
+      expect(meta.ogLocale).toBe(locale === 'ru' ? 'ru_RU' : 'en_US');
+      expect(meta.ogAlternateLocale).toBe(locale === 'ru' ? 'en_US' : 'ru_RU');
+      expect(meta.ogImage).toBe(locale === 'ru' ? '/og-ru.jpg' : '/og-en.jpg');
+      expect(meta.ogImageAlt).not.toBe('');
+      expect(Object.values(meta.socialCard).every(Boolean)).toBe(true);
+    },
+  );
+
+  it('keeps every shared metadata value distinct between locales', () => {
+    const english = getContent('en').meta;
+    const russian = getContent('ru').meta;
+
+    expect(english.title).not.toBe(russian.title);
+    expect(english.description).not.toBe(russian.description);
+    expect(english.ogImage).not.toBe(russian.ogImage);
+    expect(english.ogLocale).not.toBe(russian.ogLocale);
+    expect(english.ogImageAlt).not.toBe(russian.ogImageAlt);
+    expect(english.socialCard.headline).not.toBe(russian.socialCard.headline);
+  });
+
+  it.each(['en', 'ru'] as const)(
     'does not make unsupported numeric impact claims in %s',
     (locale) => {
       const content = getContent(locale);

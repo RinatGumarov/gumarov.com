@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { LandingContent } from '../content';
 import { usePointerParallax } from '../lib/motion';
 import styles from './Hero.module.css';
@@ -17,6 +18,7 @@ interface HeroProps {
 export function Hero(_props: HeroProps) {
   const { content } = _props;
   const portraitMotion = usePointerParallax<HTMLPictureElement>();
+  const [portraitFailed, setPortraitFailed] = useState(false);
 
   return (
     <section
@@ -49,6 +51,7 @@ export function Hero(_props: HeroProps) {
       >
         <picture
           ref={portraitMotion.ref}
+          data-image-state={portraitFailed ? 'failed' : undefined}
           data-motion-parallax="true"
           data-motion-parallax-layer="true"
           onPointerMove={portraitMotion.onPointerMove}
@@ -74,6 +77,7 @@ export function Hero(_props: HeroProps) {
             loading="eager"
             fetchPriority="high"
             decoding="async"
+            onError={() => setPortraitFailed(true)}
           />
         </picture>
         <figcaption>

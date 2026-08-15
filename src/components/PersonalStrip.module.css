@@ -122,6 +122,11 @@
   filter: saturate(0.55) contrast(0.9);
 }
 
+/* A failed photo keeps its film frame and never disturbs the surrounding story. */
+.frame[data-image-state='failed'] img {
+  visibility: hidden;
+}
+
 @media (max-width: 54rem) {
   .personal {
     grid-template-columns: minmax(0, 1fr);
