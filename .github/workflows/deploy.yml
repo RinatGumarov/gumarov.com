@@ -31,6 +31,13 @@ jobs:
         timeout-minutes: 8
       - run: pnpm verify
       - run: pnpm test:e2e
+      # test:e2e rebuilds dist through Playwright's webServer with a
+      # placeholder analytics key, so the artifact must be rebuilt here with
+      # the production configuration before it is uploaded.
+      - run: pnpm build
+        env:
+          VITE_POSTHOG_KEY: ${{ vars.VITE_POSTHOG_KEY }}
+          VITE_POSTHOG_HOST: ${{ vars.VITE_POSTHOG_HOST }}
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist

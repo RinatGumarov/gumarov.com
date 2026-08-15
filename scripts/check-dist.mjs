@@ -71,6 +71,7 @@ const requiredPortraitAssets = [480, 768, 1024].flatMap((width) =>
     height: Math.round(width * 1.25),
   })),
 );
+const playwrightAnalyticsToken = 'phc_playwright_public_transport_token';
 const approvedPersonalManifestFile = 'assets/personal/approved-manifest.json';
 const personalSourceBudget = 120 * kibibyte;
 const approvedPersonalSources = [
@@ -263,6 +264,21 @@ if (compressedJavascriptBytes > javascriptBudget) {
   failures.push(
     `Compressed JavaScript is ${formatKib(compressedJavascriptBytes)}; budget is ${formatKib(javascriptBudget)}.`,
   );
+}
+
+/*
+ * `pnpm test:e2e` rebuilds dist through Playwright's webServer, which injects
+ * a placeholder analytics key. Uploading that build ships the test token to
+ * real visitors and makes their browsers call PostHog for nothing, so the
+ * artifact must never contain it.
+ */
+for (const file of javascriptFiles) {
+  const contents = await readFile(file, 'utf8');
+  if (contents.includes(playwrightAnalyticsToken)) {
+    failures.push(
+      `${path.relative(distDirectory, file)}: built with the Playwright placeholder analytics token`,
+    );
+  }
 }
 
 for (const route of routeContracts) {

@@ -41,6 +41,8 @@ describe('GitHub Pages workflows', () => {
       'pnpm exec playwright install --with-deps chromium',
       'pnpm verify',
       'pnpm test:e2e',
+      // Replaces the Playwright build before the artifact is uploaded.
+      'pnpm build',
     ]);
 
     for (const command of [
@@ -68,6 +70,40 @@ describe('GitHub Pages workflows', () => {
       'id-token': 'write',
     });
     expect(deployJob.steps[0].uses).toBe('actions/deploy-pages@v4');
+  });
+
+  /*
+   * `pnpm test:e2e` rebuilds `dist` through Playwright's webServer with a
+   * placeholder analytics key, so whatever ran last before the upload is what
+   * ships. The artifact must come from a production build that runs after the
+   * end-to-end suite and carries the real analytics configuration.
+   */
+  it('rebuilds the artifact after the end-to-end suite', async () => {
+    const deploy = parseGithubWorkflow(
+      await readFile(path.join(workflowDirectory, 'deploy.yml'), 'utf8'),
+    );
+    const steps = deploy.jobs.build.steps;
+
+    const e2eIndex = steps.findIndex((step) => step.run === 'pnpm test:e2e');
+    const rebuildIndex = steps.findIndex(
+      (step, index) => index > e2eIndex && step.run === 'pnpm build',
+    );
+    const uploadIndex = steps.findIndex(
+      (step) => step.uses === 'actions/upload-pages-artifact@v5',
+    );
+
+    expect(e2eIndex).toBeGreaterThanOrEqual(0);
+    expect(
+      rebuildIndex,
+      'no production rebuild between test:e2e and the artifact upload',
+    ).toBeGreaterThan(e2eIndex);
+    expect(uploadIndex).toBeGreaterThan(rebuildIndex);
+
+    const rebuild = steps[rebuildIndex];
+    expect(rebuild.env?.VITE_POSTHOG_KEY).toBe('${{ vars.VITE_POSTHOG_KEY }}');
+    expect(rebuild.env?.VITE_POSTHOG_HOST).toBe(
+      '${{ vars.VITE_POSTHOG_HOST }}',
+    );
   });
 
   /*

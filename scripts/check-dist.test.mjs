@@ -250,6 +250,24 @@ describe(
       expect(result.status).toBe(1);
     });
 
+    it('rejects a distribution built with the Playwright analytics token', async () => {
+      // `pnpm test:e2e` rebuilds dist through Playwright's webServer, which
+      // injects a placeholder key. If that build is what gets uploaded, real
+      // visitors ship the test token and call PostHog for nothing.
+      const fixture = await createDistributionFixture();
+      await writeFile(
+        path.join(fixture.distDirectory, 'assets', 'leaked.js'),
+        'const k="phc_playwright_public_transport_token";export default k;',
+      );
+
+      const result = runChecker(fixture.distDirectory);
+
+      expect(result.stderr).toContain(
+        'assets/leaked.js: built with the Playwright placeholder analytics token',
+      );
+      expect(result.status).toBe(1);
+    });
+
     it('rejects a personal photo whose source is not the approved one', async () => {
       const fixture = await createDistributionFixture();
       const manifestPath = path.join(
