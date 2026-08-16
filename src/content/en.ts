@@ -76,6 +76,20 @@ export const en = {
       href: 'https://evercity.io/',
     },
   ],
+  projectScreenshots: [
+    {
+      slug: 'tradingview',
+      alt: 'TradingView with the Pine Editor open beside a chart and the Strategy Tester listing trades.',
+    },
+    {
+      slug: 'stoic',
+      alt: 'Stoic strategy selection: exchange and risk filters beside strategy cards with performance charts.',
+    },
+    {
+      slug: 'evercity',
+      alt: 'Evercity project catalogue: sustainability filters above carbon project cards.',
+    },
+  ],
   principles: {
     heading: 'How I work',
     items: [

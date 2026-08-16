@@ -19,6 +19,12 @@ export interface Project {
   href: string;
 }
 
+export interface ProjectScreenshot {
+  slug: ProjectSlug;
+  /** Localized description of the interface shown in the screenshot. */
+  alt: string;
+}
+
 export const personalPhotoSlugs = [
   'surf',
   'skate',
@@ -79,6 +85,7 @@ export interface LandingContent {
   };
   projectsHeading: string;
   projects: readonly Project[];
+  projectScreenshots: readonly ProjectScreenshot[];
   principles: { heading: string; items: readonly string[] };
   personal: {
     heading: string;

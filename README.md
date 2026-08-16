@@ -157,6 +157,61 @@ records the pinned source hashes, crops, and output hashes, and the
 distribution build rejects missing, changed, mis-sized, or metadata-bearing
 personal derivatives.
 
+### Project screenshots
+
+Rinat captured these himself on 2026-08-16 and approved publishing them. Each
+crop starts below the browser chrome — its last row was measured at 310 in the
+3024×1964 captures — so no tab bar, address bar or bookmark strip reaches the
+site. The Stoic crop starts at 440 instead, because the application header
+carries the signed-in account's address. Full source width is kept and the
+height fixed at 2:1, so no interface is cut mid-word. Screenshots are resized
+and re-encoded only; unlike the photographs they are not modulated, so the
+interfaces stay legible.
+
+A fourth capture of a signed-in Stoic account was deliberately excluded: it
+showed a portfolio balance, holdings and the account id. SplitHub has no
+capture yet and keeps the CSS-native geometry.
+
+These are third-party product interfaces. Rinat confirmed he may publish them.
+
+| Slug          | Source bytes | Source SHA-256                                                     | Extracted rectangle (`left`, `top`, `w`×`h`) |
+| ------------- | -----------: | ------------------------------------------------------------------ | -------------------------------------------- |
+| `tradingview` |      956,943 | `63f9d90139adf8b99fffb0bebe931648f6c89311d25e9eca3434568adb7fde99` | `0`, `310`, `3024×1512`                      |
+| `stoic`       |      616,163 | `4f29598e25d5aa6ddd65956de6a7721fd7c0f0c87cd0ce29525efe8828f6fa22` | `0`, `440`, `3024×1512`                      |
+| `evercity`    |    2,579,743 | `dc6bd17beb17bb2791a076aeef8a110e3dee0e5f2b99441b2d5276cdb4f0a9be` | `0`, `310`, `3024×1512`                      |
+
+| Output                  |   Bytes | SHA-256                                                            |
+| ----------------------- | ------: | ------------------------------------------------------------------ |
+| `tradingview-640.avif`  |  21,440 | `75a73ea5103ddcca2cdff1f58d75f2aa1e564097c0b09d4c12d51b570962c342` |
+| `tradingview-640.webp`  |  27,944 | `3328c6f9a55648ff5f13b49b8e30dfd7c258d461488117f192f25ed3eba47b62` |
+| `tradingview-640.jpg`   |  38,671 | `526f1e69f284f6132e79eadd3acb7818299317d41cbee30f37e919b4ff7159c7` |
+| `tradingview-960.avif`  |  37,433 | `152bca3458c01f917bf14a8e5b80cb944c139fb250d741b682313bb28d1fe8a3` |
+| `tradingview-960.webp`  |  52,972 | `a16d7d4642b90aac9b37fa085b0d90e7ec4c7a00f18b04b642ad23d500c06760` |
+| `tradingview-960.jpg`   |  77,263 | `55be8ba796afb20146fc8f429a3ceb1b3aaa4321dca78ee79f8f9d6d113bb5a3` |
+| `tradingview-1440.avif` |  62,263 | `6b84740c06c47c050e64dfe5b53fa2dd2fd46386d852a6a2bc9b05a23ca67245` |
+| `tradingview-1440.webp` |  94,602 | `36df7f55133b854f1772f16b08d60157fa6afd1b9e7f431d3a01fd07ce550e12` |
+| `tradingview-1440.jpg`  | 147,211 | `dc5084df212779cf7770d5138a0e7ed1076188855f9716c7474810b89e3990f1` |
+| `stoic-640.avif`        |   9,194 | `1ca19377a5412968685f9f42f437575a655592c60faed1721d3cf84cb31a1ff2` |
+| `stoic-640.webp`        |  12,434 | `cce36a7097389fcb001d9cf5cd75f1735495d39e65ce852fb7de138e7f672ae2` |
+| `stoic-640.jpg`         |  20,780 | `8b0be4646a1fe4c3b958830f53cbfb4ee15a8c36da5645884a6003ebb650040e` |
+| `stoic-960.avif`        |  15,699 | `36758517a794cc3408338fbdbc6d18f8bd4abb570c070b609f0a3d73c1eb03c6` |
+| `stoic-960.webp`        |  22,550 | `076f213e9f5431b1e1ffb01b2cd1a2d25370208ba1d1243f8ab7feb26d81c4c7` |
+| `stoic-960.jpg`         |  38,586 | `8024875c0c5a03856b7d47522e8fad9aeaf232dad0e48a524427042a9f82cad4` |
+| `stoic-1440.avif`       |  25,343 | `806cddf17a4977bb0fa7adccaca84c9f69f3849cc116ed11f0d058ec372e4a73` |
+| `stoic-1440.webp`       |  38,834 | `2476a64e7112e5f735cce640aa47c9410d56d99bf197f0d4679f8c4e6c650aa1` |
+| `stoic-1440.jpg`        |  66,905 | `7fcef92720f61abc2453d2963c426dc0f710228aa82a2b31dec099666030c9b0` |
+| `evercity-640.avif`     |  21,507 | `4d52c6f615eb0fe35f87bd7161f18b191ef867beae2f34cb3867c496a88730ad` |
+| `evercity-640.webp`     |  26,846 | `0ab11bd7949ae1620fc08b4c60c1ee38356e07e22576ac3698d3d507f31d73a8` |
+| `evercity-640.jpg`      |  34,734 | `26a4f93f6c582695bc1fe827490943c9be4d3eec92222375dc407abe4b2d0453` |
+| `evercity-960.avif`     |  39,512 | `d5f27cba096127bf59c14682fec4305722f31dcd0d0b0b5de9d8c05b06ad315a` |
+| `evercity-960.webp`     |  52,462 | `842ca1a7170bf749b90906a98375d60dcbb4735d866b227fc2f23e6c9a2507d5` |
+| `evercity-960.jpg`      |  71,851 | `27f2154af1e2523314fd4f7db96db2f42d1eefc802410cefb81ff0bcb3d552a6` |
+| `evercity-1440.avif`    |  70,360 | `4f76560b64a180d2233a885a63137238c7d5a41c538ade6d168bb9e027e26bc1` |
+| `evercity-1440.webp`    |  97,534 | `a993cba008ab55d86c482f1a3c93a24ee9da6fa60556949617eec8e60e4d627b` |
+| `evercity-1440.jpg`     | 132,901 | `d4a676786f9ee95e519377d714fad8d435184761733c62ee99bd137dbbb2204e` |
+
+Regenerate with `node scripts/process-images.mjs --projects`.
+
 ### Fonts
 
 The complete upstream WOFF2 files remain un-subset because each covers Latin

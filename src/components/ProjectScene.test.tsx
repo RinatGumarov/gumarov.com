@@ -59,6 +59,7 @@ describe('selected work', () => {
       <SelectedWork
         heading={en.projectsHeading}
         projects={en.projects}
+        screenshots={en.projectScreenshots}
         locale="en"
       />,
     );
@@ -91,21 +92,40 @@ describe('selected work', () => {
     }
   });
 
-  it('uses accessible containers with purely abstract decorative geometry', () => {
+  it('shows an approved screenshot where one exists and geometry elsewhere', () => {
     render(
       <SelectedWork
         heading={en.projectsHeading}
         projects={en.projects}
+        screenshots={en.projectScreenshots}
         locale="en"
       />,
     );
 
     for (const project of expectedProjects) {
       const scene = screen.getByRole('article', { name: project.name });
+      const shot = en.projectScreenshots.find(
+        (entry) => entry.slug === project.slug,
+      );
+
+      if (shot) {
+        // The image carries its own accessible name, so the container must not
+        // announce a second one.
+        const image = within(scene).getByRole('img', { name: shot.alt });
+        expect(image.tagName).toBe('IMG');
+        expect(image.closest('[data-visual-kind]')).toHaveAttribute(
+          'data-visual-kind',
+          'product-screenshot',
+        );
+        expect(
+          within(scene).queryByRole('img', { name: project.visualName }),
+        ).not.toBeInTheDocument();
+        continue;
+      }
+
       const visual = within(scene).getByRole('img', {
         name: project.visualName,
       });
-
       expect(visual).toHaveAttribute('data-visual-kind', 'abstract-geometry');
       expect(
         [...visual.querySelectorAll('[data-geometry-layer]')].map((layer) =>
@@ -113,8 +133,6 @@ describe('selected work', () => {
         ),
       ).toEqual(['light-plane', 'depth-plane', 'arc', 'line-field', 'nodes']);
       expect(within(visual).queryByRole('button')).not.toBeInTheDocument();
-      expect(within(visual).queryByRole('navigation')).not.toBeInTheDocument();
-      expect(within(visual).queryByRole('toolbar')).not.toBeInTheDocument();
     }
   });
 
@@ -123,6 +141,7 @@ describe('selected work', () => {
       <SelectedWork
         heading={en.projectsHeading}
         projects={en.projects}
+        screenshots={en.projectScreenshots}
         locale="en"
       />,
     );

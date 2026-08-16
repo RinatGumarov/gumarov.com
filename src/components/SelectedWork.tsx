@@ -1,14 +1,20 @@
-import type { Locale, Project } from '../content';
+import type { Locale, Project, ProjectScreenshot } from '../content';
 import { ProjectScene } from './ProjectScene';
 import styles from './SelectedWork.module.css';
 
 interface SelectedWorkProps {
   heading: string;
   projects: readonly Project[];
+  screenshots: readonly ProjectScreenshot[];
   locale: Locale;
 }
 
-export function SelectedWork({ heading, projects, locale }: SelectedWorkProps) {
+export function SelectedWork({
+  heading,
+  projects,
+  screenshots,
+  locale,
+}: SelectedWorkProps) {
   return (
     <section
       className={styles.selectedWork}
@@ -26,6 +32,9 @@ export function SelectedWork({ heading, projects, locale }: SelectedWorkProps) {
             index={index}
             project={project}
             locale={locale}
+            screenshotAlt={
+              screenshots.find((shot) => shot.slug === project.slug)?.alt
+            }
           />
         ))}
       </div>

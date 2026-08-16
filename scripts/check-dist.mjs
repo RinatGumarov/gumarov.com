@@ -115,6 +115,37 @@ const requiredPersonalAssets = approvedPersonalSources.flatMap(({ slug }) =>
     })),
   ),
 );
+const approvedProjectManifestFile = 'assets/projects/approved-manifest.json';
+const projectSourceBudget = 200 * kibibyte;
+const approvedProjectSources = [
+  {
+    slug: 'tradingview',
+    sha256: '63f9d90139adf8b99fffb0bebe931648f6c89311d25e9eca3434568adb7fde99',
+  },
+  {
+    slug: 'stoic',
+    sha256: '4f29598e25d5aa6ddd65956de6a7721fd7c0f0c87cd0ce29525efe8828f6fa22',
+  },
+  {
+    slug: 'evercity',
+    sha256: 'dc6bd17beb17bb2791a076aeef8a110e3dee0e5f2b99441b2d5276cdb4f0a9be',
+  },
+];
+const requiredProjectAssets = approvedProjectSources.flatMap(({ slug }) =>
+  [640, 960, 1440].flatMap((width) =>
+    [
+      { extension: 'avif', manifestFormat: 'avif', metadataFormat: 'heif' },
+      { extension: 'webp', manifestFormat: 'webp', metadataFormat: 'webp' },
+      { extension: 'jpg', manifestFormat: 'jpeg', metadataFormat: 'jpeg' },
+    ].map(({ extension, manifestFormat, metadataFormat }) => ({
+      file: `assets/projects/${slug}-${width}.${extension}`,
+      manifestFormat,
+      metadataFormat,
+      width,
+      height: Math.round(width / 2),
+    })),
+  ),
+);
 const routeContracts = [
   {
     file: 'index.html',
@@ -323,6 +354,7 @@ for (const file of heroSourcePaths) {
 
 await validateRequiredPortraitAssets();
 await validateRequiredPersonalAssets();
+await validateRequiredProjectAssets();
 await validateRequiredBrandAssets();
 await validateWebManifest(contentByLocale.get('en'));
 await validatePagesHostingFiles();
@@ -958,6 +990,29 @@ async function validateRequiredPortraitAssets() {
         failures.push(
           `${approvedPortraitManifestFile}: source SHA-256 is not the pinned approved portrait source.`,
         );
+      }
+    },
+  });
+}
+
+async function validateRequiredProjectAssets() {
+  await validateApprovedImageSet({
+    label: 'Project',
+    manifestFile: approvedProjectManifestFile,
+    contracts: requiredProjectAssets,
+    budget: projectSourceBudget,
+    validateSources(manifest) {
+      const declared = new Map(
+        Array.isArray(manifest.sources)
+          ? manifest.sources.map((source) => [source.slug, source.sha256])
+          : [],
+      );
+      for (const { slug, sha256: expected } of approvedProjectSources) {
+        if (declared.get(slug) !== expected) {
+          failures.push(
+            `${approvedProjectManifestFile}: source SHA-256 for ${slug} is not the pinned approved source.`,
+          );
+        }
       }
     },
   });

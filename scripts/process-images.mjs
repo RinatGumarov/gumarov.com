@@ -231,12 +231,142 @@ export async function processPersonalPhotos({
   return manifest;
 }
 
+const projectWidths = [640, 960, 1440];
+
+/**
+ * Product screenshots for the work scenes. Each crop starts below the browser
+ * chrome — detected once at row 310 of the 3024x1964 captures — so no tab bar,
+ * address bar or bookmark strip reaches the site. Stoic starts lower still,
+ * because its application header carries the signed-in account's address.
+ * Full source width is kept and the height fixed at 2:1, so no interface is
+ * ever cut mid-word.
+ */
+export const approvedProjectScreenshots = [
+  {
+    slug: 'tradingview',
+    file: 'tradingview.png',
+    sha256: '63f9d90139adf8b99fffb0bebe931648f6c89311d25e9eca3434568adb7fde99',
+    crop: { left: 0, top: 310, width: 3024, height: 1512 },
+  },
+  {
+    slug: 'stoic',
+    file: 'stoic.png',
+    sha256: '4f29598e25d5aa6ddd65956de6a7721fd7c0f0c87cd0ce29525efe8828f6fa22',
+    crop: { left: 0, top: 440, width: 3024, height: 1512 },
+  },
+  {
+    slug: 'evercity',
+    file: 'evercity.png',
+    sha256: 'dc6bd17beb17bb2791a076aeef8a110e3dee0e5f2b99441b2d5276cdb4f0a9be',
+    crop: { left: 0, top: 310, width: 3024, height: 1512 },
+  },
+];
+
+export async function processProjectScreenshots({
+  inputDirectory,
+  outputDirectory,
+  screenshots = approvedProjectScreenshots,
+}) {
+  await mkdir(outputDirectory, { recursive: true });
+  const manifest = [];
+
+  for (const shot of screenshots) {
+    const inputPath = path.join(inputDirectory, shot.file);
+
+    for (const width of projectWidths) {
+      const height = Math.round(width / 2);
+
+      for (const format of portraitFormats) {
+        const fileName = `${shot.slug}-${width}.${format.extension}`;
+        const outputPath = path.join(outputDirectory, fileName);
+        // Screenshots are flat UI, not photographs: keep them unmodulated so
+        // the interface stays legible instead of dimmed to match the portrait.
+        const image = sharp(inputPath)
+          .extract(shot.crop)
+          .resize({
+            width,
+            height,
+            fit: 'cover',
+            kernel: sharp.kernel.lanczos3,
+          })
+          .toColourspace('srgb');
+
+        await format.encode(image).toFile(outputPath);
+        const contents = await readFile(outputPath);
+        manifest.push({
+          file: fileName,
+          slug: shot.slug,
+          format: format.name,
+          width,
+          height,
+          bytes: (await stat(outputPath)).size,
+          sha256: createHash('sha256').update(contents).digest('hex'),
+        });
+      }
+    }
+  }
+
+  return manifest;
+}
+
 const isDirectInvocation =
   process.argv[1] &&
   path.resolve(process.argv[1]) ===
     path.resolve(fileURLToPath(import.meta.url));
 
-if (isDirectInvocation && process.argv[2] === '--personal') {
+if (isDirectInvocation && process.argv[2] === '--projects') {
+  const projectRoot = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '..',
+  );
+  const inputDirectory = path.resolve(
+    projectRoot,
+    process.argv[3] ?? 'assets-source/projects',
+  );
+  const outputDirectory = path.resolve(
+    projectRoot,
+    process.argv[4] ?? 'public/assets/projects',
+  );
+  const sources = [];
+  for (const shot of approvedProjectScreenshots) {
+    sources.push(
+      await verifyApprovedSource(
+        path.join(inputDirectory, shot.file),
+        shot.sha256,
+      ),
+    );
+  }
+  const outputs = await processProjectScreenshots({
+    inputDirectory,
+    outputDirectory,
+  });
+  const manifest = {
+    schemaVersion: 1,
+    sources: approvedProjectScreenshots.map((shot, index) => ({
+      slug: shot.slug,
+      file: `assets-source/projects/${shot.file}`,
+      bytes: sources[index].bytes,
+      sha256: shot.sha256,
+      crop: shot.crop,
+    })),
+    processing: {
+      crop: 'fixed-rectangle-extract-below-browser-chrome',
+      aspectRatio: '2:1',
+      resizeKernel: 'lanczos3',
+      colourspace: 'srgb',
+      metadataPolicy: 'exclude',
+    },
+    outputs: outputs.map((output) => ({
+      ...output,
+      file: `assets/projects/${output.file}`,
+    })),
+  };
+  await writeFile(
+    path.join(outputDirectory, 'approved-manifest.json'),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+  );
+  console.log(JSON.stringify({ sources, outputs }, null, 2));
+} else if (isDirectInvocation && process.argv[2] === '--personal') {
   const projectRoot = path.resolve(
     path.dirname(fileURLToPath(import.meta.url)),
     '..',

@@ -982,6 +982,7 @@ async function createDistributionFixture(options = {}) {
   await writeFile(path.join(fixtureRoot, 'package.json'), '{"type":"module"}');
   await writeValidPortraitAssets(distDirectory);
   await writeValidPersonalAssets(distDirectory);
+  await writeValidProjectAssets(distDirectory);
 
   const contentByLocale = {
     en: createContent(
@@ -1060,6 +1061,66 @@ async function writeValidPortraitAssets(distDirectory) {
         source: { sha256: approvedPortraitSourceSha256 },
         outputs,
       },
+      null,
+      2,
+    )}\n`,
+  );
+}
+
+const approvedProjectSources = [
+  {
+    slug: 'tradingview',
+    sha256: '63f9d90139adf8b99fffb0bebe931648f6c89311d25e9eca3434568adb7fde99',
+  },
+  {
+    slug: 'stoic',
+    sha256: '4f29598e25d5aa6ddd65956de6a7721fd7c0f0c87cd0ce29525efe8828f6fa22',
+  },
+  {
+    slug: 'evercity',
+    sha256: 'dc6bd17beb17bb2791a076aeef8a110e3dee0e5f2b99441b2d5276cdb4f0a9be',
+  },
+];
+
+async function writeValidProjectAssets(distDirectory) {
+  const directory = path.join(distDirectory, 'assets/projects');
+  await mkdir(directory, { recursive: true });
+  const outputs = [];
+
+  for (const { slug } of approvedProjectSources) {
+    for (const width of [640, 960, 1440]) {
+      for (const format of ['avif', 'webp', 'jpeg']) {
+        const extension = format === 'jpeg' ? 'jpg' : format;
+        const file = `${slug}-${width}.${extension}`;
+        const outputPath = path.join(directory, file);
+        await sharp({
+          create: {
+            width,
+            height: Math.round(width / 2),
+            channels: 3,
+            background: '#123456',
+          },
+        })
+          .toFormat(format, { quality: 10 })
+          .toFile(outputPath);
+        const contents = await readFile(outputPath);
+        outputs.push({
+          file: `assets/projects/${file}`,
+          slug,
+          format,
+          width,
+          height: Math.round(width / 2),
+          bytes: contents.byteLength,
+          sha256: createHash('sha256').update(contents).digest('hex'),
+        });
+      }
+    }
+  }
+
+  await writeFile(
+    path.join(directory, 'approved-manifest.json'),
+    `${JSON.stringify(
+      { schemaVersion: 1, sources: approvedProjectSources, outputs },
       null,
       2,
     )}\n`,
