@@ -255,6 +255,12 @@ export const approvedProjectScreenshots = [
     crop: { left: 0, top: 440, width: 3024, height: 1512 },
   },
   {
+    slug: 'splithub',
+    file: 'splithub.png',
+    sha256: '141a6b0b5a86296f4dfd1f49165eeb94c27b22af3e870c1623a8204d9c977d22',
+    crop: { left: 0, top: 310, width: 3024, height: 1512 },
+  },
+  {
     slug: 'evercity',
     file: 'evercity.png',
     sha256: 'dc6bd17beb17bb2791a076aeef8a110e3dee0e5f2b99441b2d5276cdb4f0a9be',

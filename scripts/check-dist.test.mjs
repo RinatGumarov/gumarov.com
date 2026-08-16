@@ -1077,6 +1077,10 @@ const approvedProjectSources = [
     sha256: '4f29598e25d5aa6ddd65956de6a7721fd7c0f0c87cd0ce29525efe8828f6fa22',
   },
   {
+    slug: 'splithub',
+    sha256: '141a6b0b5a86296f4dfd1f49165eeb94c27b22af3e870c1623a8204d9c977d22',
+  },
+  {
     slug: 'evercity',
     sha256: 'dc6bd17beb17bb2791a076aeef8a110e3dee0e5f2b99441b2d5276cdb4f0a9be',
   },

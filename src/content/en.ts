@@ -86,6 +86,10 @@ export const en = {
       alt: 'Stoic strategy selection: exchange and risk filters beside strategy cards with performance charts.',
     },
     {
+      slug: 'splithub',
+      alt: 'The SplitHub landing beside the iOS app showing balances by currency and who owes whom.',
+    },
+    {
       slug: 'evercity',
       alt: 'Evercity project catalogue: sustainability filters above carbon project cards.',
     },

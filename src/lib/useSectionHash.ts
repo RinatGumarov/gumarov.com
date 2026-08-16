@@ -28,6 +28,14 @@ export function useSectionHash(sectionIds: readonly string[]): void {
     if (elements.length === 0) return;
 
     const ratios = new Map<string, number>();
+    /*
+     * A visitor who arrives on `/en/#contact` must keep that anchor. The
+     * browser scrolls to it asynchronously, so for a moment no section is in
+     * view; clearing the hash then would drop the anchor before the page had
+     * settled, and the language switch would carry the visitor to the top.
+     * Leave an arriving hash alone until a different section takes over.
+     */
+    let arrivedHash = window.location.hash;
 
     const applyHash = () => {
       let activeId: string | null = null;
@@ -40,6 +48,10 @@ export function useSectionHash(sectionIds: readonly string[]): void {
       }
 
       const nextHash = activeId ? `#${activeId}` : '';
+      if (arrivedHash) {
+        if (!activeId || nextHash === arrivedHash) return;
+        arrivedHash = '';
+      }
       if (nextHash === window.location.hash) return;
 
       try {

@@ -26,6 +26,18 @@
       }
     },
     {
+      "slug": "splithub",
+      "file": "assets-source/projects/splithub.png",
+      "bytes": 791306,
+      "sha256": "141a6b0b5a86296f4dfd1f49165eeb94c27b22af3e870c1623a8204d9c977d22",
+      "crop": {
+        "left": 0,
+        "top": 310,
+        "width": 3024,
+        "height": 1512
+      }
+    },
+    {
       "slug": "evercity",
       "file": "assets-source/projects/evercity.png",
       "bytes": 2579743,
@@ -207,6 +219,87 @@
       "height": 720,
       "bytes": 66905,
       "sha256": "7fcef92720f61abc2453d2963c426dc0f710228aa82a2b31dec099666030c9b0"
+    },
+    {
+      "file": "assets/projects/splithub-640.avif",
+      "slug": "splithub",
+      "format": "avif",
+      "width": 640,
+      "height": 320,
+      "bytes": 11404,
+      "sha256": "4e92fa3ffaf0994c20b797962a8c27642b90ed0275428f351e38750b01863da6"
+    },
+    {
+      "file": "assets/projects/splithub-640.webp",
+      "slug": "splithub",
+      "format": "webp",
+      "width": 640,
+      "height": 320,
+      "bytes": 15528,
+      "sha256": "5b2d0d40ac008b43ea5597f84ca2a8958ae5084458acc39085a726fe8cc870cc"
+    },
+    {
+      "file": "assets/projects/splithub-640.jpg",
+      "slug": "splithub",
+      "format": "jpeg",
+      "width": 640,
+      "height": 320,
+      "bytes": 23579,
+      "sha256": "aa5e94f9e26e7de3c3b0f290eaa649b39f08d723e8684a0d916f7092636ee260"
+    },
+    {
+      "file": "assets/projects/splithub-960.avif",
+      "slug": "splithub",
+      "format": "avif",
+      "width": 960,
+      "height": 480,
+      "bytes": 20215,
+      "sha256": "a2c1677677cee4a0e459f0858dc34380960d15f0475ff24d1a6bf03502411efa"
+    },
+    {
+      "file": "assets/projects/splithub-960.webp",
+      "slug": "splithub",
+      "format": "webp",
+      "width": 960,
+      "height": 480,
+      "bytes": 27766,
+      "sha256": "5dfd17acca8efb66520f2008017d08c81001d8b65cf3f67d19cea45ee77e4402"
+    },
+    {
+      "file": "assets/projects/splithub-960.jpg",
+      "slug": "splithub",
+      "format": "jpeg",
+      "width": 960,
+      "height": 480,
+      "bytes": 45514,
+      "sha256": "5ed9a26012453243ced3f8218148f00628b4d0f5c0d0e30c55962a168246bbcd"
+    },
+    {
+      "file": "assets/projects/splithub-1440.avif",
+      "slug": "splithub",
+      "format": "avif",
+      "width": 1440,
+      "height": 720,
+      "bytes": 31431,
+      "sha256": "6cfc723a3bdc628b9d53e106a6e36581f3abb84dfecfc4596c97d34e97c6c2ad"
+    },
+    {
+      "file": "assets/projects/splithub-1440.webp",
+      "slug": "splithub",
+      "format": "webp",
+      "width": 1440,
+      "height": 720,
+      "bytes": 45656,
+      "sha256": "649d4444d6a47e16363300829d8b30f4accf7049bdb66446fc52e8791d80d039"
+    },
+    {
+      "file": "assets/projects/splithub-1440.jpg",
+      "slug": "splithub",
+      "format": "jpeg",
+      "width": 1440,
+      "height": 720,
+      "bytes": 80816,
+      "sha256": "8f99d3d2e89ca09fe3f2bb8abed8cd4eb69edb064ee0cb0a33722604fe7f38ab"
     },
     {
       "file": "assets/projects/evercity-640.avif",
