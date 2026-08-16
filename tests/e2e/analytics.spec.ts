@@ -15,6 +15,7 @@ const providerPropertyAllowlist = [
   '$lib',
   '$lib_version',
   '$process_person_profile',
+  'distinct_id',
 ] as const;
 
 type AnalyticsEventName = (typeof analyticsEventAllowlist)[number];
@@ -313,6 +314,8 @@ function assertOutgoingAllowlist(events: CapturedEvent[]) {
     );
     expect(event.properties.token).toBe(analyticsKey);
     expect(event.properties.$process_person_profile).toBe(false);
+    // Without a distinct id PostHog answers 200 and discards the event.
+    expect(String(event.properties.distinct_id)).not.toBe('');
 
     const currentUrl = new URL(String(event.properties.$current_url));
     expect(currentUrl.search).toBe('');
@@ -324,8 +327,15 @@ function assertOutgoingAllowlist(events: CapturedEvent[]) {
     expect(serialized).not.toContain('l.instagram.com');
     expect(serialized).not.toContain('hi@gumarov.com');
     expect(serialized).not.toContain('@RinatGumarov');
+    /*
+     * `distinct_id` is required — PostHog answers HTTP 200 and then discards
+     * events that lack one. Persistence is disabled, so it is a fresh random
+     * id per page load that is never stored and never reused, which is why the
+     * genuinely durable identifiers below stay forbidden.
+     */
+    expect(String(event.properties.distinct_id)).toMatch(/^[0-9a-f-]{20,}$/iu);
     expect(serialized).not.toMatch(
-      /distinct_id|\$device_id|\$session_id|\$window_id|\$referrer/iu,
+      /\$device_id|\$session_id|\$window_id|\$referrer/iu,
     );
   }
 }
