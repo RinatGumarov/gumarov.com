@@ -41,7 +41,6 @@ type ProviderEvent = {
 
 export interface PostHogConfig {
   api_host: string;
-  cookieless_mode: 'always';
   person_profiles: 'identified_only';
   autocapture: false;
   capture_pageview: false;
@@ -119,7 +118,6 @@ const safeProviderProperties = [
   '$lib',
   '$lib_version',
   '$process_person_profile',
-  '$cookieless_mode',
 ] as const;
 
 // Language and contact events fire while the browser is already leaving the
@@ -190,7 +188,6 @@ export function createPostHogConfig(
 
   return {
     api_host: normalizeHost(host),
-    cookieless_mode: 'always',
     person_profiles: 'identified_only',
     autocapture: false,
     capture_pageview: false,

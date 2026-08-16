@@ -15,7 +15,6 @@ const providerPropertyAllowlist = [
   '$lib',
   '$lib_version',
   '$process_person_profile',
-  '$cookieless_mode',
 ] as const;
 
 type AnalyticsEventName = (typeof analyticsEventAllowlist)[number];
@@ -314,7 +313,6 @@ function assertOutgoingAllowlist(events: CapturedEvent[]) {
     );
     expect(event.properties.token).toBe(analyticsKey);
     expect(event.properties.$process_person_profile).toBe(false);
-    expect(event.properties.$cookieless_mode).toBe(true);
 
     const currentUrl = new URL(String(event.properties.$current_url));
     expect(currentUrl.search).toBe('');

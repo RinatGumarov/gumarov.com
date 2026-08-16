@@ -63,7 +63,6 @@ describe('privacy-first analytics adapter', () => {
         $lib: 'web',
         $lib_version: expect.any(String),
         $process_person_profile: false,
-        $cookieless_mode: true,
       },
       uuid: expect.any(String),
     });
@@ -93,7 +92,6 @@ describe('privacy-first analytics adapter', () => {
       'phc_public_test',
       expect.objectContaining({
         api_host: 'https://eu.i.posthog.com',
-        cookieless_mode: 'always',
         person_profiles: 'identified_only',
         autocapture: false,
         capture_pageview: false,
@@ -127,6 +125,16 @@ describe('privacy-first analytics adapter', () => {
     ];
     expect(appliedConfig).not.toHaveProperty('advanced_disable_decide');
     expect(appliedConfig).not.toHaveProperty('advanced_disable_flags');
+
+    /*
+     * `cookieless_mode: 'always'` makes the SDK send the `$posthog_cookieless`
+     * sentinel, which PostHog Cloud drops unless the project has cookieless
+     * server hash mode enabled — the deployed site's events were discarded on
+     * ingestion. `disable_persistence` already keeps every visitor device free
+     * of cookies and local storage, which is the guarantee the footer states.
+     */
+    expect(appliedConfig).not.toHaveProperty('cookieless_mode');
+    expect(appliedConfig.disable_persistence).toBe(true);
 
     expect(provider.capture.mock.calls).toEqual(
       allowedEvents.map((event) => [
