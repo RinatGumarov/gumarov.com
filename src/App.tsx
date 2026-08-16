@@ -53,6 +53,7 @@ export function App({ locale }: { locale: Locale }) {
         <SelectedWork
           heading={content.projectsHeading}
           projects={content.projects}
+          screenshots={content.projectScreenshots}
           locale={locale}
         />
 

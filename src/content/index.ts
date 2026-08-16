@@ -14,6 +14,7 @@ export type {
   Locale,
   PageMeta,
   Project,
+  ProjectScreenshot,
   ProjectSlug,
   SocialCardCopy,
 } from './types';
