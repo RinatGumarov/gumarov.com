@@ -63,6 +63,8 @@ describe('privacy-first analytics adapter', () => {
         $lib: 'web',
         $lib_version: expect.any(String),
         $process_person_profile: false,
+        // Required by PostHog; events without it are accepted and then dropped.
+        distinct_id: expect.any(String),
       },
       uuid: expect.any(String),
     });
@@ -353,6 +355,8 @@ describe('privacy sanitizers', () => {
         $lib: 'web',
         $lib_version: '1.0.0',
         $process_person_profile: false,
+        // Kept: PostHog discards events that carry no distinct id.
+        distinct_id: 'visitor-id',
       },
     });
   });

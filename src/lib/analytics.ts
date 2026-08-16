@@ -118,6 +118,14 @@ const safeProviderProperties = [
   '$lib',
   '$lib_version',
   '$process_person_profile',
+  /*
+   * PostHog carries the distinct id inside `properties`. Stripping it left
+   * every event without one, and the capture endpoint answers HTTP 200 and
+   * then discards such events during ingestion — the deployed site recorded
+   * nothing. The value is a random id that never leaves the page: persistence
+   * is disabled, so it is regenerated on each load and identifies nobody.
+   */
+  'distinct_id',
 ] as const;
 
 // Language and contact events fire while the browser is already leaving the
