@@ -62,6 +62,22 @@
     animation: motion-line-drift 8s ease-in-out infinite;
   }
 
+  /*
+   * Hold a scene transparent until it is viewed. The enter animation starts
+   * from `opacity: 0`, so without this the scene rendered fully visible and
+   * then snapped to transparent the moment it crossed the observer threshold,
+   * which reads as a flicker while scrolling. Gated on `data-motion-state`, so
+   * nothing is ever hidden before motion support is confirmed.
+   */
+  [data-motion-state='enabled']
+    [data-motion-project]:not([data-motion-viewed='true'])
+    [data-motion-reveal],
+  [data-motion-state='enabled']
+    [data-motion-personal]:not([data-motion-viewed='true'])
+    [data-motion-reveal] {
+    opacity: 0;
+  }
+
   [data-motion-state='enabled']
     [data-motion-project][data-motion-viewed='true']
     [data-motion-reveal='copy'],
