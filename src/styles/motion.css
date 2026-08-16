@@ -32,6 +32,16 @@
   }
 }
 
+@keyframes motion-scene-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes motion-line-drift {
   0%,
   100% {
@@ -102,6 +112,17 @@
     position: sticky;
     inset-block-start: clamp(5rem, 10vh, 8rem);
     align-self: start;
+  }
+
+  /*
+   * A transform makes a sticky element its own containing block, so the sticky
+   * offset resolves against a moving reference and the column judders on every
+   * scroll into a scene. Fade this one in without moving it.
+   */
+  [data-motion-state='enabled']
+    [data-motion-project][data-motion-viewed='true']
+    [data-motion-sticky][data-motion-reveal='copy'] {
+    animation-name: motion-scene-fade;
   }
 }
 

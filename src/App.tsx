@@ -7,6 +7,7 @@ import { PersonalStrip, type PersonalPhotos } from './components/PersonalStrip';
 import { SelectedWork } from './components/SelectedWork';
 import { WorkPrinciples } from './components/WorkPrinciples';
 import { useMotionEnhancementGate } from './lib/motion';
+import { useSectionHash } from './lib/useSectionHash';
 
 export type { Locale } from './content';
 
@@ -16,6 +17,9 @@ export type { Locale } from './content';
  * wide desktops and 2x displays.
  */
 const personalPhotoSizes = '(min-width: 60rem) 22rem, 30vw';
+
+// The anchors the navigation and footer link to.
+const sectionIds = ['work', 'about', 'contact'] as const;
 
 function buildPersonalPhotos(
   descriptions: ReturnType<typeof getContent>['personal']['photos'],
@@ -36,6 +40,7 @@ function buildPersonalPhotos(
 
 export function App({ locale }: { locale: Locale }) {
   useMotionEnhancementGate();
+  useSectionHash(sectionIds);
   const content = getContent(locale);
   const personalPhotos = buildPersonalPhotos(content.personal.photos);
 
