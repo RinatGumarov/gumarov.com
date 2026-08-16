@@ -226,6 +226,48 @@ Two changes:
    placeholder token. Verified against the poisoned local `dist`, which the
    checker now rejects.
 
+## Analytics, 2026-08-16
+
+PostHog EU project `249689`, Free plan, key and host held as repository
+variables. Autocapture, web vitals, dead clicks, heatmaps and session replay
+are off; client IP data is discarded.
+
+Events reach the project. Verified live: `landing_viewed`, `contact_clicked`,
+and `language_changed`. `project_viewed` is exercised on the wire by
+`tests/e2e/analytics.spec.ts` but has not yet been observed in production.
+
+### Three defects found on the way
+
+1. `deploy.yml` uploaded the artifact Playwright rebuilt, so production shipped
+   the placeholder analytics token. Fixed by rebuilding after the end-to-end
+   suite; `scripts/check-dist.mjs` now rejects that token.
+2. `advanced_disable_decide` and `advanced_disable_flags` stopped the SDK
+   fetching its remote config. Removed; flag evaluation stays off through
+   `advanced_disable_feature_flags*`.
+3. The privacy sanitizer rebuilt `properties` from an allowlist that omitted
+   `distinct_id`, which PostHog carries there. Events left without one, and the
+   capture endpoint answers HTTP 200 for those and discards them during
+   ingestion. `distinct_id` is now allowlisted.
+
+### Measurement traps worth remembering
+
+`playwright.config.ts` maps `eu.i.posthog.com` to `~NOTFOUND`, so no Playwright
+run can deliver an event; `eu-assets.i.posthog.com` is a different host and
+still loads, which makes config fetches look like successful captures. Ingestion
+drops are invisible over HTTP: the endpoint answers `200` either way. Only the
+project's event table is authoritative.
+
+### Privacy, verified and unverified
+
+Verified: no cookies; `localStorage` holds only the site's own
+`preferred-locale`; outgoing payloads carry no query string, no fragment and no
+raw referrer; the distinct id differs between page loads, so it is not a
+durable identifier.
+
+Unverified: whether the SDK writes a session-scoped value to `sessionStorage`.
+The browser tooling used here refuses to read that store, so this was not
+confirmed either way.
+
 ## Still open before public launch
 
 - Visual snapshots are Darwin-specific; Linux CI skips the visual file until matching baselines exist
