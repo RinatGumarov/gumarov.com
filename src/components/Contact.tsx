@@ -35,6 +35,7 @@ export function Contact(_props: ContactProps) {
           href={content.telegramHref}
           aria-label={`${content.telegramLabel}: ${content.telegramHandle}`}
           onClick={captureContact('telegram')}
+          data-magnetic
         >
           <span>{content.telegramLabel}</span>
           <strong>{content.telegramHandle}</strong>
@@ -46,6 +47,7 @@ export function Contact(_props: ContactProps) {
           href={content.emailHref}
           aria-label={`${content.emailLabel}: ${content.emailAddress}`}
           onClick={captureContact('email')}
+          data-magnetic
         >
           <span>{content.emailLabel}</span>
           <strong>{content.emailAddress}</strong>

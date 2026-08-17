@@ -34,11 +34,11 @@ export function Hero(_props: HeroProps) {
         </h1>
         <p className={styles.body}>{content.body}</p>
         <div className={styles.actions}>
-          <a className={styles.primaryAction} href="#work">
+          <a className={styles.primaryAction} href="#work" data-magnetic>
             {content.workCta}
             <span aria-hidden="true">↘</span>
           </a>
-          <a className={styles.secondaryAction} href="#contact">
+          <a className={styles.secondaryAction} href="#contact" data-magnetic>
             {content.contactCta}
           </a>
         </div>
