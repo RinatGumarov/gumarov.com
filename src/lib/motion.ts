@@ -6,26 +6,12 @@ import {
   type PointerEventHandler,
   type RefObject,
 } from 'react';
+import { getMediaQuery } from './media-query';
 
 const reducedMotionQuery = '(prefers-reduced-motion: reduce)';
 const motionEnhancementQuery = '(prefers-reduced-motion: no-preference)';
 const coarsePointerQuery = '(pointer: coarse)';
 const maximumParallax = 4;
-
-function getMediaQuery(query: string): MediaQueryList | null {
-  if (
-    typeof window === 'undefined' ||
-    typeof window.matchMedia !== 'function'
-  ) {
-    return null;
-  }
-
-  try {
-    return window.matchMedia(query);
-  } catch {
-    return null;
-  }
-}
 
 function getReducedMotionSnapshot() {
   return getMediaQuery(reducedMotionQuery)?.matches ?? true;
