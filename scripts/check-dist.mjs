@@ -15,6 +15,12 @@ const distDirectory = path.resolve(projectRoot, process.argv[2] ?? 'dist');
 const siteUrl = 'https://gumarov.com';
 const kibibyte = 1024;
 const javascriptBudget = 150 * kibibyte;
+/*
+ * Chunks no route loads eagerly. They cannot delay first paint, so they earn a
+ * larger allowance than the entry graph — but they still need a ceiling, or a
+ * lazily loaded scene could grow without any gate noticing.
+ */
+const deferredJavascriptBudget = 300 * kibibyte;
 const initialTransferBudget = 700 * kibibyte;
 const heroSourceBudget = 300 * kibibyte;
 const approvedPortraitSourceSha256 =
@@ -288,16 +294,60 @@ if (rootDocument) {
   checkRootLocaleBootstrap(rootDocument);
 }
 
+/*
+ * Vite records a route's eager module graph in the document: the entry
+ * <script type="module"> plus one <link rel="modulepreload"> per statically
+ * imported chunk. Collect it once, then reuse it for both the JavaScript split
+ * and the route transfer budget.
+ */
+const initialAssetPathsByRoute = new Map();
+for (const route of routeContracts) {
+  const html = routeDocuments.get(route.file);
+  if (!html) continue;
+
+  const routePath = path.join(distDirectory, route.file);
+  initialAssetPathsByRoute.set(
+    route.file,
+    await collectInitialAssetPaths(html, routePath, route.file),
+  );
+}
+
 const outputFiles = await listFiles(distDirectory);
 const javascriptFiles = outputFiles.filter((file) => file.endsWith('.js'));
+
+const eagerJavascriptFiles = new Set();
+for (const assetPaths of initialAssetPathsByRoute.values()) {
+  for (const assetPath of assetPaths) {
+    if (assetPath.endsWith('.js')) eagerJavascriptFiles.add(assetPath);
+  }
+}
+
+/*
+ * The two sets are complements, so no .js file can fall outside both budgets
+ * and escape the gate entirely.
+ */
+const deferredJavascriptFiles = javascriptFiles.filter(
+  (file) => !eagerJavascriptFiles.has(file),
+);
+
 const compressedJavascriptBytes = await sumTransferredBytes(
-  javascriptFiles,
+  [...eagerJavascriptFiles],
+  true,
+);
+const compressedDeferredJavascriptBytes = await sumTransferredBytes(
+  deferredJavascriptFiles,
   true,
 );
 
 if (compressedJavascriptBytes > javascriptBudget) {
   failures.push(
     `Compressed JavaScript is ${formatKib(compressedJavascriptBytes)}; budget is ${formatKib(javascriptBudget)}.`,
+  );
+}
+
+if (compressedDeferredJavascriptBytes > deferredJavascriptBudget) {
+  failures.push(
+    `Deferred JavaScript is ${formatKib(compressedDeferredJavascriptBytes)}; budget is ${formatKib(deferredJavascriptBudget)}.`,
   );
 }
 
@@ -317,15 +367,10 @@ for (const file of javascriptFiles) {
 }
 
 for (const route of routeContracts) {
-  const html = routeDocuments.get(route.file);
-  if (!html) continue;
+  const initialAssetPaths = initialAssetPathsByRoute.get(route.file);
+  if (!initialAssetPaths) continue;
 
   const routePath = path.join(distDirectory, route.file);
-  const initialAssetPaths = await collectInitialAssetPaths(
-    html,
-    routePath,
-    route.file,
-  );
   const initialTransferBytes =
     gzipSync(await readFile(routePath)).byteLength +
     (await sumRouteTransferredBytes(initialAssetPaths, route.file));
@@ -380,7 +425,7 @@ if (failures.length > 0) {
     ? `${worstRoute[0]} ${formatKib(worstRoute[1])}`
     : 'unavailable';
   console.log(
-    `Distribution checks passed: 3 routes, ${formatKib(compressedJavascriptBytes)} compressed JavaScript, worst initial transfer ${worstRouteSummary}.`,
+    `Distribution checks passed: 3 routes, ${formatKib(compressedJavascriptBytes)} eager and ${formatKib(compressedDeferredJavascriptBytes)} deferred JavaScript, worst initial transfer ${worstRouteSummary}.`,
   );
 }
 

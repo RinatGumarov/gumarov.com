@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { afterEach, describe, expect, it } from 'vitest';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -265,6 +265,53 @@ describe(
       expect(result.stderr).toContain(
         'assets/leaked.js: built with the Playwright placeholder analytics token',
       );
+      expect(result.status).toBe(1);
+    });
+
+    it('charges a dynamically imported chunk to the deferred budget', async () => {
+      // Random bytes so gzip cannot shrink the fixture below the budget it is
+      // meant to exercise.
+      const fixture = await createDistributionFixture();
+      await writeFile(
+        path.join(fixture.distDirectory, 'assets', 'deferred.js'),
+        randomBytes(200 * 1024),
+      );
+
+      const result = runChecker(fixture.distDirectory);
+
+      expect(result.stderr).not.toContain('Compressed JavaScript is');
+      expect(result.stderr).not.toContain('Deferred JavaScript is');
+      expect(result.status).toBe(0);
+    });
+
+    it('rejects a deferred chunk beyond the deferred budget', async () => {
+      const fixture = await createDistributionFixture();
+      await writeFile(
+        path.join(fixture.distDirectory, 'assets', 'deferred.js'),
+        randomBytes(320 * 1024),
+      );
+
+      const result = runChecker(fixture.distDirectory);
+
+      expect(result.stderr).toContain('Deferred JavaScript is');
+      expect(result.status).toBe(1);
+    });
+
+    it('charges a modulepreloaded chunk to the eager budget', async () => {
+      const fixture = await createDistributionFixture({
+        headByRoute: {
+          'ru/index.html':
+            '<link rel="modulepreload" href="/assets/eager.js" />',
+        },
+      });
+      await writeFile(
+        path.join(fixture.distDirectory, 'assets', 'eager.js'),
+        randomBytes(160 * 1024),
+      );
+
+      const result = runChecker(fixture.distDirectory);
+
+      expect(result.stderr).toContain('Compressed JavaScript is');
       expect(result.status).toBe(1);
     });
 
