@@ -1,4 +1,5 @@
 import { startConductor } from './conductor';
+import { startSmoothScroll } from './lenis';
 
 /**
  * Composition root for the motion layer. This module and everything it imports
@@ -6,7 +7,7 @@ import { startConductor } from './conductor';
  * dynamic import, which is what keeps the entry graph inside its budget.
  */
 export function startRuntime(): () => void {
-  const disposers = [startConductor()];
+  const disposers = [startConductor(), startSmoothScroll()];
 
   return () => {
     for (const dispose of disposers.reverse()) dispose();
