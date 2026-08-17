@@ -99,3 +99,29 @@
     transition: none !important;
   }
 }
+
+/*
+ * The locale switch is a real cross-document navigation between two
+ * prerendered documents, so the transition describes something that actually
+ * happens. There is no in-page routing, so no same-document transition is
+ * declared. Browsers without the API ignore all of this and follow the link.
+ */
+@view-transition {
+  navigation: auto;
+}
+
+[data-hero='landing'] h1 {
+  view-transition-name: hero-heading;
+}
+
+[data-hero='landing'] figure {
+  view-transition-name: hero-portrait;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
