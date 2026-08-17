@@ -1,0 +1,52 @@
+/*
+ * Styles driven by the conductor's per-frame custom properties. The
+ * `data-motion-state` gate is not optional on anything that animates:
+ * `scripts/check-dist.mjs` fails the build for a rule that hides, animates or
+ * sticks content without it.
+ *
+ * Every property here has a fallback in `var()`. The conductor writes them
+ * only once its first frame runs, and the page is interactive well before
+ * that.
+ */
+
+[data-conductor-cursor] {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  z-index: 9999;
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  margin-block-start: -0.75rem;
+  margin-inline-start: -0.75rem;
+  border: 1px solid var(--color-cyan-300);
+  border-radius: 50%;
+  /*
+   * Never `cursor: none` on the document: if this element failed to draw, the
+   * visitor would be left with no pointer at all.
+   */
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+[data-motion-state='enabled'] [data-conductor-cursor] {
+  /*
+   * Scale with shared energy, so the cursor swells as the visitor moves and
+   * settles as they read. Same input the type and the canvas use.
+   */
+  scale: calc(1 + var(--c-energy, 0) * 0.6);
+  transition:
+    scale 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 240ms ease-out;
+}
+
+[data-motion-state='enabled']
+  [data-conductor-cursor][data-cursor-state='active'] {
+  scale: calc(1.9 + var(--c-energy, 0) * 0.6);
+  background-color: rgb(70 217 245 / 0.12);
+}
+
+/*
+ * No reduced-motion rule for the cursor: `boot.ts` never loads the runtime for
+ * those visitors, so the element is never created. A `display: none` here
+ * would be dead code that also trips the distribution checker's gate rule.
+ */

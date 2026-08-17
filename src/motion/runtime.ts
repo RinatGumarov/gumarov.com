@@ -1,4 +1,5 @@
 import { startConductor } from './conductor';
+import { startCursor } from './cursor';
 import { startSmoothScroll } from './lenis';
 
 /**
@@ -7,7 +8,7 @@ import { startSmoothScroll } from './lenis';
  * dynamic import, which is what keeps the entry graph inside its budget.
  */
 export function startRuntime(): () => void {
-  const disposers = [startConductor(), startSmoothScroll()];
+  const disposers = [startConductor(), startSmoothScroll(), startCursor()];
 
   return () => {
     for (const dispose of disposers.reverse()) dispose();
