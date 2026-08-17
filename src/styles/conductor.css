@@ -50,3 +50,52 @@
  * those visitors, so the element is never created. A `display: none` here
  * would be dead code that also trips the distribution checker's gate rule.
  */
+
+/*
+ * Weight morphing needs two gates: the motion gate the distribution checker
+ * enforces, and `data-variable-type`, set only once Onest has really loaded.
+ * Without the second, weight animates against a non-variable system fallback
+ * and re-lays out the line.
+ */
+[data-motion-state='enabled'][data-variable-type='ready']
+  [data-scene='principles']
+  h2,
+[data-motion-state='enabled'][data-variable-type='ready']
+  [data-scene='work']
+  h2 {
+  font-weight: calc(320 + var(--c-section-progress, 0) * 380);
+  letter-spacing: calc(var(--c-energy, 0) * -0.012em);
+  transition: font-weight 120ms linear;
+}
+
+/*
+ * `data-scene-reveals` rather than `data-motion-state`: the eager bundle sets
+ * the motion gate, but only the deferred runtime can reveal these lines. Were
+ * they hidden behind the eager gate, a failed runtime chunk would leave the
+ * copy invisible with nothing left to bring it back.
+ */
+[data-scene-reveals='ready'][data-motion-state='enabled']
+  [data-scene]
+  [data-scene-line] {
+  opacity: 0;
+  transform: translate3d(0, 0.75rem, 0);
+  transition:
+    opacity 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: calc(var(--line-index, 0) * 90ms);
+}
+
+[data-scene-reveals='ready'][data-motion-state='enabled']
+  [data-scene][data-scene-state='revealed']
+  [data-scene-line] {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scene-line] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}

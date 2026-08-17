@@ -2,6 +2,7 @@ import { startConductor } from './conductor';
 import { startCursor } from './cursor';
 import { startSmoothScroll } from './lenis';
 import { startMagnetic } from './magnetic';
+import { startReveals } from './reveal';
 
 /**
  * Composition root for the motion layer. This module and everything it imports
@@ -14,6 +15,7 @@ export function startRuntime(): () => void {
     startSmoothScroll(),
     startCursor(),
     startMagnetic(),
+    startReveals(),
   ];
 
   return () => {

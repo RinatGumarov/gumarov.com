@@ -19,6 +19,7 @@ export function SelectedWork({
     <section
       className={styles.selectedWork}
       id="work"
+      data-scene="work"
       aria-labelledby="projects-heading"
     >
       <div className={styles.header}>
