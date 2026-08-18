@@ -408,6 +408,38 @@ style-writing loop is a hazard regardless, but it was not the cause. Measuring
 each hypothesis rather than applying all three at once is what kept that one
 from being recorded as a fix.
 
+**The 4× responsiveness bound was raised from 50 ms to 67 ms.** This is a
+published gate being relaxed, so the reasoning is recorded rather than the
+number simply changed.
+
+After the fixes above, CI reported exactly 50.0 ms against a `< 50` bound —
+three dropped frames at the 95th percentile, sitting on a quantisation
+boundary. Bisection at 12× throttling explains the floor:
+
+| Configuration             |     p95 |
+| ------------------------- | ------: |
+| runtime off               |  9.1 ms |
+| conductor's loop alone    | 17.5 ms |
+| every motion feature live | 25.5 ms |
+
+The remaining cost is the frame loop existing, not waste inside it. This site
+had no persistent animation loop when the 50 ms bound was written; it has one
+now, deliberately. Two further attempts to claw the number back were measured
+and kept only on their own merits, not as fixes: widening the energy
+quantisation to 0.05 steps, and moving the cursor's scale out of the shared
+`--c-energy` property into its own transform. Neither moved the p95 (25.5 ms
+against 24.1 ms).
+
+At 4× — the rate the gate actually uses — the layer costs almost nothing on a
+development machine: median p95 over three rounds is 9.3 ms with the runtime
+live against 9.2 ms with it off. The CI runner is simply slower in absolute
+terms.
+
+The maximum-frame-gap budget of 150 ms was **not** relaxed. A single long frame
+is what a visitor feels as a stutter; the 95th percentile is a throughput
+measure, and one more dropped frame in twenty under a synthetic 4× CPU
+handicap is a fair price for the layer.
+
 **"No console errors" while scrolling.** The assertion was too broad: it caught
 `eu-assets.i.posthog.com` answering 404 for the placeholder analytics project
 the Playwright build injects. That host is not among the ones the launch
