@@ -34,11 +34,22 @@ export function startCursor(): () => void {
   let x = pointer.x;
   let y = pointer.y;
 
+  let scale = 1;
+
   const stopFrame = onFrame(() => {
     const state = readConductor();
     x = damp(x, state.pointer.x, followHalfLifeMs, state.time.delta);
     y = damp(y, state.pointer.y, followHalfLifeMs, state.time.delta);
-    cursor.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
+    /*
+     * Scale lives in this element's own transform rather than coming from the
+     * shared `--c-energy` custom property. Reading it from the root would mean
+     * the conductor had to write that property on every frame the pointer
+     * moves, and a root custom property write invalidates style for the whole
+     * document. Here it costs one compositor-only transform on one element.
+     */
+    const target = cursor.dataset.cursorState === 'active' ? 1.9 : 1;
+    scale = damp(scale, target + state.energy * 0.6, 90, state.time.delta);
+    cursor.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${scale.toFixed(3)})`;
   });
 
   const onPointerOver = (event: Event) => {

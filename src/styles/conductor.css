@@ -28,21 +28,17 @@
   mix-blend-mode: screen;
 }
 
-[data-motion-state='enabled'] [data-conductor-cursor] {
-  /*
-   * Scale with shared energy, so the cursor swells as the visitor moves and
-   * settles as they read. Same input the type and the canvas use.
-   */
-  scale: calc(1 + var(--c-energy, 0) * 0.6);
-  transition:
-    scale 240ms cubic-bezier(0.22, 1, 0.36, 1),
-    background-color 240ms ease-out;
-}
-
+/*
+ * Position and scale are written by `cursor.ts` into this element's own
+ * transform, not taken from `--c-energy` here. Reading shared energy in CSS
+ * would force the conductor to write that property on every frame the pointer
+ * moves, and a root custom property write invalidates style for the whole
+ * document — measurably the most expensive thing the loop could do.
+ */
 [data-motion-state='enabled']
   [data-conductor-cursor][data-cursor-state='active'] {
-  scale: calc(1.9 + var(--c-energy, 0) * 0.6);
   background-color: rgb(70 217 245 / 0.12);
+  transition: background-color 240ms ease-out;
 }
 
 /*

@@ -66,13 +66,16 @@ let pointerDown = false;
 const publishedProperties = ['--c-energy', '--c-section-progress'] as const;
 
 /*
- * Two decimals, not three. Combined with the change guard below this is what
- * makes the writes rare: at three decimals nearly every frame differed, so the
- * guard almost never fired. Neither consumer — a scale factor and a font
- * weight — can show the third decimal.
+ * Coarse on purpose. Combined with the change guard below, this is what makes
+ * root writes rare rather than per-frame: a root custom property change
+ * invalidates style for the whole document, so the cost is in how often it is
+ * written, not how many are written. Twenty steps is finer than either
+ * consumer — a tracking shift and a font weight — can show.
  */
+const quantisationStep = 0.05;
+
 function quantise(value: number) {
-  return value.toFixed(2);
+  return (Math.round(value / quantisationStep) * quantisationStep).toFixed(2);
 }
 
 const lastWritten = new Map<string, string>();
