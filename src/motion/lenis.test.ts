@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { startConductor } from './conductor';
+import { startSmoothScroll } from './lenis';
 
 const { destroy, raf, LenisMock } = vi.hoisted(() => {
   const destroy = vi.fn();
@@ -9,6 +11,7 @@ const { destroy, raf, LenisMock } = vi.hoisted(() => {
 vi.mock('lenis', () => ({ default: LenisMock }));
 
 const originalMatchMedia = window.matchMedia;
+let stopConductor: (() => void) | undefined;
 
 function setPointer(fine: boolean) {
   window.matchMedia = vi.fn(
@@ -19,7 +22,13 @@ function setPointer(fine: boolean) {
   ) as unknown as typeof window.matchMedia;
 }
 
+function nextFrame() {
+  return new Promise((resolve) => requestAnimationFrame(resolve));
+}
+
 afterEach(() => {
+  stopConductor?.();
+  stopConductor = undefined;
   window.matchMedia = originalMatchMedia;
   LenisMock.mockClear();
   destroy.mockClear();
@@ -28,9 +37,8 @@ afterEach(() => {
 });
 
 describe('startSmoothScroll', () => {
-  it('smooths scrolling for a fine pointer', async () => {
+  it('smooths scrolling for a fine pointer', () => {
     setPointer(true);
-    const { startSmoothScroll } = await import('./lenis');
 
     const stop = startSmoothScroll();
 
@@ -40,11 +48,10 @@ describe('startSmoothScroll', () => {
     expect(destroy).toHaveBeenCalledTimes(1);
   });
 
-  it('leaves touch scrolling to the platform', async () => {
+  it('leaves touch scrolling to the platform', () => {
     // Hijacking touch scroll breaks address-bar collapse and overscroll, and
     // the platform's own smoothing is better than ours.
     setPointer(false);
-    const { startSmoothScroll } = await import('./lenis');
 
     const stop = startSmoothScroll();
 
@@ -52,18 +59,44 @@ describe('startSmoothScroll', () => {
     expect(() => stop()).not.toThrow();
   });
 
-  it('drives one raf per frame and stops on teardown', async () => {
+  it('is driven by the conductor rather than a second loop', async () => {
     setPointer(true);
-    const { startSmoothScroll } = await import('./lenis');
+    stopConductor = startConductor();
 
     const stop = startSmoothScroll();
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    const drivenWhileRunning = raf.mock.calls.length;
-    expect(drivenWhileRunning).toBeGreaterThan(0);
+    await nextFrame();
+    await nextFrame();
+
+    expect(raf.mock.calls.length).toBeGreaterThan(0);
 
     stop();
-    await new Promise((resolve) => setTimeout(resolve, 50));
+  });
+
+  it('does nothing on its own once the conductor is not running', async () => {
+    // Without the conductor there is no loop at all, which is the point: Lenis
+    // must never open one of its own.
+    setPointer(true);
+
+    const stop = startSmoothScroll();
+    await nextFrame();
+    await nextFrame();
+
+    expect(raf).not.toHaveBeenCalled();
+
+    stop();
+  });
+
+  it('stops being driven after teardown', async () => {
+    setPointer(true);
+    stopConductor = startConductor();
+    const stop = startSmoothScroll();
+    await nextFrame();
+    await nextFrame();
+    const drivenWhileRunning = raf.mock.calls.length;
+
+    stop();
+    await nextFrame();
+    await nextFrame();
 
     expect(raf.mock.calls.length).toBe(drivenWhileRunning);
   });

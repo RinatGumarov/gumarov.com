@@ -1,12 +1,22 @@
-import gsap from 'gsap';
 import { matchesMedia } from '../lib/media-query';
+import { onFrame, readConductor } from './conductor';
+import { damp } from './math';
 
 const interactiveSelector = 'a[href], button, [role="button"], summary';
+
+/** How long the cursor takes to close half the distance to the pointer. */
+const followHalfLifeMs = 60;
 
 /**
  * A decorative cursor drawn over the real one. The native cursor is left
  * visible in CSS at all times — hiding it and then failing to draw the
  * replacement would leave a visitor with no pointer at all.
+ *
+ * It follows with the conductor's own damping and writes a transform, rather
+ * than through a GSAP tween. This is the one element that moves on every single
+ * frame, and a tween meant GSAP's ticker ran continuously alongside the
+ * conductor's loop for the whole session. A transform is compositor-only, so
+ * the follow costs no layout or paint.
  */
 export function startCursor(): () => void {
   if (typeof document === 'undefined') return () => undefined;
@@ -18,15 +28,18 @@ export function startCursor(): () => void {
   cursor.setAttribute('aria-hidden', 'true');
   document.body.append(cursor);
 
-  // quickTo keeps one tween alive and retargets it, instead of allocating a
-  // new tween on every pointer event.
-  const moveX = gsap.quickTo(cursor, 'x', { duration: 0.35, ease: 'power3' });
-  const moveY = gsap.quickTo(cursor, 'y', { duration: 0.35, ease: 'power3' });
+  // Start where the pointer already is, so the cursor does not fly in from the
+  // top-left corner on its first frame.
+  const { pointer } = readConductor();
+  let x = pointer.x;
+  let y = pointer.y;
 
-  const onPointerMove = (event: PointerEvent) => {
-    moveX(event.clientX);
-    moveY(event.clientY);
-  };
+  const stopFrame = onFrame(() => {
+    const state = readConductor();
+    x = damp(x, state.pointer.x, followHalfLifeMs, state.time.delta);
+    y = damp(y, state.pointer.y, followHalfLifeMs, state.time.delta);
+    cursor.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
+  });
 
   const onPointerOver = (event: Event) => {
     const target = event.target;
@@ -44,7 +57,6 @@ export function startCursor(): () => void {
     }
   };
 
-  window.addEventListener('pointermove', onPointerMove, { passive: true });
   document.addEventListener('pointerover', onPointerOver, { passive: true });
   document.addEventListener('pointerout', onPointerOut, { passive: true });
 
@@ -52,7 +64,7 @@ export function startCursor(): () => void {
   return () => {
     if (disposed) return;
     disposed = true;
-    window.removeEventListener('pointermove', onPointerMove);
+    stopFrame();
     document.removeEventListener('pointerover', onPointerOver);
     document.removeEventListener('pointerout', onPointerOut);
     cursor.remove();

@@ -27,6 +27,23 @@ export function setSection(index: number, id: string, progress: number): void {
 
 const noop = () => undefined;
 
+const frameCallbacks = new Set<(now: number) => void>();
+
+/**
+ * Register work to run inside the single frame loop.
+ *
+ * Anything that would otherwise open its own `requestAnimationFrame` goes
+ * through here, so the page keeps exactly one loop however many features are
+ * live. Three loops — this one, Lenis's and GSAP's ticker — measurably cost
+ * frame budget on a throttled machine, and they cannot agree on an order.
+ */
+export function onFrame(callback: (now: number) => void): () => void {
+  frameCallbacks.add(callback);
+  return () => {
+    frameCallbacks.delete(callback);
+  };
+}
+
 let running = false;
 let paused = false;
 let frameHandle = 0;
@@ -118,6 +135,7 @@ function tick(now: number) {
 
   applyFrame(state, history, readSample(), delta);
   publish();
+  for (const callback of frameCallbacks) callback(now);
 
   frameHandle = window.requestAnimationFrame(tick);
 }

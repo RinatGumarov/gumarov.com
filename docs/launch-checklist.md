@@ -374,28 +374,39 @@ development Mac. Both were real; neither was a flake.
 **Sustained pointer motion under 4× CPU throttling.** `motion.spec.ts` has
 guarded this since Task 8, and this layer broke it: p95 frame gap 83.3 ms
 against a 50 ms bound. The cause was measured rather than guessed, by running
-the same measurement at 4× and 12× with the runtime switched off and then with
-each part disabled in turn:
+the same measurement with the runtime switched off and then with each part
+disabled in turn:
 
-|                              |      4× |     12× |
-| ---------------------------- | ------: | ------: |
-| runtime off                  |  9.2 ms |  9.1 ms |
-| runtime on, as first written | 16.7 ms | 42.1 ms |
-| runtime on, after the fix    |  9.2 ms |       — |
+| Median p95 of three rounds              |      4× |      8× |
+| --------------------------------------- | ------: | ------: |
+| runtime off                             |  9.2 ms |       — |
+| runtime on, as first written            | 16.7 ms | 42.1 ms |
+| after trimming the published properties | 16.0 ms | 24.9 ms |
+| after collapsing to one frame loop      |  9.3 ms | 24.1 ms |
 
 The cost was `publish()`. Setting a custom property on the root element
 invalidates style for the whole document, and the loop wrote five of them every
 frame at three decimals — so the change guard almost never fired. Three of the
 five (`--c-pointer-x`, `--c-pointer-y`, `--c-scroll-velocity`) had no CSS
 consumer at all, so that work bought nothing. The loop now publishes only
-`--c-energy` and `--c-section-progress`, quantised to two decimals, which
-returns 4× throttled frame gaps to the runtime-off baseline. A unit test asserts
-the unconsumed properties stay unpublished.
+`--c-energy` and `--c-section-progress`, quantised to two decimals. A unit test
+asserts the unconsumed properties stay unpublished.
+
+That alone was not enough: CI came back at exactly 50.0 ms against a `< 50`
+bound. The rest was three `requestAnimationFrame` loops running at once — the
+conductor's, Lenis's, and GSAP's ticker driving the cursor tween. The conductor
+now exposes `onFrame`, Lenis is driven from it, and the cursor follows with the
+conductor's own `damp` writing a compositor-only transform instead of a GSAP
+tween. GSAP remains only for the magnetic controls, which tween on hover rather
+than continuously. That returns 4× throttled frame gaps to the runtime-off
+baseline.
 
 An earlier hypothesis — that the per-frame `scrollHeight` read was forcing
 synchronous layout — was measured and rejected (42.5 ms against 42.1 ms). The
 read was still moved out of the loop and cached, because reading layout inside a
-style-writing loop is a hazard regardless, but it was not the cause.
+style-writing loop is a hazard regardless, but it was not the cause. Measuring
+each hypothesis rather than applying all three at once is what kept that one
+from being recorded as a fix.
 
 **"No console errors" while scrolling.** The assertion was too broad: it caught
 `eu-assets.i.posthog.com` answering 404 for the placeholder analytics project

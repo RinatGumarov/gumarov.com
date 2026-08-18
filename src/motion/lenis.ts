@@ -1,5 +1,6 @@
 import Lenis from 'lenis';
 import { matchesMedia } from '../lib/media-query';
+import { onFrame } from './conductor';
 
 /**
  * Smooth the real scroll position rather than translating a container, so
@@ -18,21 +19,14 @@ export function startSmoothScroll(): () => void {
     touchMultiplier: 1,
   });
 
-  let running = true;
-  let handle = 0;
+  // Driven from the conductor's loop rather than opening a second one.
+  const stopFrame = onFrame((time) => lenis.raf(time));
 
-  const frame = (time: number) => {
-    if (!running) return;
-    lenis.raf(time);
-    handle = window.requestAnimationFrame(frame);
-  };
-
-  handle = window.requestAnimationFrame(frame);
-
+  let disposed = false;
   return () => {
-    if (!running) return;
-    running = false;
-    window.cancelAnimationFrame(handle);
+    if (disposed) return;
+    disposed = true;
+    stopFrame();
     lenis.destroy();
   };
 }
