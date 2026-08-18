@@ -35,35 +35,75 @@ let history: FrameHistory = createFrameHistory();
 let pointerX = 0;
 let pointerY = 0;
 let pointerDown = false;
+/*
+ * Only the properties CSS actually reads are published.
+ *
+ * Setting a custom property on the root invalidates style for the whole
+ * document, and doing it per frame is by far the most expensive thing this
+ * loop does: measured at 12x CPU throttling, publishing five properties at
+ * three decimals cost 25ms of p95 frame gap on its own. Pointer position and
+ * scroll velocity had no CSS consumer at all, so that cost bought nothing.
+ * They remain on the state object, which JavaScript consumers read directly
+ * with no style cost; add them back here only alongside a rule that reads them.
+ */
+const publishedProperties = ['--c-energy', '--c-section-progress'] as const;
+
+/*
+ * Two decimals, not three. Combined with the change guard below this is what
+ * makes the writes rare: at three decimals nearly every frame differed, so the
+ * guard almost never fired. Neither consumer — a scale factor and a font
+ * weight — can show the third decimal.
+ */
+function quantise(value: number) {
+  return value.toFixed(2);
+}
+
 const lastWritten = new Map<string, string>();
 
 function writeProperty(name: string, value: string) {
-  // Style writes invalidate layout for the whole document, so skip the ones
-  // that would not change anything — which is most frames while reading.
   if (lastWritten.get(name) === value) return;
   lastWritten.set(name, value);
   document.documentElement.style.setProperty(name, value);
 }
 
 function publish() {
-  writeProperty('--c-energy', state.energy.toFixed(3));
-  writeProperty('--c-pointer-x', state.pointer.nx.toFixed(3));
-  writeProperty('--c-pointer-y', state.pointer.ny.toFixed(3));
-  writeProperty('--c-scroll-velocity', state.scroll.velocity.toFixed(3));
-  writeProperty('--c-section-progress', state.section.progress.toFixed(3));
+  writeProperty('--c-energy', quantise(state.energy));
+  writeProperty('--c-section-progress', quantise(state.section.progress));
+}
+
+/*
+ * Cached rather than read per frame. `scrollHeight` is a layout-forcing read,
+ * and this loop writes custom properties on the same element, so reading it
+ * every frame made the browser flush layout synchronously sixty times a
+ * second. Measured at 12x CPU throttling that alone dominated the frame
+ * budget. The document only changes height on resize and on font swap, so
+ * that is when it is recomputed.
+ */
+let scrollRange = 0;
+let viewportWidth = 0;
+let viewportHeight = 0;
+let devicePixelRatio = 1;
+
+function measureLayout() {
+  viewportWidth = window.innerWidth;
+  viewportHeight = window.innerHeight;
+  devicePixelRatio = window.devicePixelRatio || 1;
+  scrollRange = Math.max(
+    0,
+    document.documentElement.scrollHeight - viewportHeight,
+  );
 }
 
 function readSample(): FrameSample {
-  const documentElement = document.documentElement;
   return {
     scrollY: window.scrollY,
-    scrollRange: Math.max(0, documentElement.scrollHeight - window.innerHeight),
+    scrollRange,
     pointerX,
     pointerY,
     pointerDown,
-    viewportWidth: window.innerWidth,
-    viewportHeight: window.innerHeight,
-    devicePixelRatio: window.devicePixelRatio || 1,
+    viewportWidth,
+    viewportHeight,
+    devicePixelRatio,
   };
 }
 
@@ -127,8 +167,14 @@ export function startConductor(): () => void {
   paused = false;
   lastFrameTime = 0;
   history = createFrameHistory();
+  measureLayout();
   document.documentElement.dataset.conductor = 'live';
 
+  window.addEventListener('resize', measureLayout, { passive: true });
+  window.addEventListener('load', measureLayout, { once: true });
+  // The deferred brand fonts reflow the page after they swap in, which changes
+  // the document height without a resize event.
+  document.fonts?.ready.then(measureLayout).catch(() => undefined);
   window.addEventListener('pointermove', onPointerMove, { passive: true });
   window.addEventListener('pointerdown', onPointerDown, { passive: true });
   window.addEventListener('pointerup', onPointerUp, { passive: true });
@@ -145,6 +191,8 @@ export function startConductor(): () => void {
     paused = false;
 
     window.cancelAnimationFrame(frameHandle);
+    window.removeEventListener('resize', measureLayout);
+    window.removeEventListener('load', measureLayout);
     window.removeEventListener('pointermove', onPointerMove);
     window.removeEventListener('pointerdown', onPointerDown);
     window.removeEventListener('pointerup', onPointerUp);
@@ -152,13 +200,7 @@ export function startConductor(): () => void {
     document.removeEventListener('visibilitychange', onVisibilityChange);
 
     lastWritten.clear();
-    for (const name of [
-      '--c-energy',
-      '--c-pointer-x',
-      '--c-pointer-y',
-      '--c-scroll-velocity',
-      '--c-section-progress',
-    ]) {
+    for (const name of publishedProperties) {
       document.documentElement.style.removeProperty(name);
     }
     delete document.documentElement.dataset.conductor;

@@ -20,12 +20,16 @@ test.describe('desktop with motion allowed', () => {
       const style = getComputedStyle(document.documentElement);
       return {
         energy: style.getPropertyValue('--c-energy').trim(),
+        sectionProgress: style.getPropertyValue('--c-section-progress').trim(),
+        // Not published: writing a root custom property per frame invalidates
+        // style for the whole document, and no rule reads this one.
         pointerX: style.getPropertyValue('--c-pointer-x').trim(),
       };
     });
 
     expect(properties.energy).not.toBe('');
-    expect(properties.pointerX).not.toBe('');
+    expect(properties.sectionProgress).not.toBe('');
+    expect(properties.pointerX).toBe('');
     await assertCoreContent(page, 'en');
   });
 
@@ -135,13 +139,27 @@ test.describe('failure paths', () => {
     }
   });
 
-  test('reports no console errors while scrolling the whole page', async ({
+  test('throws nothing and requests nothing missing while scrolling the whole page', async ({
     page,
   }) => {
-    const errors: string[] = [];
-    page.on('pageerror', (error) => errors.push(error.message));
-    page.on('console', (message) => {
-      if (message.type() === 'error') errors.push(message.text());
+    const failures: string[] = [];
+    page.on('pageerror', (error) =>
+      failures.push(`pageerror: ${error.message}`),
+    );
+    page.on('response', (response) => {
+      /*
+       * Own-origin responses only. The Playwright build injects a placeholder
+       * analytics key, so PostHog's asset host answers 404 for a project that
+       * does not exist — a property of the test key, present long before this
+       * layer, and nothing the page can do about it. A generic console-error
+       * listener cannot tell the two apart: the message is just "Failed to
+       * load resource" with no URL attached.
+       */
+      const url = new URL(response.url());
+      if (url.origin !== new URL(page.url()).origin) return;
+      if (response.status() >= 400) {
+        failures.push(`${response.status()} ${url.pathname}`);
+      }
     });
 
     await page.goto('/en/');
@@ -152,7 +170,10 @@ test.describe('failure paths', () => {
         await new Promise((resolve) => requestAnimationFrame(resolve));
       }
     });
+    // Let anything the scroll started actually arrive, so this does not pass
+    // by finishing before the failure it is looking for.
+    await page.waitForLoadState('networkidle');
 
-    expect(errors).toEqual([]);
+    expect(failures).toEqual([]);
   });
 });

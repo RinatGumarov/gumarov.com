@@ -37,10 +37,21 @@ describe('startConductor', () => {
 
     const style = document.documentElement.style;
     expect(style.getPropertyValue('--c-energy')).not.toBe('');
-    expect(style.getPropertyValue('--c-pointer-x')).not.toBe('');
-    expect(style.getPropertyValue('--c-pointer-y')).not.toBe('');
-    expect(style.getPropertyValue('--c-scroll-velocity')).not.toBe('');
     expect(style.getPropertyValue('--c-section-progress')).not.toBe('');
+  });
+
+  it('publishes nothing CSS does not read', async () => {
+    // Each property written per frame invalidates style for the whole
+    // document. Measured at 12x CPU throttling, publishing the three
+    // unconsumed ones cost most of the frame budget and bought nothing.
+    stop = startConductor();
+    await nextFrame();
+    await nextFrame();
+
+    const style = document.documentElement.style;
+    expect(style.getPropertyValue('--c-pointer-x')).toBe('');
+    expect(style.getPropertyValue('--c-pointer-y')).toBe('');
+    expect(style.getPropertyValue('--c-scroll-velocity')).toBe('');
   });
 
   it('does not start a second loop', async () => {
@@ -121,6 +132,6 @@ describe('setSection', () => {
     });
     expect(
       document.documentElement.style.getPropertyValue('--c-section-progress'),
-    ).toBe('0.500');
+    ).toBe('0.50');
   });
 });
