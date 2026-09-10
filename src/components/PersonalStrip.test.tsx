@@ -14,7 +14,7 @@ const neutralImage =
 
 const personalContent = {
   heading: 'Beyond the screen',
-  body: 'Curiosity, craft, and focused energy carry beyond my frontend work. I am gradually building a project BMW E30 and keep small apps or technical experiments moving alongside it.',
+  body: 'Curiosity, craft, and focused energy carry beyond my frontend work. I drift a BMW E30 I partly built myself and keep small apps or technical experiments moving alongside it.',
   items: ['Surfing', 'Snowboarding', 'Skating', 'Motorcycles', 'Drifting'],
 };
 

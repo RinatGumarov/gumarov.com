@@ -36,7 +36,7 @@ const expectedProjects = [
     slug: 'splithub',
     href: 'https://splithub.app/',
     contribution:
-      'Conceived the product, shaped its UX, and shipped it through engineering to an App Store release.',
+      'Co-created the product in a two-person team, shaped its UX, and shipped the SwiftUI app and its backend to 350+ registered users and around 50 daily active users.',
     capabilities: 'Product strategy · UX · iOS delivery',
     visualName: 'SplitHub: Product ownership',
   },

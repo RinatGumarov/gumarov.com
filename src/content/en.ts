@@ -60,7 +60,7 @@ export const en = {
       eyebrow: 'Product ownership',
       summary: 'An iOS expense-sharing product for groups.',
       contribution:
-        'Conceived the product, shaped its UX, and shipped it through engineering to an App Store release.',
+        'Co-created the product in a two-person team, shaped its UX, and shipped the SwiftUI app and its backend to 350+ registered users and around 50 daily active users.',
       capabilities: 'Product strategy · UX · iOS delivery',
       href: 'https://splithub.app/',
     },
@@ -105,7 +105,7 @@ export const en = {
   },
   personal: {
     heading: 'Beyond the screen',
-    body: 'Curiosity, craft, and focused energy carry beyond my frontend work. I am gradually building a project BMW E30 and keep small apps or technical experiments moving alongside it.',
+    body: 'Curiosity, craft, and focused energy carry beyond my frontend work. I drift a BMW E30 I partly built myself and keep small apps or technical experiments moving alongside it.',
     items: ['Surfing', 'Snowboarding', 'Skating', 'Motorcycles', 'Drifting'],
     photos: [
       { slug: 'surf', alt: 'Rinat riding the face of a breaking wave.' },
