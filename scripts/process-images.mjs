@@ -139,6 +139,13 @@ const personalWidths = [480, 768];
  * Fixed crop rectangles measured once against the auto-oriented source pixels.
  * They keep each subject inside the 4:3 film-strip frame without a gravity
  * heuristic, so re-running the pipeline cannot silently re-frame a photo.
+ *
+ * Every derivative keeps the same 4:3 crop regardless of `widths`: the surf
+ * frame's desktop 16:9 presentation is produced in CSS (object-fit: cover
+ * inside an aspect-ratio: 16/9 figure), not by extracting a second, narrower
+ * rectangle here. Widths above the shared `personalWidths` default are
+ * declared per photo only where the personal-section layout (plan §4/§7)
+ * displays that photo wider than the 480/768 set was sized for.
  */
 export const approvedPersonalPhotos = [
   {
@@ -146,6 +153,10 @@ export const approvedPersonalPhotos = [
     file: 'surf.jpg',
     sha256: '52a7de95ba7da0e95f9ef9fd245e47723883ca912acbd678db16a740065023f4',
     crop: { left: 1000, top: 200, width: 4000, height: 3000 },
+    // Full-bleed lead frame at up to --content-wide (1280px); the desktop
+    // 16:9 crop is a CSS object-fit, so the raster itself must resolve at
+    // real desktop widths instead of being upscaled from 768w.
+    widths: [480, 768, 960, 1440, 1920],
   },
   {
     slug: 'skate',
@@ -180,6 +191,9 @@ export const approvedPersonalPhotos = [
     // Source is 2880x1887 with a credit bar occupying the bottom 68px
     // (from row 1819). Height 1800 clears it with margin.
     crop: { left: 240, top: 0, width: 2400, height: 1800 },
+    // First activity row, 7-of-12 columns: displayed wider than 600 CSS px
+    // on desktop (plan §7), so it gets a retina-capable derivative.
+    widths: [480, 768, 1200],
   },
 ];
 
@@ -194,7 +208,7 @@ export async function processPersonalPhotos({
   for (const photo of photos) {
     const inputPath = path.join(inputDirectory, photo.file);
 
-    for (const width of personalWidths) {
+    for (const width of photo.widths ?? personalWidths) {
       const height = Math.round((width * 3) / 4);
 
       for (const format of portraitFormats) {

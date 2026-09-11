@@ -24,14 +24,77 @@ interface PersonalStripProps {
     body: string;
     items: readonly string[];
   };
-  photos: PersonalPhotos;
+  /** The full-width surf frame that opens the section (plan §3.7/§4). */
+  lead: PersonalPhoto;
+  /** Shown beside the body copy, below the lead frame. */
+  portrait: PersonalPhoto;
+  /**
+   * Exactly five photos in the plan's §3.7 order: drift-front, skate,
+   * snowboard, powder, drift-rear. The same order drives the desktop
+   * asymmetric grid (7+5, then 4+4+4) and the mobile two-column stack.
+   */
+  activity: PersonalPhotos;
+}
+
+interface PhotoFrameProps {
+  photo: PersonalPhoto;
+  className: string | undefined;
+  failed: boolean;
+  onError: () => void;
+}
+
+function PhotoFrame({ photo, className, failed, onError }: PhotoFrameProps) {
+  const image = (
+    <img
+      src={photo.src}
+      srcSet={photo.srcSet}
+      sizes={photo.sizes}
+      width={photo.width}
+      height={photo.height}
+      alt={photo.alt}
+      loading="lazy"
+      decoding="async"
+      onError={onError}
+    />
+  );
+
+  return (
+    <figure
+      className={className}
+      data-image-state={failed ? 'failed' : undefined}
+      data-motion-parallax-layer="true"
+    >
+      {photo.sources ? (
+        <picture>
+          <source
+            type="image/avif"
+            srcSet={photo.sources.avif}
+            sizes={photo.sizes}
+          />
+          <source
+            type="image/webp"
+            srcSet={photo.sources.webp}
+            sizes={photo.sizes}
+          />
+          {image}
+        </picture>
+      ) : (
+        image
+      )}
+    </figure>
+  );
 }
 
 export function PersonalStrip(_props: PersonalStripProps) {
-  const { content, photos } = _props;
+  const { content, lead, portrait, activity } = _props;
   const { observed, ref } = useViewedOnce<HTMLElement>();
   const stripMotion = usePointerParallax<HTMLDivElement>();
-  const [failedPhotos, setFailedPhotos] = useState<readonly number[]>([]);
+  const [failedPhotos, setFailedPhotos] = useState<readonly string[]>([]);
+
+  const markFailed = (id: string) => () =>
+    setFailedPhotos((failed) =>
+      failed.includes(id) ? failed : [...failed, id],
+    );
 
   return (
     <section
@@ -42,75 +105,62 @@ export function PersonalStrip(_props: PersonalStripProps) {
       data-motion-personal="true"
       data-motion-viewed={observed ? 'true' : undefined}
     >
-      <div className={styles.copy} data-motion-reveal="copy">
+      <div className={styles.headingRow} data-motion-reveal="copy">
         <p className={styles.index} aria-hidden="true">
           03 /
         </p>
         <h2 id="personal-heading">{content.heading}</h2>
-        <p className={styles.summary}>{content.body}</p>
-        <ul className={styles.interests}>
-          {content.items.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
       </div>
 
       <div
         ref={stripMotion.ref}
-        className={styles.filmStrip}
+        className={styles.visual}
         data-motion-parallax="true"
         data-motion-reveal="visual"
         onPointerMove={stripMotion.onPointerMove}
         onPointerLeave={stripMotion.onPointerLeave}
       >
-        {photos.map((photo, index) => {
-          const image = (
-            <img
-              src={photo.src}
-              srcSet={photo.srcSet}
-              sizes={photo.sizes}
-              width={photo.width}
-              height={photo.height}
-              alt={photo.alt}
-              loading="lazy"
-              decoding="async"
-              onError={() =>
-                setFailedPhotos((failed) =>
-                  failed.includes(index) ? failed : [...failed, index],
-                )
-              }
-            />
-          );
+        <PhotoFrame
+          photo={lead}
+          className={styles.lead}
+          failed={failedPhotos.includes('lead')}
+          onError={markFailed('lead')}
+        />
 
-          return (
-            <figure
+        {/*
+         * Body copy comes after the lead photo (plan §3.7: the mandatory
+         * text never overlays the variable photograph), paired here with
+         * the portrait in the same row on desktop.
+         */}
+        <div className={styles.introRow}>
+          <div className={styles.copy} data-motion-reveal="copy">
+            <p className={styles.summary}>{content.body}</p>
+            <ul className={styles.interests}>
+              {content.items.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+
+          <PhotoFrame
+            photo={portrait}
+            className={styles.portraitFrame}
+            failed={failedPhotos.includes('portrait')}
+            onError={markFailed('portrait')}
+          />
+        </div>
+
+        <div className={styles.activityGrid}>
+          {activity.map((photo, index) => (
+            <PhotoFrame
+              key={`${index}-${photo.alt}`}
+              photo={photo}
               className={styles.frame}
-              data-image-state={
-                failedPhotos.includes(index) ? 'failed' : undefined
-              }
-              data-motion-parallax-layer="true"
-              key={index}
-            >
-              {photo.sources ? (
-                <picture>
-                  <source
-                    type="image/avif"
-                    srcSet={photo.sources.avif}
-                    sizes={photo.sizes}
-                  />
-                  <source
-                    type="image/webp"
-                    srcSet={photo.sources.webp}
-                    sizes={photo.sizes}
-                  />
-                  {image}
-                </picture>
-              ) : (
-                image
-              )}
-            </figure>
-          );
-        })}
+              failed={failedPhotos.includes(`activity-${index}`)}
+              onError={markFailed(`activity-${index}`)}
+            />
+          ))}
+        </div>
       </div>
     </section>
   );

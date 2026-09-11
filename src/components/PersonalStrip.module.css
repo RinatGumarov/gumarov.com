@@ -2,14 +2,13 @@
   width: min(100% - (2 * var(--page-gutter)), var(--content-wide));
   margin-inline: auto;
   padding-block: clamp(var(--space-10), 7vw, var(--space-16));
-  display: grid;
-  grid-template-columns: minmax(18rem, 0.85fr) minmax(0, 1.15fr);
-  align-items: center;
-  gap: clamp(var(--space-8), 7vw, var(--space-16));
+  display: flex;
+  flex-direction: column;
+  gap: clamp(var(--space-8), 5vw, var(--space-12));
   border-block-start: 1px solid var(--color-line);
 }
 
-.copy {
+.headingRow {
   min-inline-size: 0;
 }
 
@@ -21,8 +20,8 @@
   letter-spacing: 0.14em;
 }
 
-.copy h2 {
-  max-inline-size: 12ch;
+.headingRow h2 {
+  max-inline-size: 20ch;
   margin: 0;
   color: var(--color-text-strong);
   font-family: var(--font-display);
@@ -34,9 +33,21 @@
   text-wrap: balance;
 }
 
+/*
+ * Everything photographic lives in one pointer-tracked wrapper so the whole
+ * story (lead frame, portrait, activity grid) parallaxes together, matching
+ * the single-container pattern the rest of the site uses.
+ */
+.visual {
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(var(--space-8), 5vw, var(--space-12));
+}
+
 .summary {
   max-inline-size: 42rem;
-  margin: var(--space-6) 0 0;
+  margin: 0;
   color: var(--color-text-muted);
   font-size: var(--text-lg);
   line-height: 1.65;
@@ -59,97 +70,171 @@
   text-transform: uppercase;
 }
 
-.filmStrip {
-  min-inline-size: 0;
+/*
+ * The lead frame is a content image, not a decorative thumbnail: full
+ * opacity, no darkening filter, no scrim gradient. Desktop crops the
+ * approved 4:3 source down to 16:9 with object-fit; mobile shows it at its
+ * native 4:3 (plan §4/§7).
+ */
+.lead {
+  position: relative;
+  margin: 0;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid var(--color-line-strong);
+}
+
+.lead picture,
+.lead img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.lead img {
+  object-fit: cover;
+  object-position: 50% 50%;
+}
+
+@media (max-width: 54rem) {
+  .lead {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+/* Portrait (3 columns) beside the body copy (6 columns, offset 1). */
+.introRow {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: center;
-  gap: clamp(var(--space-2), 1.6vw, var(--space-4));
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: start;
+  gap: clamp(1rem, 2vw, 1.5rem);
+}
+
+.copy {
+  grid-column: 5 / span 6;
+  /*
+   * Sparse auto-placement would otherwise seat `.copy` (first in DOM) in
+   * row 1, advance the placement cursor past column 11, and then be unable
+   * to backtrack `.portraitFrame` into columns 1–4 of that same row —
+   * dropping it to row 2 with a dead zone beside each. Pin both to row 1
+   * explicitly so they sit side by side regardless of DOM order.
+   */
+  grid-row: 1;
+  min-inline-size: 0;
+}
+
+.portraitFrame {
+  grid-column: 1 / span 3;
+  grid-row: 1;
+  margin: 0;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border: 1px solid var(--color-line-strong);
+}
+
+.portraitFrame picture,
+.portraitFrame img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.portraitFrame img {
+  object-fit: cover;
+}
+
+@media (max-width: 54rem) {
+  .introRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .copy {
+    grid-column: auto;
+    grid-row: auto;
+    max-inline-size: var(--content-reading);
+  }
+
+  /* Natural DOM order carries the mobile stack: text, then portrait. */
+  .portraitFrame {
+    grid-column: auto;
+    grid-row: auto;
+    inline-size: min(240px, 60%);
+    margin-inline: auto;
+  }
+}
+
+/*
+ * Five activity photos, asymmetric on desktop (plan §4): drift-front and
+ * skate share the first row at 7+5 columns, snowboard/powder/drift-rear
+ * share the second at 4+4+4. Column placement (not the `order` property)
+ * does the desktop rearranging, so DOM order stays the reading order.
+ */
+.activityGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(1rem, 2vw, 1.5rem);
+}
+
+/* Mobile: natural two-column flow, last photo spans the full row. */
+.activityGrid .frame:last-child {
+  grid-column: 1 / -1;
+}
+
+/*
+ * Desktop asymmetric placement lives behind its own min-width query (rather
+ * than being overridden back to `auto` under a max-width query) so a more
+ * specific `:nth-child` selector can never outrank the mobile reset — the
+ * bug that shrank rows 2/3 into implicit auto-sized tracks below 54rem.
+ */
+@media (min-width: 54.001rem) {
+  .activityGrid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  .activityGrid .frame:nth-child(1) {
+    grid-column: 1 / span 7;
+  }
+
+  .activityGrid .frame:nth-child(2) {
+    grid-column: 8 / span 5;
+  }
+
+  .activityGrid .frame:nth-child(3) {
+    grid-column: 1 / span 4;
+  }
+
+  .activityGrid .frame:nth-child(4) {
+    grid-column: 5 / span 4;
+  }
+
+  .activityGrid .frame:nth-child(5) {
+    grid-column: 9 / span 4;
+  }
 }
 
 .frame {
   position: relative;
   min-inline-size: 0;
   margin: 0;
-  padding: var(--space-3) var(--space-2);
+  aspect-ratio: 4 / 3;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--color-amber-300) 38%, transparent);
-  background:
-    linear-gradient(rgb(231 173 101 / 0.07), rgb(231 173 101 / 0.01)),
-    var(--color-graphite-850);
-  box-shadow: 0 1rem 2.8rem rgb(0 0 0 / 0.24);
+  border: 1px solid var(--color-line);
 }
 
-/* Offsets every second frame so both rows keep the loose film-strip rhythm. */
-.frame:nth-child(even) {
-  margin-block-start: var(--space-3);
-}
-
-.frame::before,
-.frame::after {
-  content: '';
-  position: absolute;
-  z-index: 1;
-  inset-inline: var(--space-2);
-  block-size: 3px;
-  background: repeating-linear-gradient(
-    90deg,
-    var(--color-amber-300) 0 8%,
-    transparent 8% 15%
-  );
-  opacity: 0.45;
-  pointer-events: none;
-}
-
-.frame::before {
-  inset-block-start: var(--space-1);
-}
-
-.frame::after {
-  inset-block-end: var(--space-1);
-}
-
+.frame picture,
 .frame img {
   display: block;
   inline-size: 100%;
-  block-size: auto;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
-  /*
-   * Tuned for the approved photographs rather than the neutral placeholders
-   * they replaced: restrained enough to stay subordinate to the professional
-   * sections, bright enough that a night skate frame still reads.
-   */
-  opacity: 0.78;
-  background:
-    linear-gradient(135deg, rgb(70 217 245 / 0.1), transparent 48%),
-    linear-gradient(315deg, rgb(231 173 101 / 0.12), transparent 52%),
-    var(--color-graphite-800);
-  filter: saturate(0.82) contrast(0.96);
+  block-size: 100%;
 }
 
-/* A failed photo keeps its film frame and never disturbs the surrounding story. */
+.frame img {
+  object-fit: cover;
+}
+
+/* A failed photo keeps its frame and never disturbs the surrounding story. */
+.lead[data-image-state='failed'] img,
+.portraitFrame[data-image-state='failed'] img,
 .frame[data-image-state='failed'] img {
   visibility: hidden;
-}
-
-@media (max-width: 54rem) {
-  .personal {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .copy {
-    max-inline-size: var(--content-reading);
-  }
-}
-
-@media (max-width: 26rem) {
-  .frame {
-    padding-inline: var(--space-1);
-  }
-
-  .frame::before,
-  .frame::after {
-    inset-inline: var(--space-1);
-  }
 }

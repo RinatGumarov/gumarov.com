@@ -42,7 +42,7 @@ export const ru = {
     {
       slug: 'tradingview',
       name: 'TradingView',
-      eyebrow: '01 / TRADING INTERFACES',
+      eyebrow: 'TRADING INTERFACES',
       summary: 'Платформа для анализа рынков и трейдинга.',
       contribution:
         'Развиваю Pine Editor и Strategy Tester: редактор кода, историю версий и интерфейсы анализа торговых стратегий.',

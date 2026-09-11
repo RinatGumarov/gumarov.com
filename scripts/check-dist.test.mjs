@@ -16,6 +16,7 @@ const approvedPersonalSources = [
   {
     slug: 'surf',
     sha256: '52a7de95ba7da0e95f9ef9fd245e47723883ca912acbd678db16a740065023f4',
+    widths: [480, 768, 960, 1440, 1920],
   },
   {
     slug: 'skate',
@@ -36,6 +37,7 @@ const approvedPersonalSources = [
   {
     slug: 'drift-front',
     sha256: '371ce8799176881205728e5fbd6cafd4b8e8f9d3af30968c40815e1e73e1b575',
+    widths: [480, 768, 1200],
   },
 ];
 
@@ -1168,8 +1170,8 @@ async function writeValidPersonalAssets(distDirectory) {
   await mkdir(personalDirectory, { recursive: true });
   const outputs = [];
 
-  for (const { slug } of approvedPersonalSources) {
-    for (const width of [480, 768]) {
+  for (const { slug, widths = [480, 768] } of approvedPersonalSources) {
+    for (const width of widths) {
       for (const format of ['avif', 'webp', 'jpeg']) {
         const extension = format === 'jpeg' ? 'jpg' : format;
         const file = `${slug}-${width}.${extension}`;

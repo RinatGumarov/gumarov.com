@@ -74,10 +74,31 @@ const requiredPortraitAssets = [480, 768, 1024].flatMap((width) =>
 const playwrightAnalyticsToken = 'phc_playwright_public_transport_token';
 const approvedPersonalManifestFile = 'assets/personal/approved-manifest.json';
 const personalSourceBudget = 120 * kibibyte;
+// Per-width, per-format ceilings for the derivative widths added beyond the
+// shared 480/768 set (plan §7/§9): the surf lead frame's 960/1440/1920 desktop
+// sizes and the drift-front activity frame's 1200 size. Each is measured
+// against the pipeline's actual output with headroom, except the two values
+// the plan pins explicitly — surf's 1920w AVIF (<=220 KiB) and its 480w
+// "mobile derivative" AVIF (<=100 KiB).
+const personalWidthBudgets = {
+  surf: {
+    480: { avif: 100 * kibibyte },
+    960: { avif: 50 * kibibyte, webp: 65 * kibibyte, jpeg: 90 * kibibyte },
+    1440: { avif: 90 * kibibyte, webp: 130 * kibibyte, jpeg: 185 * kibibyte },
+    1920: { avif: 220 * kibibyte, webp: 220 * kibibyte, jpeg: 300 * kibibyte },
+  },
+  'drift-front': {
+    1200: { avif: 75 * kibibyte, webp: 115 * kibibyte, jpeg: 190 * kibibyte },
+  },
+};
 const approvedPersonalSources = [
   {
     slug: 'surf',
     sha256: '52a7de95ba7da0e95f9ef9fd245e47723883ca912acbd678db16a740065023f4',
+    // Lead frame: desktop crops this to 16:9 with CSS object-fit, so the
+    // raster needs real resolution up to --content-wide (1280px) instead of
+    // being upscaled from the shared 768w ceiling.
+    widths: [480, 768, 960, 1440, 1920],
   },
   {
     slug: 'skate',
@@ -98,22 +119,27 @@ const approvedPersonalSources = [
   {
     slug: 'drift-front',
     sha256: '371ce8799176881205728e5fbd6cafd4b8e8f9d3af30968c40815e1e73e1b575',
+    // First activity row, 7-of-12 columns: displayed wider than 600 CSS px
+    // on desktop (plan §7), so it gets a retina-capable derivative.
+    widths: [480, 768, 1200],
   },
 ];
-const requiredPersonalAssets = approvedPersonalSources.flatMap(({ slug }) =>
-  [480, 768].flatMap((width) =>
-    [
-      { extension: 'avif', manifestFormat: 'avif', metadataFormat: 'heif' },
-      { extension: 'webp', manifestFormat: 'webp', metadataFormat: 'webp' },
-      { extension: 'jpg', manifestFormat: 'jpeg', metadataFormat: 'jpeg' },
-    ].map(({ extension, manifestFormat, metadataFormat }) => ({
-      file: `assets/personal/${slug}-${width}.${extension}`,
-      manifestFormat,
-      metadataFormat,
-      width,
-      height: Math.round((width * 3) / 4),
-    })),
-  ),
+const requiredPersonalAssets = approvedPersonalSources.flatMap(
+  ({ slug, widths = [480, 768] }) =>
+    widths.flatMap((width) =>
+      [
+        { extension: 'avif', manifestFormat: 'avif', metadataFormat: 'heif' },
+        { extension: 'webp', manifestFormat: 'webp', metadataFormat: 'webp' },
+        { extension: 'jpg', manifestFormat: 'jpeg', metadataFormat: 'jpeg' },
+      ].map(({ extension, manifestFormat, metadataFormat }) => ({
+        file: `assets/personal/${slug}-${width}.${extension}`,
+        manifestFormat,
+        metadataFormat,
+        width,
+        height: Math.round((width * 3) / 4),
+        budget: personalWidthBudgets[slug]?.[width]?.[manifestFormat],
+      })),
+    ),
 );
 const approvedProjectManifestFile = 'assets/projects/approved-manifest.json';
 const projectSourceBudget = 200 * kibibyte;
@@ -1105,9 +1131,10 @@ async function validateApprovedImageSet({
       continue;
     }
 
-    if (assetStat.size > budget) {
+    const effectiveBudget = contract.budget ?? budget;
+    if (assetStat.size > effectiveBudget) {
       failures.push(
-        `${label} asset ${contract.file} is ${formatKib(assetStat.size)}; budget is ${formatKib(budget)}.`,
+        `${label} asset ${contract.file} is ${formatKib(assetStat.size)}; budget is ${formatKib(effectiveBudget)}.`,
       );
     }
     if (approvedOutput?.bytes !== assetStat.size) {

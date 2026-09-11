@@ -19,7 +19,7 @@ const expectedProjects = [
     contribution:
       'I work on Pine Editor and Strategy Tester: code editing, version history, and interfaces for analysing trading strategies.',
     capabilities: 'Complex frontend systems · Performance-sensitive interfaces',
-    visualName: 'TradingView: 01 / TRADING INTERFACES',
+    visualName: 'TradingView: TRADING INTERFACES',
     linkLabel: 'Visit TradingView',
   },
   {

@@ -22,10 +22,19 @@ function placeholder(alt = ''): PersonalPhoto {
   return { src: neutralImage, width: 800, height: 600, alt };
 }
 
-const placeholderPhotos: PersonalPhotos = [
-  placeholder(),
-  placeholder(),
-  placeholder(),
+// Plan §3.7: surf is the lead frame, portrait sits beside the body copy, and
+// the five activity photos follow in this exact order in both the data and
+// the DOM — drift-front, skate, snowboard, powder, drift-rear.
+const leadPhoto: PersonalPhoto = placeholder(
+  'Rinat riding the face of a breaking wave.',
+);
+const portraitPhoto: PersonalPhoto = placeholder('Rinat Gumarov');
+const activityPhotos: PersonalPhotos = [
+  placeholder('BMW E30 in a drift, front view.'),
+  placeholder('Rinat at a skatepark at night.'),
+  placeholder('Rinat catching air on a snowboard.'),
+  placeholder('Rinat riding powder between snow-covered trees.'),
+  placeholder('BMW E30 in a drift, smoke coming off the rear wheels.'),
 ];
 
 const contact = {
@@ -41,9 +50,14 @@ const contact = {
 };
 
 describe('PersonalStrip', () => {
-  it('keeps the personal story complete beside exactly three semantic photo slots', () => {
+  it('keeps the personal story complete beside the lead frame, portrait, and five activity photos', () => {
     const { container } = render(
-      <PersonalStrip content={personalContent} photos={placeholderPhotos} />,
+      <PersonalStrip
+        content={personalContent}
+        lead={leadPhoto}
+        portrait={portraitPhoto}
+        activity={activityPhotos}
+      />,
     );
 
     const section = screen.getByRole('region', { name: 'Beyond the screen' });
@@ -53,66 +67,104 @@ describe('PersonalStrip', () => {
     for (const interest of personalContent.items) {
       expect(within(interests).getByText(interest)).toBeInTheDocument();
     }
+    expect(within(interests).getAllByRole('listitem')).toHaveLength(5);
 
-    expect(container.querySelectorAll('figure')).toHaveLength(3);
+    // Lead + portrait + five activity photos, every one a real figure.
+    expect(container.querySelectorAll('figure')).toHaveLength(7);
     const images = container.querySelectorAll('figure img');
-    expect(images).toHaveLength(3);
+    expect(images).toHaveLength(7);
 
     for (const image of images) {
       expect(Number(image.getAttribute('width'))).toBeGreaterThan(0);
       expect(Number(image.getAttribute('height'))).toBeGreaterThan(0);
       expect(Number.isFinite(Number(image.getAttribute('width')))).toBe(true);
       expect(Number.isFinite(Number(image.getAttribute('height')))).toBe(true);
-      expect(image).toHaveAttribute('alt', '');
-      fireEvent.error(image);
+      expect(image).toHaveAttribute('loading', 'lazy');
+      expect(image.getAttribute('alt')).not.toBe('');
     }
+  });
 
-    expect(within(section).getByText(personalContent.body)).toBeInTheDocument();
-    expect(within(interests).getAllByRole('listitem')).toHaveLength(5);
+  it('renders every photo and the portrait in the plan §3.7 order: lead, portrait, then drift-front, skate, snowboard, powder, drift-rear', () => {
+    const { container } = render(
+      <PersonalStrip
+        content={personalContent}
+        lead={leadPhoto}
+        portrait={portraitPhoto}
+        activity={activityPhotos}
+      />,
+    );
+
+    const alts = [...container.querySelectorAll('figure img')].map((image) =>
+      image.getAttribute('alt'),
+    );
+
+    expect(alts).toEqual([
+      leadPhoto.alt,
+      portraitPhoto.alt,
+      activityPhotos[0]?.alt,
+      activityPhotos[1]?.alt,
+      activityPhotos[2]?.alt,
+      activityPhotos[3]?.alt,
+      activityPhotos[4]?.alt,
+    ]);
   });
 
   it('marks only the failed photo frame while the story stays complete', () => {
     const { container } = render(
-      <PersonalStrip content={personalContent} photos={placeholderPhotos} />,
+      <PersonalStrip
+        content={personalContent}
+        lead={leadPhoto}
+        portrait={portraitPhoto}
+        activity={activityPhotos}
+      />,
     );
     const frames = [...container.querySelectorAll('figure')];
+    expect(frames).toHaveLength(7);
 
     for (const frame of frames) {
       expect(frame).not.toHaveAttribute('data-image-state');
     }
 
-    const firstImage = frames[0]?.querySelector('img');
-    fireEvent.error(firstImage as HTMLImageElement);
+    const leadImage = frames[0]?.querySelector('img');
+    fireEvent.error(leadImage as HTMLImageElement);
 
     expect(frames[0]).toHaveAttribute('data-image-state', 'failed');
-    expect(frames[1]).not.toHaveAttribute('data-image-state');
-    expect(frames[2]).not.toHaveAttribute('data-image-state');
+    for (const frame of frames.slice(1)) {
+      expect(frame).not.toHaveAttribute('data-image-state');
+    }
     expect(screen.getByText(personalContent.body)).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Beyond the screen' }),
     ).toBeInTheDocument();
+
+    // A different frame's failure marks only that frame, not the whole story.
+    const lastActivityImage = frames[6]?.querySelector('img');
+    fireEvent.error(lastActivityImage as HTMLImageElement);
+    expect(frames[6]).toHaveAttribute('data-image-state', 'failed');
+    expect(frames[1]).not.toHaveAttribute('data-image-state');
   });
 
   it('offers AVIF and WebP responsive sources beside the JPEG fallback', () => {
-    const photos: PersonalPhotos = [
-      {
-        src: '/assets/personal/surf-768.jpg',
-        srcSet: '/assets/personal/surf-480.jpg 480w',
-        sources: {
-          avif: '/assets/personal/surf-480.avif 480w',
-          webp: '/assets/personal/surf-480.webp 480w',
-        },
-        sizes: '(min-width: 60rem) 20rem, 45vw',
-        width: 768,
-        height: 576,
-        alt: 'Rinat riding the face of a breaking wave.',
+    const lead: PersonalPhoto = {
+      src: '/assets/personal/surf-768.jpg',
+      srcSet: '/assets/personal/surf-480.jpg 480w',
+      sources: {
+        avif: '/assets/personal/surf-480.avif 480w',
+        webp: '/assets/personal/surf-480.webp 480w',
       },
-      placeholder(),
-      placeholder(),
-    ];
+      sizes: '(min-width: 60rem) 1184px, 100vw',
+      width: 768,
+      height: 576,
+      alt: 'Rinat riding the face of a breaking wave.',
+    };
 
     const { container } = render(
-      <PersonalStrip content={personalContent} photos={photos} />,
+      <PersonalStrip
+        content={personalContent}
+        lead={lead}
+        portrait={portraitPhoto}
+        activity={activityPhotos}
+      />,
     );
 
     const picture = container.querySelector('figure picture');
@@ -128,28 +180,31 @@ describe('PersonalStrip', () => {
 
     const image = picture?.querySelector('img');
     expect(image).toHaveAttribute('src', '/assets/personal/surf-768.jpg');
-    expect(image).toHaveAttribute('sizes', '(min-width: 60rem) 20rem, 45vw');
+    expect(image).toHaveAttribute('sizes', '(min-width: 60rem) 1184px, 100vw');
     expect(image).toHaveAttribute('loading', 'lazy');
 
-    // Frames without responsive sources must still render a plain image.
+    // Frames without responsive sources (the placeholder portrait/activity
+    // photos here) still render a plain image.
     expect(container.querySelectorAll('figure picture')).toHaveLength(1);
-    expect(container.querySelectorAll('figure img')).toHaveLength(3);
+    expect(container.querySelectorAll('figure img')).toHaveLength(7);
   });
 
-  it('exposes localized alt text when a future photo adds information', () => {
-    const photos: PersonalPhotos = [
-      placeholder('Rinat working on the BMW E30 project'),
-      placeholder(),
-      placeholder(),
-    ];
-
-    render(<PersonalStrip content={personalContent} photos={photos} />);
+  it('exposes localized alt text for the portrait and every activity photo', () => {
+    render(
+      <PersonalStrip
+        content={personalContent}
+        lead={leadPhoto}
+        portrait={portraitPhoto}
+        activity={activityPhotos}
+      />,
+    );
 
     expect(
-      screen.getByRole('img', {
-        name: 'Rinat working on the BMW E30 project',
-      }),
+      screen.getByRole('img', { name: portraitPhoto.alt }),
     ).toBeInTheDocument();
+    for (const photo of activityPhotos) {
+      expect(screen.getByRole('img', { name: photo.alt })).toBeInTheDocument();
+    }
   });
 });
 
