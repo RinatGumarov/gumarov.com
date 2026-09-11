@@ -2,7 +2,6 @@ import { render, screen, within } from '@testing-library/react';
 import { beforeEach, vi } from 'vitest';
 import { en } from '../content/en';
 import { SelectedWork } from './SelectedWork';
-import { WorkPrinciples } from './WorkPrinciples';
 
 const { observeProjectViewOnceMock } = vi.hoisted(() => ({
   observeProjectViewOnceMock: vi.fn(() => vi.fn()),
@@ -18,9 +17,9 @@ const expectedProjects = [
     slug: 'tradingview',
     href: 'https://www.tradingview.com/',
     contribution:
-      'Senior Frontend Engineer working across Pine Editor and Strategy Tester with ownership of complex frontend features.',
+      'I work on Pine Editor and Strategy Tester: code editing, version history, and interfaces for analysing trading strategies.',
     capabilities: 'Complex frontend systems · Performance-sensitive interfaces',
-    visualName: 'TradingView: Trading interfaces',
+    visualName: 'TradingView: 01 / TRADING INTERFACES',
   },
   {
     name: 'Stoic',
@@ -36,7 +35,7 @@ const expectedProjects = [
     slug: 'splithub',
     href: 'https://splithub.app/',
     contribution:
-      'Co-created the product in a two-person team, shaped its UX, and shipped the SwiftUI app and its backend to 350+ registered users and around 50 daily active users.',
+      'Co-created the product in a two-person team: UX, the SwiftUI app, and its backend.',
     capabilities: 'Product strategy · UX · iOS delivery',
     visualName: 'SplitHub: Product ownership',
   },
@@ -159,16 +158,4 @@ describe('selected work', () => {
       );
     }
   });
-});
-
-it('renders all four working principles as an ordered narrative', () => {
-  render(<WorkPrinciples content={en.principles} />);
-
-  const section = screen.getByRole('region', { name: 'How I work' });
-  const principles = within(section).getAllByRole('listitem');
-
-  expect(principles).toHaveLength(4);
-  expect(principles.map((principle) => principle.textContent?.trim())).toEqual(
-    en.principles.items,
-  );
 });

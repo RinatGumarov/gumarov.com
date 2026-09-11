@@ -1,11 +1,12 @@
 import { getContent, type Locale } from './content';
 import { Contact } from './components/Contact';
+import { EngineeringDetails } from './components/EngineeringDetails';
 import { Footer } from './components/Footer';
 import { Hero } from './components/Hero';
 import { Navigation } from './components/Navigation';
 import { PersonalStrip, type PersonalPhotos } from './components/PersonalStrip';
+import { ProofRow } from './components/ProofRow';
 import { SelectedWork } from './components/SelectedWork';
-import { WorkPrinciples } from './components/WorkPrinciples';
 import { useMotionEnhancementGate } from './lib/motion';
 import { useSectionHash } from './lib/useSectionHash';
 
@@ -50,6 +51,8 @@ export function App({ locale }: { locale: Locale }) {
       <main id="main-content" data-locale={locale} tabIndex={-1}>
         <Hero content={content.hero} />
 
+        <ProofRow points={content.hero.proofPoints} />
+
         <SelectedWork
           heading={content.projectsHeading}
           projects={content.projects}
@@ -57,7 +60,7 @@ export function App({ locale }: { locale: Locale }) {
           locale={locale}
         />
 
-        <WorkPrinciples content={content.principles} />
+        <EngineeringDetails content={content.engineering} />
 
         <PersonalStrip content={content.personal} photos={personalPhotos} />
 

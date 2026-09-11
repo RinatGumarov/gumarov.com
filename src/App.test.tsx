@@ -16,6 +16,7 @@ it('keeps global landmarks distinct with one page heading and a skip target', ()
 
   expect(main).not.toContainElement(header);
   expect(main).toHaveAttribute('id', 'main-content');
+  // Exactly one h1: no decorative element (including an SVG) duplicates it.
   expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   expect(screen.getByRole('contentinfo')).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Skip to content' })).toHaveAttribute(
@@ -24,22 +25,32 @@ it('keeps global landmarks distinct with one page heading and a skip target', ()
   );
 });
 
+it('keeps the work, about, and contact anchors reachable', () => {
+  const { container } = render(<App locale="en" />);
+
+  expect(container.querySelector('#work')).toBeInTheDocument();
+  expect(container.querySelector('#about')).toBeInTheDocument();
+  expect(container.querySelector('#contact')).toBeInTheDocument();
+});
+
 it.each([
   {
     locale: 'en',
-    hero: 'Senior Frontend Engineer building ambitious products.',
+    titleLines: ['Complex interfaces.', 'Effortless interactions.'],
   },
   {
     locale: 'ru',
-    hero: 'Senior Frontend Engineer, который создаёт амбициозные продукты.',
+    titleLines: ['Сложные интерфейсы.', 'Простые действия.'],
   },
 ] as const)(
   'server-renders complete $locale landing content',
-  ({ locale, hero }) => {
+  ({ locale, titleLines }) => {
     const html = renderToStaticMarkup(<App locale={locale} />);
 
     expect(html).toContain('data-hero="landing"');
-    expect(html).toContain(hero);
+    for (const line of titleLines) {
+      expect(html).toContain(line);
+    }
     expect(html).toContain('href="https://www.tradingview.com/"');
     expect(html).toContain('href="https://t.me/RinatGumarov"');
     expect(html).toContain('href="mailto:hi@gumarov.com"');

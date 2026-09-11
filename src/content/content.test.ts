@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getContent } from './index';
-import { personalPhotoSlugs } from './types';
+import { personalPhotoSlugs, type ProjectVariant } from './types';
 
 const expectedProjectSlugs = ['tradingview', 'stoic', 'splithub', 'evercity'];
 const expectedProjectLinks = [
@@ -9,6 +9,15 @@ const expectedProjectLinks = [
   'https://splithub.app/',
   'https://evercity.io/',
 ];
+const expectedProjectVariants: Record<
+  (typeof expectedProjectSlugs)[number],
+  ProjectVariant
+> = {
+  tradingview: 'lead',
+  stoic: 'major',
+  splithub: 'product',
+  evercity: 'compact',
+};
 
 describe('landing content', () => {
   it.each(['en', 'ru'] as const)('returns complete %s copy', (locale) => {
@@ -17,10 +26,14 @@ describe('landing content', () => {
     expect(content.meta.title).not.toBe('');
     expect(content.meta.description).not.toBe('');
     expect(Object.values(content.nav)).toHaveLength(3);
-    expect(Object.values(content.hero)).toHaveLength(5);
+    expect(content.hero.identity).not.toBe('');
+    expect(content.hero.eyebrow).not.toBe('');
+    expect(content.hero.body).not.toBe('');
+    expect(content.hero.workCta).not.toBe('');
+    expect(content.hero.contactCta).not.toBe('');
     expect(content.projectsHeading).not.toBe('');
-    expect(content.principles.heading).not.toBe('');
-    expect(content.principles.items.length).toBeGreaterThan(0);
+    expect(content.engineering.heading).not.toBe('');
+    expect(content.engineering.items.length).toBeGreaterThan(0);
     expect(content.personal.heading).not.toBe('');
     expect(content.personal.body).not.toBe('');
     expect(content.personal.items.length).toBeGreaterThan(0);
@@ -40,6 +53,49 @@ describe('landing content', () => {
       expect(projects.map((project) => project.href)).toEqual(
         expectedProjectLinks,
       );
+    },
+  );
+
+  it('keeps four unique project slugs', () => {
+    const slugs = getContent('en').projects.map((project) => project.slug);
+
+    expect(slugs).toHaveLength(4);
+    expect(new Set(slugs).size).toBe(4);
+  });
+
+  it.each(['en', 'ru'] as const)(
+    'assigns the approved scene variant to each project in %s',
+    (locale) => {
+      const projects = getContent(locale).projects;
+
+      for (const project of projects) {
+        expect(project.variant).toBe(expectedProjectVariants[project.slug]);
+        expect(project.linkLabel).not.toBe('');
+      }
+    },
+  );
+
+  it.each(['en', 'ru'] as const)(
+    'gives the hero exactly three uncounted proof points in %s',
+    (locale) => {
+      const proofPoints = getContent(locale).hero.proofPoints;
+
+      expect(proofPoints).toHaveLength(3);
+      for (const point of proofPoints) {
+        expect(point.value).not.toBe('');
+        expect(point.label).not.toBe('');
+      }
+    },
+  );
+
+  it.each(['en', 'ru'] as const)(
+    'gives the hero two non-empty, distinct title lines in %s',
+    (locale) => {
+      const [first, second] = getContent(locale).hero.titleLines;
+
+      expect(first.trim().length).toBeGreaterThan(0);
+      expect(second.trim().length).toBeGreaterThan(0);
+      expect(first).not.toBe(second);
     },
   );
 
@@ -129,4 +185,31 @@ describe('landing content', () => {
       );
     },
   );
+
+  it('keeps SplitHub’s approved metrics intact with their qualifiers attached', () => {
+    const en = getContent('en').projects.find((p) => p.slug === 'splithub');
+    const ru = getContent('ru').projects.find((p) => p.slug === 'splithub');
+
+    expect(en?.metrics).toEqual([
+      { value: '350+', label: 'registered users' },
+      { value: 'Around 50', label: 'daily active users' },
+    ]);
+    expect(ru?.metrics).toEqual([
+      { value: '350+', label: 'зарегистрированных пользователей' },
+      { value: 'Примерно 50', label: 'активных пользователей в день' },
+    ]);
+    expect(en?.contribution).toContain('two-person team');
+    expect(ru?.contribution).toContain('команде из двух человек');
+  });
+
+  it('keeps the 9+ years frontend claim in the hero proof points', () => {
+    expect(getContent('en').hero.proofPoints[0]).toEqual({
+      value: '9+ years',
+      label: 'in frontend engineering',
+    });
+    expect(getContent('ru').hero.proofPoints[0]).toEqual({
+      value: '9+ лет',
+      label: 'frontend-разработки',
+    });
+  });
 });

@@ -9,6 +9,21 @@ export const projectSlugs = [
 
 export type ProjectSlug = (typeof projectSlugs)[number];
 
+/** A single labeled fact, e.g. a stat or a name paired with its description. */
+export interface ProofPoint {
+  value: string;
+  label: string;
+}
+
+/** A short, titled claim backing a project's contribution. */
+export interface ProjectProof {
+  title: string;
+  body: string;
+}
+
+/** The visual treatment a project scene renders with; assigned explicitly per project. */
+export type ProjectVariant = 'lead' | 'major' | 'product' | 'compact';
+
 export interface Project {
   slug: ProjectSlug;
   name: string;
@@ -17,12 +32,21 @@ export interface Project {
   contribution: string;
   capabilities: string;
   href: string;
+  variant: ProjectVariant;
+  /** Localized label for the explicit outbound link, e.g. "Visit TradingView". */
+  linkLabel: string;
+  /** Short, titled claims shown beneath the project's screenshot. Absent means no block, not an empty one. */
+  proofs?: readonly ProjectProof[];
+  /** Small stats shown beside the project's description. Absent means no block, not an empty one. */
+  metrics?: readonly ProofPoint[];
 }
 
 export interface ProjectScreenshot {
   slug: ProjectSlug;
   /** Localized description of the interface shown in the screenshot. */
   alt: string;
+  /** Localized short caption rendered beneath the screenshot. */
+  caption: string;
 }
 
 export const personalPhotoSlugs = [
@@ -77,16 +101,21 @@ export interface LandingContent {
   meta: PageMeta;
   nav: { work: string; about: string; contact: string };
   hero: {
+    /** The name shown near the portrait at the top of the hero. */
+    identity: string;
     eyebrow: string;
-    title: string;
+    /** The two structural phrases of the h1, rendered as separate lines. */
+    titleLines: readonly [string, string];
     body: string;
+    /** The short, uncounted trust signals shown right below the hero. */
+    proofPoints: readonly ProofPoint[];
     workCta: string;
     contactCta: string;
   };
   projectsHeading: string;
   projects: readonly Project[];
   projectScreenshots: readonly ProjectScreenshot[];
-  principles: { heading: string; items: readonly string[] };
+  engineering: { heading: string; items: readonly ProjectProof[] };
   personal: {
     heading: string;
     body: string;

@@ -36,6 +36,7 @@ export function PersonalStrip(_props: PersonalStripProps) {
   return (
     <section
       ref={ref}
+      id="about"
       className={styles.personal}
       aria-labelledby="personal-heading"
       data-motion-personal="true"

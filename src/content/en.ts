@@ -25,9 +25,15 @@ export const en = {
     contact: 'Contact',
   },
   hero: {
-    eyebrow: 'React · TypeScript · Fintech · Product',
-    title: 'Senior Frontend Engineer building ambitious products.',
-    body: 'I design and ship complex interfaces for trading, fintech, and products of my own.',
+    identity: 'Rinat Gumarov',
+    eyebrow: 'Senior Frontend Engineer · React · TypeScript',
+    titleLines: ['Complex interfaces.', 'Effortless interactions.'],
+    body: 'I work on Pine Editor and Strategy Tester at TradingView. I build interfaces for trading, fintech, and products of my own—from architecture to interaction details.',
+    proofPoints: [
+      { value: '9+ years', label: 'in frontend engineering' },
+      { value: 'TradingView', label: 'Pine Editor · Strategy Tester' },
+      { value: 'SplitHub', label: 'co-created in a two-person team' },
+    ],
     workCta: 'View selected work',
     contactCta: 'Get in touch',
   },
@@ -36,13 +42,29 @@ export const en = {
     {
       slug: 'tradingview',
       name: 'TradingView',
-      eyebrow: 'Trading interfaces',
+      eyebrow: '01 / TRADING INTERFACES',
       summary: 'A platform for market analysis and trading.',
       contribution:
-        'Senior Frontend Engineer working across Pine Editor and Strategy Tester with ownership of complex frontend features.',
+        'I work on Pine Editor and Strategy Tester: code editing, version history, and interfaces for analysing trading strategies.',
       capabilities:
         'Complex frontend systems · Performance-sensitive interfaces',
       href: 'https://www.tradingview.com/',
+      variant: 'lead',
+      linkLabel: 'Visit TradingView',
+      proofs: [
+        {
+          title: 'Working with code',
+          body: 'Autosave, version history, visual diffs, and rollback for working with script changes.',
+        },
+        {
+          title: 'Initial rendering',
+          body: 'Monaco and LSP initialization moved out of the critical loading path; version history virtualized.',
+        },
+        {
+          title: 'Editor architecture',
+          body: 'Separate builds for the full editor, detached window, and dialog.',
+        },
+      ],
     },
     {
       slug: 'stoic',
@@ -53,6 +75,8 @@ export const en = {
         'Primary frontend engineer who built the React, TypeScript, and Next.js application from scratch.',
       capabilities: 'React · TypeScript · Next.js',
       href: 'https://stoic.ai/',
+      variant: 'major',
+      linkLabel: 'Visit Stoic',
     },
     {
       slug: 'splithub',
@@ -60,9 +84,15 @@ export const en = {
       eyebrow: 'Product ownership',
       summary: 'An iOS expense-sharing product for groups.',
       contribution:
-        'Co-created the product in a two-person team, shaped its UX, and shipped the SwiftUI app and its backend to 350+ registered users and around 50 daily active users.',
+        'Co-created the product in a two-person team: UX, the SwiftUI app, and its backend.',
       capabilities: 'Product strategy · UX · iOS delivery',
       href: 'https://splithub.app/',
+      variant: 'product',
+      linkLabel: 'Visit SplitHub',
+      metrics: [
+        { value: '350+', label: 'registered users' },
+        { value: 'Around 50', label: 'daily active users' },
+      ],
     },
     {
       slug: 'evercity',
@@ -74,38 +104,52 @@ export const en = {
         'Contributed frontend work on a sustainable-finance platform.',
       capabilities: 'Frontend · Sustainable finance',
       href: 'https://evercity.io/',
+      variant: 'compact',
+      linkLabel: 'Visit Evercity',
     },
   ],
   projectScreenshots: [
     {
       slug: 'tradingview',
       alt: 'TradingView with the Pine Editor open beside a chart and the Strategy Tester listing trades.',
+      caption: 'Pine Editor and Strategy Tester',
     },
     {
       slug: 'stoic',
       alt: 'Stoic strategy selection: exchange and risk filters beside strategy cards with performance charts.',
+      caption: 'Stoic',
     },
     {
       slug: 'splithub',
       alt: 'The SplitHub landing beside the iOS app showing balances by currency and who owes whom.',
+      caption: 'SplitHub',
     },
     {
       slug: 'evercity',
       alt: 'Evercity project catalogue: sustainability filters above carbon project cards.',
+      caption: 'Evercity',
     },
   ],
-  principles: {
-    heading: 'How I work',
+  engineering: {
+    heading: 'Quality lives in the details.',
     items: [
-      'Frontend architecture that keeps complex product surfaces clear and resilient.',
-      'Product thinking that turns ambiguous ideas into focused experiences.',
-      'Performance and interaction quality where every state feels considered.',
-      'Ownership from an early question to a production rollout.',
+      {
+        title: 'Large lists',
+        body: 'Virtualized version history, so the entire list does not need to render at once.',
+      },
+      {
+        title: 'Complex state',
+        body: 'Autosave, history, and restoring previous changes in the editor.',
+      },
+      {
+        title: 'Through to release',
+        body: 'From UX to the SplitHub SwiftUI app and backend in a two-person team.',
+      },
     ],
   },
   personal: {
     heading: 'Beyond the screen',
-    body: 'Curiosity, craft, and focused energy carry beyond my frontend work. I drift a BMW E30 I partly built myself and keep small apps or technical experiments moving alongside it.',
+    body: 'Beyond the screen: surfing, snowboarding, skating, and drifting a BMW E30 I partly built myself. Alongside that, I build small apps and technical experiments.',
     items: ['Surfing', 'Snowboarding', 'Skating', 'Motorcycles', 'Drifting'],
     photos: [
       { slug: 'surf', alt: 'Rinat riding the face of a breaking wave.' },
@@ -124,8 +168,8 @@ export const en = {
   },
   contact: {
     indexLabel: 'Contact',
-    heading: 'Let’s build something ambitious',
-    body: 'Have an ambitious frontend challenge or a product worth building? Let’s talk.',
+    heading: 'Have something in mind? Let’s talk.',
+    body: 'Complex frontend work, a new product, or an interesting collaboration—get in touch.',
     telegramLabel: 'Telegram',
     telegramHref: 'https://t.me/RinatGumarov',
     telegramHandle: '@RinatGumarov',

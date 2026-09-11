@@ -21,9 +21,10 @@ it('presents the localized frontend-first hero with direct conversion links', ()
   expect(
     screen.getByRole('heading', {
       level: 1,
-      name: 'Senior Frontend Engineer building ambitious products.',
+      name: 'Complex interfaces. Effortless interactions.',
     }),
   ).toBeInTheDocument();
+  expect(screen.getByText('Rinat Gumarov')).toBeInTheDocument();
   expect(
     screen.getByRole('link', { name: 'View selected work' }),
   ).toHaveAttribute('href', '#work');
@@ -61,6 +62,13 @@ it('presents the localized frontend-first hero with direct conversion links', ()
   expect(image).toHaveAttribute('alt', '');
   expect(image).toHaveAttribute('loading', 'eager');
   expect(image).toHaveAttribute('fetchpriority', 'high');
+
+  // The two title phrases are structural lines, not a `<br>` inside a string.
+  const heading = screen.getByRole('heading', { level: 1 });
+  expect(heading.querySelectorAll('br')).toHaveLength(0);
+  expect(heading.children).toHaveLength(2);
+  expect(heading.children[0]).toHaveTextContent('Complex interfaces.');
+  expect(heading.children[1]).toHaveTextContent('Effortless interactions.');
 });
 
 it('paints the page heading with a system font so LCP does not wait for Onest', async () => {
@@ -86,7 +94,7 @@ it('reveals the portrait container when the image fails and keeps the copy', () 
   expect(
     screen.getByRole('heading', {
       level: 1,
-      name: 'Senior Frontend Engineer building ambitious products.',
+      name: 'Complex interfaces. Effortless interactions.',
     }),
   ).toBeInTheDocument();
   expect(

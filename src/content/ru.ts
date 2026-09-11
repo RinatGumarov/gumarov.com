@@ -25,9 +25,15 @@ export const ru = {
     contact: 'Контакты',
   },
   hero: {
-    eyebrow: 'React · TypeScript · Fintech · Product',
-    title: 'Senior Frontend Engineer, который создаёт амбициозные продукты.',
-    body: 'Проектирую и запускаю сложные интерфейсы для трейдинга, финтеха и собственных продуктов.',
+    identity: 'Ринат Гумаров',
+    eyebrow: 'Senior Frontend Engineer · React · TypeScript',
+    titleLines: ['Сложные интерфейсы.', 'Простые действия.'],
+    body: 'Развиваю Pine Editor и Strategy Tester в TradingView. Создаю интерфейсы для трейдинга, финтеха и собственных продуктов — от архитектуры до деталей взаимодействия.',
+    proofPoints: [
+      { value: '9+ лет', label: 'frontend-разработки' },
+      { value: 'TradingView', label: 'Pine Editor · Strategy Tester' },
+      { value: 'SplitHub', label: 'продукт в команде из двух человек' },
+    ],
     workCta: 'Смотреть проекты',
     contactCta: 'Связаться',
   },
@@ -36,13 +42,29 @@ export const ru = {
     {
       slug: 'tradingview',
       name: 'TradingView',
-      eyebrow: 'Интерфейсы для трейдинга',
+      eyebrow: '01 / TRADING INTERFACES',
       summary: 'Платформа для анализа рынков и трейдинга.',
       contribution:
-        'Senior Frontend Engineer: развиваю сложные frontend-функции в Pine Editor и Strategy Tester.',
+        'Развиваю Pine Editor и Strategy Tester: редактор кода, историю версий и интерфейсы анализа торговых стратегий.',
       capabilities:
         'Сложные frontend-системы · Интерфейсы с высокими требованиями к производительности',
       href: 'https://www.tradingview.com/',
+      variant: 'lead',
+      linkLabel: 'Открыть TradingView',
+      proofs: [
+        {
+          title: 'Работа с кодом',
+          body: 'Autosave, история версий, visual diff и rollback для работы с изменениями скриптов.',
+        },
+        {
+          title: 'Первый рендер',
+          body: 'Инициализация Monaco и LSP вынесена из критического пути загрузки; история версий виртуализирована.',
+        },
+        {
+          title: 'Архитектура редактора',
+          body: 'Отдельные сборки полного редактора, отдельного окна и диалога.',
+        },
+      ],
     },
     {
       slug: 'stoic',
@@ -53,6 +75,8 @@ export const ru = {
         'Основной frontend-инженер: с нуля создал веб-приложение на React, TypeScript и Next.js.',
       capabilities: 'React · TypeScript · Next.js',
       href: 'https://stoic.ai/',
+      variant: 'major',
+      linkLabel: 'Открыть Stoic',
     },
     {
       slug: 'splithub',
@@ -60,9 +84,15 @@ export const ru = {
       eyebrow: 'Владение продуктом',
       summary: 'iOS-продукт для совместного учёта расходов.',
       contribution:
-        'Создал продукт в команде из двух человек, сформировал UX и довёл SwiftUI-приложение и бэкенд до 350+ зарегистрированных пользователей и примерно 50 активных пользователей в день.',
+        'Создал продукт в команде из двух человек: UX, SwiftUI-приложение и бэкенд.',
       capabilities: 'Продуктовая стратегия · UX · iOS-разработка',
       href: 'https://splithub.app/',
+      variant: 'product',
+      linkLabel: 'Открыть SplitHub',
+      metrics: [
+        { value: '350+', label: 'зарегистрированных пользователей' },
+        { value: 'Примерно 50', label: 'активных пользователей в день' },
+      ],
     },
     {
       slug: 'evercity',
@@ -74,38 +104,52 @@ export const ru = {
         'Участвовал во frontend-разработке платформы устойчивого финансирования.',
       capabilities: 'Frontend · Устойчивое финансирование',
       href: 'https://evercity.io/',
+      variant: 'compact',
+      linkLabel: 'Открыть Evercity',
     },
   ],
   projectScreenshots: [
     {
       slug: 'tradingview',
       alt: 'TradingView: Pine Editor рядом с графиком и Strategy Tester со списком сделок.',
+      caption: 'Pine Editor и Strategy Tester',
     },
     {
       slug: 'stoic',
       alt: 'Выбор стратегии в Stoic: фильтры по биржам и риску рядом с карточками стратегий.',
+      caption: 'Stoic',
     },
     {
       slug: 'splithub',
       alt: 'Лендинг SplitHub рядом с iOS-приложением: балансы по валютам и кто кому должен.',
+      caption: 'SplitHub',
     },
     {
       slug: 'evercity',
       alt: 'Каталог проектов Evercity: фильтры устойчивого развития над карточками углеродных проектов.',
+      caption: 'Evercity',
     },
   ],
-  principles: {
-    heading: 'Как я работаю',
+  engineering: {
+    heading: 'Качество видно в деталях.',
     items: [
-      'Строю frontend-архитектуру, в которой сложные продукты остаются понятными и устойчивыми.',
-      'Превращаю неоднозначные идеи в сфокусированный пользовательский опыт.',
-      'Уделяю внимание производительности и качеству взаимодействия в каждом состоянии интерфейса.',
-      'Беру ответственность за путь от первого вопроса до запуска в production.',
+      {
+        title: 'Большие списки',
+        body: 'Виртуализация истории версий, чтобы не выводить весь список одновременно.',
+      },
+      {
+        title: 'Сложное состояние',
+        body: 'Autosave, история и восстановление предыдущих изменений в редакторе.',
+      },
+      {
+        title: 'Путь до релиза',
+        body: 'От UX до SwiftUI-приложения и бэкенда SplitHub в команде из двух человек.',
+      },
     ],
   },
   personal: {
     heading: 'Вне экрана',
-    body: 'Любознательность, интерес к ремеслу и сфокусированная энергия не заканчиваются на frontend-работе. Катаю дрифт на BMW E30, который частично собирал сам, и параллельно развиваю небольшие приложения и технические эксперименты.',
+    body: 'Вне экрана — сёрфинг, сноуборд, скейт и дрифт на BMW E30, который я частично собирал сам. Параллельно делаю небольшие приложения и технические эксперименты.',
     items: ['Сёрфинг', 'Сноуборд', 'Скейтбординг', 'Мотоциклы', 'Дрифт'],
     photos: [
       { slug: 'surf', alt: 'Ринат едет по склону волны.' },
@@ -127,8 +171,8 @@ export const ru = {
   },
   contact: {
     indexLabel: 'Контакты',
-    heading: 'Давайте сделаем что-то амбициозное',
-    body: 'Есть амбициозная frontend-задача или продукт, который стоит создать? Давайте поговорим.',
+    heading: 'Есть задача? Давайте обсудим.',
+    body: 'Сложный frontend, новый продукт или интересная коллаборация — напишите мне.',
     telegramLabel: 'Telegram',
     telegramHref: 'https://t.me/RinatGumarov',
     telegramHandle: '@RinatGumarov',

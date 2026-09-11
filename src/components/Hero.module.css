@@ -26,6 +26,14 @@
   min-inline-size: 0;
 }
 
+.identity {
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
 .eyebrow {
   display: flex;
   align-items: center;
@@ -60,6 +68,11 @@
   overflow-wrap: normal;
   hyphens: manual;
   text-wrap: balance;
+}
+
+/* Each phrase is a structural line of its own, not a `<br>` inside the string. */
+.titleLine {
+  display: block;
 }
 
 /*

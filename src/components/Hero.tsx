@@ -28,9 +28,11 @@ export function Hero(_props: HeroProps) {
       aria-labelledby="hero-heading"
     >
       <div className={styles.copy} data-motion-enter="copy">
+        <p className={styles.identity}>{content.identity}</p>
         <p className={styles.eyebrow}>{content.eyebrow}</p>
         <h1 className={styles.title} id="hero-heading">
-          {content.title}
+          <span className={styles.titleLine}>{content.titleLines[0]}</span>{' '}
+          <span className={styles.titleLine}>{content.titleLines[1]}</span>
         </h1>
         <p className={styles.body}>{content.body}</p>
         <div className={styles.actions}>
