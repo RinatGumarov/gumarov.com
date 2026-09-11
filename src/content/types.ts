@@ -41,13 +41,31 @@ export interface Project {
   metrics?: readonly ProofPoint[];
 }
 
-export interface ProjectScreenshot {
-  slug: ProjectSlug;
+/**
+ * The projects whose scene renders a bare visual with no `<figure>`, and so has
+ * nowhere to put a caption. A caption declared for one of these reaches no
+ * reader at all — not the page, not a screen reader — so the type refuses it
+ * rather than letting it sit in the content file looking like shipped copy.
+ */
+export const uncaptionedProjectSlugs = ['evercity'] as const;
+export type UncaptionedProjectSlug = (typeof uncaptionedProjectSlugs)[number];
+export type CaptionedProjectSlug = Exclude<ProjectSlug, UncaptionedProjectSlug>;
+
+interface ProjectScreenshotBase {
   /** Localized description of the interface shown in the screenshot. */
   alt: string;
-  /** Localized short caption rendered beneath the screenshot. */
-  caption: string;
 }
+
+export type ProjectScreenshot =
+  | (ProjectScreenshotBase & {
+      slug: CaptionedProjectSlug;
+      /** Localized short caption rendered beneath the screenshot. */
+      caption: string;
+    })
+  | (ProjectScreenshotBase & {
+      slug: UncaptionedProjectSlug;
+      caption?: never;
+    });
 
 export const personalPhotoSlugs = [
   'surf',

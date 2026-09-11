@@ -42,7 +42,7 @@ export const ru = {
     {
       slug: 'tradingview',
       name: 'TradingView',
-      eyebrow: 'TRADING INTERFACES',
+      eyebrow: 'Интерфейсы для трейдинга',
       summary: 'Платформа для анализа рынков и трейдинга.',
       contribution:
         'Развиваю Pine Editor и Strategy Tester: редактор кода, историю версий и интерфейсы анализа торговых стратегий.',
@@ -127,7 +127,6 @@ export const ru = {
     {
       slug: 'evercity',
       alt: 'Каталог проектов Evercity: фильтры устойчивого развития над карточками углеродных проектов.',
-      caption: 'Evercity',
     },
   ],
   engineering: {

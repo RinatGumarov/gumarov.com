@@ -23,7 +23,7 @@ let reducedMedia: FakeMediaQuery;
 let intersectionObservers: FakeObserver[];
 let resizeObservers: FakeObserver[];
 /** Stands in for the FontFaceSet the hook subscribes to. */
-let fontFaceSet: EventTarget;
+let fontFaceSet: FakeFontFaceSet;
 
 beforeEach(() => {
   installEnvironment();
@@ -232,17 +232,29 @@ describe('useHeroLens', () => {
     expect(host.style.getPropertyValue('--lens-y')).toBe('160px');
   });
 
+  /*
+   * `document.fonts` outlives every hero on the page, so a subscription left
+   * behind on unmount is a closure retaining a detached hero — one per locale
+   * navigation, for the life of the document. The assertion therefore watches
+   * the subscription itself rather than any effect of firing the event: the
+   * handler only nulls a closure variable, so no observable side effect of it
+   * reaching a dead hero exists to assert on, and a test written against one
+   * passes whether or not the listener was ever removed.
+   */
   it('stops listening for the font swap once the hero unmounts', () => {
     const host = renderLens();
-    const measure = vi.spyOn(host, 'getBoundingClientRect');
     enter(host, { clientX: 400, clientY: 250 });
+
+    // Live while the hero is mounted — so the release below is a real release,
+    // not a subscription that was never made.
+    expect(fontFaceSet.listenerCount('loadingdone')).toBe(1);
+
     cleanupRender();
-    measure.mockClear();
 
+    expect(fontFaceSet.listenerCount('loadingdone')).toBe(0);
+
+    // And nothing a late swap can do reaches the detached hero.
     fontFaceSet.dispatchEvent(new Event('loadingdone'));
-
-    // A late font swap must not reach a detached hero at all.
-    expect(measure).not.toHaveBeenCalled();
     expect(host.style.getPropertyValue('--lens-opacity')).toBe('');
   });
 
@@ -617,6 +629,42 @@ class FakeMediaQuery {
   }
 }
 
+/**
+ * A real `EventTarget` — the hook's `loadingdone` handler must actually fire —
+ * that additionally keeps the live subscriptions countable, so a test can ask
+ * whether the hero released its listener rather than only whether firing the
+ * event had a visible effect.
+ */
+class FakeFontFaceSet extends EventTarget {
+  private readonly live = new Map<string, Set<unknown>>();
+
+  override addEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject | null,
+    options?: boolean | AddEventListenerOptions,
+  ) {
+    if (listener) {
+      const listeners = this.live.get(type) ?? new Set();
+      listeners.add(listener);
+      this.live.set(type, listeners);
+    }
+    super.addEventListener(type, listener, options);
+  }
+
+  override removeEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject | null,
+    options?: boolean | EventListenerOptions,
+  ) {
+    if (listener) this.live.get(type)?.delete(listener);
+    super.removeEventListener(type, listener, options);
+  }
+
+  listenerCount(type: string) {
+    return this.live.get(type)?.size ?? 0;
+  }
+}
+
 interface FakeObserver {
   observe: ReturnType<typeof vi.fn>;
   disconnect: ReturnType<typeof vi.fn>;
@@ -663,7 +711,7 @@ function installEnvironment() {
   // subscription would be feature-detected away and the font-swap test would
   // pass without ever exercising it.
   vi.stubGlobal('CSS', { supports: () => true });
-  fontFaceSet = new EventTarget();
+  fontFaceSet = new FakeFontFaceSet();
   Object.defineProperty(document, 'fonts', {
     configurable: true,
     value: fontFaceSet,
