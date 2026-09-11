@@ -53,12 +53,20 @@ test('sustained pointer motion stays responsive under four-times CPU throttling'
   await client.send('Emulation.setCPUThrottlingRate', { rate: 4 });
 
   await page.goto('/en/');
-  const firstProject = page.locator('[data-motion-project]').first();
-  const projectVisual = firstProject.locator('[data-motion-parallax]');
-  await firstProject.scrollIntoViewIfNeeded();
+  /*
+   * Only the two side-by-side scenes have a copy column to make sticky: the
+   * lead case is a full-width composition and the closing compact row is a
+   * single line, so neither carries one. Target the first scene that does,
+   * rather than whichever scene happens to come first in the section.
+   */
+  const stickyProject = page
+    .locator('[data-motion-project]:has([data-motion-sticky])')
+    .first();
+  const projectVisual = stickyProject.locator('[data-motion-parallax]');
+  await stickyProject.scrollIntoViewIfNeeded();
 
-  await expect(firstProject).toBeVisible();
-  await expect(firstProject.locator('[data-motion-sticky]')).toHaveCSS(
+  await expect(stickyProject).toBeVisible();
+  await expect(stickyProject.locator('[data-motion-sticky]')).toHaveCSS(
     'position',
     'sticky',
   );
@@ -119,9 +127,11 @@ test('sticky storytelling stays off at tablet width and never captures scrolling
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.goto('/en/');
 
-  const firstProject = page.locator('[data-motion-project]').first();
-  await firstProject.scrollIntoViewIfNeeded();
-  await expect(firstProject.locator('[data-motion-sticky]')).toHaveCSS(
+  const stickyProject = page
+    .locator('[data-motion-project]:has([data-motion-sticky])')
+    .first();
+  await stickyProject.scrollIntoViewIfNeeded();
+  await expect(stickyProject.locator('[data-motion-sticky]')).toHaveCSS(
     'position',
     'static',
   );

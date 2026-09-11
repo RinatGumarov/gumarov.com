@@ -45,8 +45,14 @@ export async function assertCoreContent(page: Page, locale: Locale) {
     await expect(
       page.getByRole('heading', { name: project.name }),
     ).toBeVisible();
+    /*
+     * Every scene also carries a named outbound link ("Visit TradingView"),
+     * whose accessible name contains the product name. Accessible-name
+     * matching is substring by default, so the title link has to be addressed
+     * exactly or the locator resolves to both.
+     */
     await expect(
-      page.getByRole('link', { name: project.name }),
+      page.getByRole('link', { name: project.name, exact: true }),
     ).toHaveAttribute('href', project.href);
   }
 

@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, vi } from 'vitest';
 import { en } from '../content/en';
 import { SelectedWork } from './SelectedWork';
@@ -20,6 +20,7 @@ const expectedProjects = [
       'I work on Pine Editor and Strategy Tester: code editing, version history, and interfaces for analysing trading strategies.',
     capabilities: 'Complex frontend systems · Performance-sensitive interfaces',
     visualName: 'TradingView: 01 / TRADING INTERFACES',
+    linkLabel: 'Visit TradingView',
   },
   {
     name: 'Stoic',
@@ -29,6 +30,7 @@ const expectedProjects = [
       'Primary frontend engineer who built the React, TypeScript, and Next.js application from scratch.',
     capabilities: 'React · TypeScript · Next.js',
     visualName: 'Stoic: Fintech from the ground up',
+    linkLabel: 'Visit Stoic',
   },
   {
     name: 'SplitHub',
@@ -38,6 +40,7 @@ const expectedProjects = [
       'Co-created the product in a two-person team: UX, the SwiftUI app, and its backend.',
     capabilities: 'Product strategy · UX · iOS delivery',
     visualName: 'SplitHub: Product ownership',
+    linkLabel: 'Visit SplitHub',
   },
   {
     name: 'Evercity',
@@ -47,13 +50,14 @@ const expectedProjects = [
       'Contributed frontend work on a sustainable-finance platform.',
     capabilities: 'Frontend · Sustainable finance',
     visualName: 'Evercity: Sustainable finance',
+    linkLabel: 'Visit Evercity',
   },
 ] as const;
 
 describe('selected work', () => {
   beforeEach(() => observeProjectViewOnceMock.mockClear());
 
-  it('renders each approved project mapping and narrative independently', () => {
+  const renderSelectedWork = () =>
     render(
       <SelectedWork
         heading={en.projectsHeading}
@@ -62,6 +66,9 @@ describe('selected work', () => {
         locale="en"
       />,
     );
+
+  it('renders each approved project mapping and narrative independently', () => {
+    renderSelectedWork();
 
     const section = screen.getByRole('region', { name: 'Selected work' });
     const scenes = within(section).getAllByRole('article');
@@ -92,14 +99,7 @@ describe('selected work', () => {
   });
 
   it('shows an approved screenshot where one exists and geometry elsewhere', () => {
-    render(
-      <SelectedWork
-        heading={en.projectsHeading}
-        projects={en.projects}
-        screenshots={en.projectScreenshots}
-        locale="en"
-      />,
-    );
+    renderSelectedWork();
 
     for (const project of expectedProjects) {
       const scene = screen.getByRole('article', { name: project.name });
@@ -136,14 +136,7 @@ describe('selected work', () => {
   });
 
   it('registers each real project scene for locale-aware 50% view tracking', () => {
-    render(
-      <SelectedWork
-        heading={en.projectsHeading}
-        projects={en.projects}
-        screenshots={en.projectScreenshots}
-        locale="en"
-      />,
-    );
+    renderSelectedWork();
 
     expect(observeProjectViewOnceMock).toHaveBeenCalledTimes(4);
     for (const project of expectedProjects) {
@@ -157,5 +150,112 @@ describe('selected work', () => {
         },
       );
     }
+  });
+
+  it('names every outbound destination and points it at that product', () => {
+    renderSelectedWork();
+
+    for (const project of expectedProjects) {
+      const scene = screen.getByRole('article', { name: project.name });
+      const namedLink = within(scene).getByRole('link', {
+        name: project.linkLabel,
+      });
+
+      expect(namedLink).toHaveAttribute('href', project.href);
+      expect(namedLink).toHaveAttribute('target', '_blank');
+      expect(namedLink).toHaveAttribute('rel', 'noopener noreferrer');
+    }
+  });
+
+  it('backs the lead case with its three proof blocks and leaves the rest without', () => {
+    renderSelectedWork();
+
+    const lead = screen.getByRole('article', { name: 'TradingView' });
+    const proofs = en.projects.find(
+      (project) => project.slug === 'tradingview',
+    )?.proofs;
+
+    expect(proofs).toHaveLength(3);
+    for (const proof of proofs ?? []) {
+      expect(
+        within(lead).getByRole('heading', { level: 4, name: proof.title }),
+      ).toBeVisible();
+      expect(within(lead).getByText(proof.body)).toBeVisible();
+    }
+
+    for (const project of expectedProjects.slice(1)) {
+      const scene = screen.getByRole('article', { name: project.name });
+      expect(
+        within(scene).queryAllByRole('heading', { level: 4 }),
+      ).toHaveLength(0);
+    }
+  });
+
+  it('shows the two SplitHub metrics as labeled facts beside the description', () => {
+    renderSelectedWork();
+
+    const scene = screen.getByRole('article', { name: 'SplitHub' });
+    const metrics = scene.querySelector('dl');
+
+    expect(metrics).not.toBeNull();
+    expect(
+      [...(metrics?.querySelectorAll('dt, dd') ?? [])].map((node) =>
+        node.textContent?.trim(),
+      ),
+    ).toEqual(['350+', 'registered users', 'Around 50', 'daily active users']);
+  });
+
+  it('closes the section with a compact row instead of a full visual scene', () => {
+    renderSelectedWork();
+
+    const compact = screen.getByRole('article', { name: 'Evercity' });
+
+    // The three full scenes frame their capture in a figure with a caption;
+    // the closing row carries only a thumbnail, so it has no figure at all.
+    expect(compact.querySelectorAll('figure')).toHaveLength(0);
+    for (const project of expectedProjects.slice(0, 3)) {
+      const scene = screen.getByRole('article', { name: project.name });
+      expect(scene.querySelectorAll('figure')).toHaveLength(1);
+    }
+
+    // The approved capture is still there, just small — not a placeholder.
+    expect(
+      within(compact).getByRole('img', {
+        name: 'Evercity project catalogue: sustainability filters above carbon project cards.',
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the name, description, and link readable when a capture fails', () => {
+    renderSelectedWork();
+
+    const scene = screen.getByRole('article', { name: 'Stoic' });
+    const image = within(scene).getByRole('img', {
+      name: 'Stoic strategy selection: exchange and risk filters beside strategy cards with performance charts.',
+    });
+
+    fireEvent.error(image);
+
+    expect(
+      within(scene).getByRole('heading', { level: 3, name: 'Stoic' }),
+    ).toBeVisible();
+    expect(
+      within(scene).getByText(
+        'A fintech web app for automated trading strategies.',
+      ),
+    ).toBeVisible();
+    expect(
+      within(scene).getByText(
+        'Primary frontend engineer who built the React, TypeScript, and Next.js application from scratch.',
+      ),
+    ).toBeVisible();
+    const namedLink = within(scene).getByRole('link', { name: 'Visit Stoic' });
+    expect(namedLink).toBeVisible();
+    expect(namedLink).toHaveAttribute('href', 'https://stoic.ai/');
+    expect(
+      within(scene).getByRole('img', {
+        name: 'Stoic: Fintech from the ground up',
+      }),
+    ).toHaveAttribute('data-visual-kind', 'abstract-geometry');
   });
 });

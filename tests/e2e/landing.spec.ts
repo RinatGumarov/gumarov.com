@@ -91,15 +91,19 @@ test('exposes official project destinations in both locales', async ({
     const content = getContent(locale);
 
     for (const project of content.projects) {
-      await expect(
-        page.getByRole('link', { name: project.name }),
-      ).toHaveAttribute('href', project.href);
-      await expect(
-        page.getByRole('link', { name: project.name }),
-      ).toHaveAttribute('target', '_blank');
-      await expect(
-        page.getByRole('link', { name: project.name }),
-      ).toHaveAttribute('rel', /noopener/u);
+      // The scene's own named link ("Visit Stoic") also contains the product
+      // name, so the title link is addressed exactly.
+      const titleLink = page.getByRole('link', {
+        name: project.name,
+        exact: true,
+      });
+      const namedLink = page.getByRole('link', { name: project.linkLabel });
+
+      for (const link of [titleLink, namedLink]) {
+        await expect(link).toHaveAttribute('href', project.href);
+        await expect(link).toHaveAttribute('target', '_blank');
+        await expect(link).toHaveAttribute('rel', /noopener/u);
+      }
     }
   }
 });
@@ -218,7 +222,10 @@ test('keyboard traversal reaches primary nav, language switch, and a project lin
     languageNav.getByRole('link', { name: 'Русский' }),
   ).toBeFocused();
 
-  const projectLink = page.getByRole('link', { name: 'TradingView' });
+  const projectLink = page.getByRole('link', {
+    name: 'TradingView',
+    exact: true,
+  });
   await tabUntilFocused(page, projectLink);
   await expect(projectLink).toBeFocused();
   await assertVisibleFocus(page);

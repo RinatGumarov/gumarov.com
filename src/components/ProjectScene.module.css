@@ -3,20 +3,30 @@
   --project-accent-secondary: var(--color-cyan-300);
   position: relative;
   min-inline-size: 0;
+  /*
+   * Every scene sits on the section's twelve-column grid (plan §4) and each
+   * variant declares its own column spans. Nothing is placed by its position
+   * in the list, so adding or reordering a project cannot silently reshuffle
+   * the compositions.
+   */
   display: grid;
-  grid-template-columns: minmax(0, 0.78fr) minmax(19rem, 1.22fr);
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--grid-gap);
+  row-gap: clamp(var(--space-8), 6vw, var(--space-12));
   align-items: center;
-  gap: clamp(var(--space-8), 8vw, var(--space-20));
   padding-block: clamp(var(--space-12), 9vw, var(--space-20));
   border-block-end: 1px solid var(--color-line-strong);
   isolation: isolate;
 }
 
+/*
+ * An accent glow behind the frame. Each side-by-side variant places it on the
+ * side its frame sits on; the lead and compact variants switch it off.
+ */
 .scene::before {
   content: '';
   position: absolute;
   z-index: -1;
-  inset: 10% -4% 10% 45%;
   background: radial-gradient(
     circle at 50% 50%,
     color-mix(in srgb, var(--project-accent) 10%, transparent),
@@ -65,14 +75,15 @@
   margin: clamp(var(--space-10), 6vw, var(--space-14)) 0 0;
 }
 
-.leadFigure .visual {
+.leadVisual {
   width: 100%;
-  /* The frame is a real 2:1 screenshot crop at every breakpoint (plan §4),
-     unlike the generic scenes' 4:3 fallback for narrow viewports. */
-  aspect-ratio: 2 / 1;
 }
 
-.leadCaption {
+/*
+ * Caption and named outbound link, shared by every scene that frames a
+ * capture. The caption explains the capture; the link names its destination.
+ */
+.caption {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -83,11 +94,13 @@
   font-size: var(--text-sm);
 }
 
-.leadLink {
+.outboundLink {
   display: inline-flex;
+  min-block-size: 24px;
   align-items: center;
   gap: var(--space-3);
   color: var(--color-text);
+  font-size: var(--text-sm);
   font-weight: 700;
   text-decoration-color: color-mix(
     in srgb,
@@ -96,7 +109,7 @@
   );
 }
 
-.leadLink:hover {
+.outboundLink:hover {
   color: var(--project-accent-secondary);
 }
 
@@ -150,16 +163,157 @@
   --project-accent-secondary: #82f0b6;
 }
 
-.scene:nth-child(even) {
-  grid-template-columns: minmax(19rem, 1.22fr) minmax(0, 0.78fr);
+/*
+ * Stoic (major): text in four columns on the left, the frame in seven on the
+ * right offset by one column (plan §4, SelectedWork layout).
+ */
+.majorScene::before {
+  inset: 10% -4% 10% 45%;
 }
 
-.scene:nth-child(even) .copy {
-  order: 2;
-}
-
-.copy {
+.majorCopy {
+  grid-column: 1 / span 4;
   min-inline-size: 0;
+}
+
+.majorFigure {
+  grid-row: 1;
+  grid-column: 6 / span 7;
+  margin: 0;
+  min-inline-size: 0;
+}
+
+.majorVisual {
+  width: 100%;
+}
+
+/*
+ * SplitHub (product): the frame takes seven columns on the left, the text four
+ * on the right. The copy stays first in the document so the heading is read
+ * before the capture; only the grid placement moves the frame across.
+ */
+.productScene::before {
+  inset: 10% 45% 10% -4%;
+}
+
+.productCopy {
+  grid-column: 9 / span 4;
+  min-inline-size: 0;
+}
+
+.productFigure {
+  grid-row: 1;
+  grid-column: 1 / span 7;
+  margin: 0;
+  min-inline-size: 0;
+}
+
+/*
+ * The existing SplitHub capture is a single composite of the landing page and
+ * the app, so it is shown whole rather than cropped into a drawn device. The
+ * `.screenshot img` default is `cover`, so this has to out-specify it.
+ */
+.productVisual .screenshot img {
+  object-fit: contain;
+  object-position: center;
+  background-color: var(--color-graphite-950);
+}
+
+/*
+ * Two small metrics inside the copy column. ProofRow is a page-width band in
+ * the hero, so the call-site class has to undo that width, its own rules and
+ * its three-column track; the extra `.productCopy` keeps the override winning
+ * regardless of the order the two stylesheets end up in.
+ */
+.productCopy .metrics {
+  width: auto;
+  margin: var(--space-7) 0 0;
+  padding-block: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+  border-block-end: none;
+}
+
+/* "Around 50" / "Примерно 50" has to stay on one line in a four-column well. */
+.productCopy .metrics dt {
+  font-size: var(--text-xl);
+}
+
+/*
+ * The closing row is bracketed by thin rules rather than the strong dividers
+ * between the full scenes: SplitHub's bottom border is the line above it, and
+ * its own is the line that closes the section.
+ */
+.productScene,
+.compactScene {
+  border-block-end-color: var(--color-line);
+}
+
+/*
+ * Evercity (compact): a single row — four short columns and a thumbnail rather
+ * than a full scene. No fixed height; it is simply built from parts that stay
+ * short.
+ */
+.compactScene {
+  align-items: start;
+  row-gap: var(--space-6);
+  padding-block: var(--space-7);
+}
+
+.compactScene::before {
+  content: none;
+}
+
+.compactIntro {
+  grid-column: 1 / span 3;
+  min-inline-size: 0;
+}
+
+.compactBody {
+  grid-column: 4 / span 5;
+  min-inline-size: 0;
+}
+
+.compactMeta {
+  grid-column: 9 / span 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  align-items: flex-start;
+  min-inline-size: 0;
+}
+
+.compactVisual {
+  grid-column: 11 / span 2;
+  box-shadow: none;
+}
+
+.compactScene .eyebrow {
+  margin-block-end: var(--space-3);
+}
+
+.compactScene .title {
+  font-size: clamp(1.5rem, 2.2vw, 1.875rem);
+  line-height: 1.1;
+}
+
+.compactScene .summary {
+  max-inline-size: none;
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.compactScene .contribution {
+  max-inline-size: none;
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.compactScene .capabilities {
+  max-inline-size: none;
+  margin: 0;
 }
 
 .eyebrow {
@@ -430,22 +584,42 @@
 }
 
 @media (max-width: 56rem) {
-  .scene,
-  .scene:nth-child(even) {
+  /* Below the grid breakpoint every variant collapses to ordinary vertical
+     flow, in document order, with no column placement left in effect. */
+  .scene {
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-10);
+    row-gap: var(--space-10);
   }
 
-  .scene:nth-child(even) .copy {
-    order: initial;
+  .majorCopy,
+  .majorFigure,
+  .productCopy,
+  .productFigure,
+  .compactIntro,
+  .compactBody,
+  .compactMeta,
+  .compactVisual {
+    grid-row: auto;
+    grid-column: 1 / -1;
   }
 
-  .copy {
+  .majorCopy,
+  .productCopy,
+  .compactBody {
     max-inline-size: 42rem;
   }
 
   .visual {
     width: min(100%, 50rem);
+  }
+
+  .compactScene {
+    row-gap: var(--space-6);
+    padding-block: var(--space-10);
+  }
+
+  .compactVisual {
+    width: min(100%, 18rem);
   }
 
   .leadHeader {
@@ -476,7 +650,12 @@
 }
 
 @media (max-width: 30rem) {
-  .visual {
+  /*
+   * Only Stoic's frame relaxes to 4:3 on the narrowest screens. The lead frame
+   * is a real 2:1 crop at every breakpoint, the SplitHub composite must stay
+   * uncropped, and the compact thumbnail is already small.
+   */
+  .majorVisual {
     aspect-ratio: 4 / 3;
   }
 }
