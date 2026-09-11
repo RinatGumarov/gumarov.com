@@ -177,13 +177,27 @@
  * breakpoints (1200px, 768px) rather than one fluid clamp across the whole
  * viewport range. Line-height 1.02 (1.06 on mobile) replaces the previous
  * 0.91, which clipped long Russian headline words.
+ *
+ * The family is `--font-display`, like every other heading on the page, so the
+ * heading finally renders in Onest once the deferred brand stylesheet lands
+ * (plan §7). It is not on the critical path: Onest is never inlined and never
+ * preloaded — `scripts/check-dist.mjs` fails the build for either — so the
+ * heading still paints in a system font and swaps afterwards.
+ *
+ * The fluid step is 8.6vw rather than 8.8vw. Between the clamp's floor and its
+ * ceiling the heading's width is a fixed fraction of the column, so a font
+ * whose advance widths differ by a percent flips the whole band from one line
+ * to two at once. At 8.8vw the Russian first phrase sat 1% over the column in
+ * Onest and a hair under it in the first-paint system font, so every width
+ * from 409px to 636px reflowed by a line when Onest arrived. 8.6vw puts Onest
+ * under the column across that band with room to spare; measured, not felt.
  */
 .title {
   max-inline-size: 1120px;
   margin: 0;
   color: var(--color-text-strong);
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: clamp(2.25rem, 8.8vw, 3.5rem);
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 8.6vw, 3.5rem);
   font-weight: 650;
   letter-spacing: -0.045em;
   line-height: 1.06;
@@ -268,6 +282,32 @@
 .secondaryAction:hover {
   color: var(--color-cyan-200);
   text-decoration-color: var(--color-cyan-400);
+}
+
+/*
+ * The CTA arrow (plan §6): 3px of travel over 160ms, and nothing else. The
+ * transform lands on the arrow glyph, never on the link, so the link box and
+ * its hit area stay exactly where they are — the arrow is `aria-hidden`
+ * decoration inside an inline-flex row, so moving it cannot reflow the label.
+ */
+.primaryAction span,
+.secondaryAction span {
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.primaryAction:hover span,
+.primaryAction:focus-visible span,
+.secondaryAction:hover span,
+.secondaryAction:focus-visible span {
+  transform: translateX(3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .primaryAction span,
+  .secondaryAction span {
+    transition: none;
+    transform: none !important;
+  }
 }
 
 @media (min-width: 48em) {

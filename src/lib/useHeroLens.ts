@@ -182,9 +182,24 @@ export function useHeroLens(
       );
     };
 
+    // Scroll and resize move the hero under the pointer, so the lens would be
+    // drawn against a rect that no longer describes it: drop the measurement
+    // and take the lens down until the next pointer event re-establishes both.
     const invalidate = () => {
       rect = null;
       if (entered || frame) hide();
+    };
+
+    /*
+     * A softer invalidation for reflows the visitor did not cause — a lazy
+     * image settling, the hero's own heading reflowing when Onest swaps in
+     * (plan §7). These move the hero, so the measurement has to go, but they
+     * are not the visitor's doing and taking the lens out from under their
+     * cursor for them is a visible flinch. The next pointer move re-measures,
+     * which for a mouse is the next few milliseconds.
+     */
+    const dropRect = () => {
+      rect = null;
     };
 
     const handlePointer = (event: PointerEvent) => {
@@ -240,8 +255,35 @@ export function useHeroLens(
     });
     intersectionObserver.observe(host);
 
-    const resizeObserver = new window.ResizeObserver(() => invalidate());
+    /*
+     * The hero's own box is not enough. The cached rect holds a viewport
+     * position, so anything that *moves* the hero without resizing it and
+     * without a scroll — the navigation above it reflowing when the deferred
+     * brand stylesheet lands, a lazy image settling — leaves `rect.top` stale
+     * and the lens tracking a position the hero no longer occupies. Observing
+     * the document element catches those: its box changes whenever the page's
+     * height does.
+     *
+     * Both targets take the soft path. A viewport resize is the one resize the
+     * visitor performs, and the `resize` listener below already drops the lens
+     * for it; everything else these observers see is the page settling around
+     * a cursor that has not moved.
+     */
+    const resizeObserver = new window.ResizeObserver(dropRect);
     resizeObserver.observe(host);
+    resizeObserver.observe(document.documentElement);
+
+    /*
+     * And the font swap specifically, because a reflow that moves the hero
+     * without changing the document's height resizes nothing at all. This is
+     * the `loadingdone` event rather than the `ready` promise: `ready` settles
+     * once for the fonts pending when it is read, and the brand faces are
+     * requested long after this effect runs, so the promise would resolve
+     * before the swap it exists to catch.
+     */
+    const fonts = document.fonts as FontFaceSet | undefined;
+    const watchesFonts = typeof fonts?.addEventListener === 'function';
+    if (watchesFonts) fonts.addEventListener('loadingdone', dropRect);
 
     const unsubscribeHover = subscribeToMediaQuery(
       hoverMedia,
@@ -263,6 +305,7 @@ export function useHeroLens(
     window.addEventListener('resize', invalidate, { passive: true });
 
     return () => {
+      if (watchesFonts) fonts.removeEventListener('loadingdone', dropRect);
       cancelFrame();
       host.removeEventListener('pointerenter', handlePointer);
       host.removeEventListener('pointermove', handlePointer);

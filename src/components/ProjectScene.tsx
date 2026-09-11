@@ -169,7 +169,7 @@ export function ProjectScene({
    * — the link stays, keeping the fallback readable rather than captioned.
    */
   const figure = (figureClassName: string | undefined) => (
-    <figure className={figureClassName}>
+    <figure className={[styles.figure, figureClassName].join(' ')}>
       {visual}
       <figcaption className={styles.caption} data-motion-reveal="copy">
         {showsScreenshot && screenshotCaption ? (

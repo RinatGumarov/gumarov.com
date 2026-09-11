@@ -141,15 +141,34 @@ it('hides the decoration from pointers and keeps the lens layer mask-driven', as
   expect(css).not.toMatch(/cursor:\s*none/u);
 });
 
+/*
+ * The heading used to hard-code `ui-sans-serif, system-ui` so it could never
+ * wait on Onest, which also meant it could never *become* Onest (plan §7). It
+ * now uses `--font-display`, and the guarantee moved to where it belongs: the
+ * token's first-paint value. `tokens.css` is what gets inlined into the
+ * document, so as long as it names no webfont the LCP heading still paints in
+ * a system font; `scripts/check-dist.mjs` fails the build on any inlined CSS
+ * that mentions Onest, and on any font preload, so this is checked against the
+ * built output too.
+ */
 it('paints the page heading with a system font so LCP does not wait for Onest', async () => {
-  const css = await readFile(
-    path.join(path.dirname(fileURLToPath(import.meta.url)), 'Hero.module.css'),
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const css = await readFile(path.join(here, 'Hero.module.css'), 'utf8');
+  const tokens = await readFile(
+    path.join(here, '..', 'styles', 'tokens.css'),
     'utf8',
   );
-  const title = css.match(/\.title \{([\s\S]*?)\n\}/u)?.[1] ?? '';
+  const declarations = css.replace(/\/\*[\s\S]*?\*\//gu, '');
+  const title = declarations.match(/\.title \{([\s\S]*?)\n\}/u)?.[1] ?? '';
+  const firstPaintDisplay =
+    tokens.match(/--font-display:\s*([^;]*);/u)?.[1] ?? '';
 
-  expect(title).toMatch(/font-family:\s*(?:ui-sans-serif|system-ui)/u);
-  expect(title).not.toMatch(/var\(--font-display\)/u);
+  expect(title).toMatch(/font-family:\s*var\(--font-display\)/u);
+  expect(firstPaintDisplay).toMatch(/(?:ui-sans-serif|system-ui)/u);
+  expect(firstPaintDisplay).not.toMatch(/Onest/iu);
+  // And nothing in the hero's own stylesheet may name a webfont directly,
+  // which would put it on the critical path whatever the token says.
+  expect(declarations).not.toMatch(/Onest/iu);
 });
 
 it('reveals the portrait container when the image fails and keeps the copy', () => {

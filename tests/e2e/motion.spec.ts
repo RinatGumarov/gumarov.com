@@ -193,8 +193,45 @@ test('missing matchMedia leaves every enhancement in its complete final state', 
     await expect(layer).toHaveCSS('transform', 'none');
   }
   await expect(stickyCopy).toHaveCSS('position', 'static');
-  const ambientAnimation = await page
-    .locator('[data-motion-hero]')
-    .evaluate((element) => getComputedStyle(element, '::before').animationName);
-  expect(ambientAnimation).toBe('none');
+});
+
+/*
+ * This used to read one pseudo-element on the hero, because one ambient
+ * `8s ... infinite` drift lived there. That selector died with the hero
+ * rewrite and the rule was removed; plan §6 forbids the whole category — "not
+ * a single infinite background animation" — so the check is now the category
+ * rather than the one rule that used to break it.
+ */
+test('runs no endlessly looping animation anywhere on the page', async ({
+  page,
+}) => {
+  await page.goto('/en/');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-motion-state',
+    'enabled',
+  );
+
+  const looping = await page.evaluate(() => {
+    const offenders: string[] = [];
+    const describe = (element: Element, pseudo: string) =>
+      `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ''}${pseudo}`;
+
+    for (const element of document.querySelectorAll('*')) {
+      for (const pseudo of ['', '::before', '::after']) {
+        const style = getComputedStyle(element, pseudo || null);
+        if (style.animationName === 'none') continue;
+        const counts = style.animationIterationCount.split(',');
+        if (counts.some((count) => count.trim() === 'infinite')) {
+          offenders.push(
+            `${describe(element, pseudo)} runs ${style.animationName}`,
+          );
+        }
+      }
+    }
+
+    return offenders;
+  });
+
+  expect(looping).toEqual([]);
 });

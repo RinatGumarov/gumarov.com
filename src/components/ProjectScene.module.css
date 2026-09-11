@@ -113,6 +113,23 @@
   color: var(--project-accent-secondary);
 }
 
+/* Plan §6's CTA arrow: 3px over 160ms, on the glyph, never on the link box. */
+.outboundLink span {
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.outboundLink:hover span,
+.outboundLink:focus-visible span {
+  transform: translateX(3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .outboundLink span {
+    transition: none;
+    transform: none !important;
+  }
+}
+
 .leadProofs {
   margin: clamp(var(--space-12), 6vw, var(--space-16)) 0 0;
   padding: 0;
@@ -166,9 +183,17 @@
 /*
  * Stoic (major): text in four columns on the left, the frame in seven on the
  * right offset by one column (plan §4, SelectedWork layout).
+ *
+ * The glow bleeds past the scene on the side its frame sits on, but never past
+ * the page. 4% of a desktop scene is about the size of the 48px gutter it
+ * bleeds into; 4% of a 700px scene is 28px against a 20px gutter, which pushed
+ * the document 2-8px wider than the viewport between 600px and 767px and gave
+ * both locales a horizontal scrollbar. `max()` keeps the percentage wherever it
+ * fits and falls back to exactly the gutter where it does not. The same cap is
+ * on `.productScene::before`, which bleeds the other way.
  */
 .majorScene::before {
-  inset: 10% -4% 10% 45%;
+  inset: 10% max(-4%, calc(-1 * var(--page-gutter))) 10% 45%;
 }
 
 .majorCopy {
@@ -193,7 +218,7 @@
  * before the capture; only the grid placement moves the frame across.
  */
 .productScene::before {
-  inset: 10% 45% 10% -4%;
+  inset: 10% 45% 10% max(-4%, calc(-1 * var(--page-gutter)));
 }
 
 .productCopy {
@@ -422,6 +447,30 @@
   z-index: 2;
   inset: 0;
   display: block;
+  /* Plan §6: hover/focus-within scale 1 -> 1.015 over 240ms. */
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/*
+ * Only the capture moves. The frame is `.visual`, which draws the border, the
+ * ground and the two accent hairlines and is the element the reveal animation
+ * already transforms — putting a second transform there would have two
+ * animations fighting over one element. The caption and its outbound link sit
+ * outside the frame and never move either; `.figure:focus-within` is what
+ * gives a keyboard visitor the same feedback the mouse gets, because the only
+ * focusable thing in the composition is that link.
+ */
+.visual:hover .screenshot,
+.visual:focus-within .screenshot,
+.figure:focus-within .screenshot {
+  transform: scale(1.015);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screenshot {
+    transition: none;
+    transform: none !important;
+  }
 }
 
 .screenshot img {

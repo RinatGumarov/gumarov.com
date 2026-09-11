@@ -22,6 +22,8 @@ let hoverMedia: FakeMediaQuery;
 let reducedMedia: FakeMediaQuery;
 let intersectionObservers: FakeObserver[];
 let resizeObservers: FakeObserver[];
+/** Stands in for the FontFaceSet the hook subscribes to. */
+let fontFaceSet: EventTarget;
 
 beforeEach(() => {
   installEnvironment();
@@ -163,6 +165,85 @@ describe('useHeroLens', () => {
     // Same client point, new rect: 250 - (-150) rather than 250 - 50.
     expect(host.style.getPropertyValue('--lens-y')).toBe('400px');
     expect(host.style.getPropertyValue('--lens-opacity')).toBe('0.38');
+  });
+
+  /*
+   * Scroll, resize and a ResizeObserver on the hero all miss the same case: a
+   * reflow that *moves* the hero without changing its size and without the
+   * visitor scrolling. A late webfont reflowing the navigation above the hero
+   * does exactly that, and the lens then tracks an offset position.
+   */
+  it('watches the document box, not only the hero box', () => {
+    const host = renderLens();
+
+    expect(resizeObservers).toHaveLength(1);
+    expect(resizeObservers[0]?.observe).toHaveBeenCalledWith(host);
+    expect(resizeObservers[0]?.observe).toHaveBeenCalledWith(
+      document.documentElement,
+    );
+  });
+
+  it('keeps the lens under the cursor when the page reflows around it', () => {
+    const host = renderLens();
+    enter(host, { clientX: 400, clientY: 250 });
+    expect(host.style.getPropertyValue('--lens-opacity')).toBe('0.38');
+
+    // A reflow the visitor did not cause — the hero's own heading growing a
+    // line when Onest lands. It invalidates the measurement, but hiding the
+    // lens out from under a cursor that never moved is a visible flinch.
+    setRect(host, { ...heroRect, top: 90 });
+    resizeObservers[0]?.emit(true);
+
+    expect(host.style.getPropertyValue('--lens-opacity')).toBe('0.38');
+
+    fireEvent.pointerMove(host, {
+      pointerType: 'mouse',
+      clientX: 400,
+      clientY: 250,
+    });
+    runUntilSettled();
+
+    expect(host.style.getPropertyValue('--lens-y')).toBe('160px');
+  });
+
+  it('drops the cached rect once the webfonts have swapped in', () => {
+    const host = renderLens();
+    enter(host, { clientX: 400, clientY: 250 });
+    expect(host.style.getPropertyValue('--lens-y')).toBe('200px');
+
+    // The navigation above the hero grows by 40px when Onest lands, so the
+    // hero moves down without resizing and without a scroll event.
+    setRect(host, { ...heroRect, top: 90 });
+    fontFaceSet.dispatchEvent(new Event('loadingdone'));
+
+    // Nothing the visitor did, so the lens stays where their cursor is rather
+    // than flinching away.
+    expect(host.style.getPropertyValue('--lens-opacity')).toBe('0.38');
+
+    fireEvent.pointerMove(host, {
+      pointerType: 'mouse',
+      clientX: 400,
+      clientY: 250,
+    });
+    runUntilSettled();
+
+    // Same client point, new rect: 250 - 90 rather than the stale 250 - 50,
+    // which would have left the lens exactly where it already was.
+    expect(host.style.getPropertyValue('--lens-y')).toBe('160px');
+  });
+
+  it('stops listening for the font swap once the hero unmounts', () => {
+    const host = renderLens();
+    const measure = vi.spyOn(host, 'getBoundingClientRect');
+    enter(host, { clientX: 400, clientY: 250 });
+    cleanupRender();
+    measure.mockClear();
+
+    fontFaceSet.dispatchEvent(new Event('loadingdone'));
+
+    // A late font swap must not reach a detached hero at all.
+    expect(measure).not.toHaveBeenCalled();
+    expect(host.style.getPropertyValue('--lens-opacity')).toBe('');
   });
 
   it('cancels the pending frame on unmount and removes every listener', () => {
@@ -578,7 +659,15 @@ function installEnvironment() {
     ),
   );
 
+  // jsdom ships no FontFaceSet, so without this the hook's `loadingdone`
+  // subscription would be feature-detected away and the font-swap test would
+  // pass without ever exercising it.
   vi.stubGlobal('CSS', { supports: () => true });
+  fontFaceSet = new EventTarget();
+  Object.defineProperty(document, 'fonts', {
+    configurable: true,
+    value: fontFaceSet,
+  });
   vi.stubGlobal(
     'IntersectionObserver',
     makeObserverClass(intersectionObservers),

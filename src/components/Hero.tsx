@@ -44,7 +44,11 @@ export function Hero({ content, motionEnabled }: HeroProps) {
        * below the copy, so the heading, the body and both calls to action
        * stay exactly where they are and stay clickable.
        */}
-      <div className={styles.decor} aria-hidden="true">
+      <div
+        className={styles.decor}
+        aria-hidden="true"
+        data-motion-enter="decor"
+      >
         <HeroBlueprint className={styles.decorBase} layer="base" />
         <HeroBlueprint className={styles.decorLens} layer="lens" />
         <div className={styles.decorScrim} />
