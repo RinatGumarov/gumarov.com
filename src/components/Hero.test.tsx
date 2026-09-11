@@ -16,7 +16,9 @@ vi.mock('../lib/analytics', () => ({
 }));
 
 it('presents the localized frontend-first hero with direct conversion links', () => {
-  const { container } = render(<Hero content={getContent('en').hero} />);
+  const { container } = render(
+    <Hero content={getContent('en').hero} motionEnabled={false} />,
+  );
 
   expect(
     screen.getByRole('heading', {
@@ -72,6 +74,73 @@ it('presents the localized frontend-first hero with direct conversion links', ()
   expect(heading.children[1]).toHaveTextContent('Effortless interactions.');
 });
 
+it('keeps the blueprint decoration out of the accessibility tree and out of the way', () => {
+  const { container } = render(
+    <Hero content={getContent('en').hero} motionEnabled={false} />,
+  );
+  const hero = container.querySelector('[data-hero="landing"]');
+  const blueprints = container.querySelectorAll('[data-hero-blueprint]');
+
+  // The resting drawing and the cyan copy the lens reveals.
+  expect(blueprints).toHaveLength(2);
+  expect(blueprints[0]).toHaveAttribute('data-hero-blueprint', 'base');
+  expect(blueprints[1]).toHaveAttribute('data-hero-blueprint', 'lens');
+
+  for (const blueprint of blueprints) {
+    // Decorative: never announced, never focusable, never a heading.
+    expect(blueprint).toHaveAttribute('aria-hidden', 'true');
+    expect(blueprint).toHaveAttribute('focusable', 'false');
+    expect(blueprint.closest('[aria-hidden="true"]')).not.toBeNull();
+    expect(blueprint.querySelector('title')).toBeNull();
+    expect(blueprint.querySelector('[tabindex]')).toBeNull();
+  }
+
+  // The decoration is painted first so the copy sits above it.
+  expect(hero?.firstElementChild).toHaveAttribute('aria-hidden', 'true');
+  expect(hero?.firstElementChild).toContainElement(
+    blueprints[0] as HTMLElement,
+  );
+  // No hook ran, so nothing wrote a lens position onto the host.
+  expect((hero as HTMLElement).style.getPropertyValue('--lens-opacity')).toBe(
+    '',
+  );
+});
+
+it('drives exactly one pointer effect in the hero', () => {
+  const { container } = render(
+    <Hero content={getContent('en').hero} motionEnabled={false} />,
+  );
+  const hero = container.querySelector('[data-hero="landing"]');
+
+  // Plan §5: the lens is the hero's only pointer-driven motion, so a hero
+  // parallax must not be summed on top of it. The attributes below are what
+  // the shared parallax layer in motion.css keys off.
+  expect(hero?.querySelectorAll('[data-motion-parallax]')).toHaveLength(0);
+  expect(hero?.querySelectorAll('[data-motion-parallax-layer]')).toHaveLength(
+    0,
+  );
+});
+
+it('hides the decoration from pointers and keeps the lens layer mask-driven', async () => {
+  const css = await readFile(
+    path.join(path.dirname(fileURLToPath(import.meta.url)), 'Hero.module.css'),
+    'utf8',
+  );
+  const decor = css.match(/\.decor \{([\s\S]*?)\n\}/u)?.[1] ?? '';
+  const lens = css.match(/\.decorLens \{([\s\S]*?)\n\}/u)?.[1] ?? '';
+
+  expect(decor).toMatch(/pointer-events:\s*none/u);
+  // The drawing must never widen the page.
+  expect(decor).toMatch(/overflow:\s*clip/u);
+  // The reveal is a mask over the same drawing, not a glowing circle.
+  expect(lens).toMatch(/mask-image:\s*radial-gradient/u);
+  expect(lens).toMatch(/var\(--lens-x/u);
+  expect(lens).toMatch(/var\(--lens-y/u);
+  expect(lens).toMatch(/opacity:\s*var\(--lens-opacity, 0\)/u);
+  // The system cursor is never hidden or replaced.
+  expect(css).not.toMatch(/cursor:\s*none/u);
+});
+
 it('paints the page heading with a system font so LCP does not wait for Onest', async () => {
   const css = await readFile(
     path.join(path.dirname(fileURLToPath(import.meta.url)), 'Hero.module.css'),
@@ -84,7 +153,9 @@ it('paints the page heading with a system font so LCP does not wait for Onest', 
 });
 
 it('reveals the portrait container when the image fails and keeps the copy', () => {
-  const { container } = render(<Hero content={getContent('en').hero} />);
+  const { container } = render(
+    <Hero content={getContent('en').hero} motionEnabled={false} />,
+  );
   const picture = container.querySelector('[data-hero="landing"] picture');
   const image = picture?.querySelector('img');
 
@@ -109,7 +180,7 @@ it('reveals the portrait container when the image fails and keeps the copy', () 
 
 it('keeps the internal hero contact jump out of channel click analytics', async () => {
   const user = userEvent.setup();
-  render(<Hero content={getContent('en').hero} />);
+  render(<Hero content={getContent('en').hero} motionEnabled={false} />);
   const contactJump = screen.getByRole('link', { name: 'Get in touch' });
   contactJump.addEventListener('click', (event) => event.preventDefault());
 

@@ -638,9 +638,11 @@ function validateScriptlessDocument(routeFile, html, content) {
   );
 
   const requiredHeadings = [
-    content.hero.title,
+    // The h1 is two structural phrases in two spans, so both have to survive
+    // into the scriptless document, not just the first.
+    ...content.hero.titleLines,
     content.projectsHeading,
-    content.principles.heading,
+    content.engineering.heading,
     content.personal.heading,
     content.contact.heading,
     ...content.projects.map((project) => project.name),
@@ -1281,7 +1283,7 @@ function collectContentRequirements(content) {
 
 function collectRequirements(value, pathName, key, requirements) {
   if (typeof value === 'string') {
-    if (key !== 'slug' && value !== '') {
+    if (!isStructuralField(key) && value !== '') {
       requirements.push({
         kind: isDestinationField(key)
           ? 'destination'
@@ -1312,6 +1314,18 @@ function collectRequirements(value, pathName, key, requirements) {
       );
     }
   }
+}
+
+/**
+ * Identifiers and rendering discriminators are not copy. `slug` names an asset
+ * and `variant` picks a scene composition; neither is ever page text, and
+ * demanding them as visible content is not merely wrong but unstable — the
+ * English hero happens to contain the word "product", so the requirement for
+ * `projects[2].variant` passed on `/en/` and failed on `/ru/` purely by
+ * accident of prose.
+ */
+function isStructuralField(key) {
+  return key === 'slug' || key === 'variant';
 }
 
 function isDestinationField(key) {

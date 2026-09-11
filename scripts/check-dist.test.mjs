@@ -336,7 +336,7 @@ describe(
           path: 'projects[0].contribution',
           value: 'TradingView contribution',
         },
-        { path: 'principles.items[0]', value: 'Working principle.' },
+        { path: 'engineering.items[0].body', value: 'Working principle.' },
         { path: 'personal.body', value: 'Personal story.' },
         { path: 'contact.heading', value: 'Let’s talk' },
       ];
@@ -700,6 +700,38 @@ describe(
       );
       expect(result.stderr).toContain(
         'ru/index.html: Telegram handle "@RinatGumarov" is missing without JavaScript',
+      );
+      expect(result.status).toBe(1);
+    });
+
+    it('never demands a scene discriminator as visible page text', async () => {
+      const fixture = await createDistributionFixture();
+
+      const result = runChecker(fixture.distDirectory);
+
+      // `variant` is in the content model and rendered nowhere. Demanding it
+      // as page text is not just wrong, it is unstable: whether the string
+      // "product" happens to occur in a locale's prose decided the result.
+      expect(result.stderr).not.toContain('.variant');
+      expect(result.status).toBe(0);
+    });
+
+    it('requires every phrase of the two-line h1, not just the first', async () => {
+      const fixture = await createDistributionFixture({
+        transformHtmlByRoute: {
+          'ru/index.html': (html) =>
+            html.replace('<span>Простые действия.</span>', ''),
+        },
+      });
+
+      const result = runChecker(fixture.distDirectory);
+
+      expect(result.stderr).toContain(
+        'ru/index.html: heading "Простые действия." is missing without JavaScript',
+      );
+      // The surviving phrase must not be what makes the check pass.
+      expect(result.stderr).not.toContain(
+        'ru/index.html: heading "Сложные интерфейсы." is missing',
       );
       expect(result.status).toBe(1);
     });
@@ -1295,30 +1327,41 @@ function createContent(locale, heroBody) {
     },
     hero: {
       eyebrow: 'React · TypeScript',
-      title: isRussian
-        ? 'Senior Frontend Engineer, который создаёт амбициозные продукты.'
-        : 'Senior Frontend Engineer building ambitious products.',
+      // Two structural phrases rendered as two spans inside one h1, exactly
+      // as the application renders them.
+      titleLines: isRussian
+        ? ['Сложные интерфейсы.', 'Простые действия.']
+        : ['Complex interfaces.', 'Effortless interactions.'],
       body: heroBody,
       workCta: isRussian ? 'Смотреть проекты' : 'View work',
       contactCta: isRussian ? 'Связаться' : 'Contact me',
     },
     projectsHeading: isRussian ? 'Избранные проекты' : 'Selected work',
     projects: [
-      ['tradingview', 'TradingView', 'https://www.tradingview.com/'],
-      ['stoic', 'Stoic', 'https://stoic.ai/'],
-      ['splithub', 'SplitHub', 'https://splithub.app/'],
-      ['evercity', 'Evercity', 'https://evercity.io/'],
-    ].map(([slug, name, href]) => ({
+      ['tradingview', 'TradingView', 'https://www.tradingview.com/', 'lead'],
+      ['stoic', 'Stoic', 'https://stoic.ai/', 'major'],
+      ['splithub', 'SplitHub', 'https://splithub.app/', 'product'],
+      ['evercity', 'Evercity', 'https://evercity.io/', 'compact'],
+    ].map(([slug, name, href, variant]) => ({
       slug,
       name,
+      // A rendering discriminator, never page text — see the fixture's
+      // `visit`, which does not render it, and the checker, which must not
+      // demand it.
+      variant,
       eyebrow: `${name} eyebrow`,
       summary: `${name} summary`,
       contribution: `${name} contribution`,
       href,
     })),
-    principles: {
+    engineering: {
       heading: isRussian ? 'Как я работаю' : 'How I work',
-      items: [isRussian ? 'Принцип работы.' : 'Working principle.'],
+      items: [
+        {
+          title: isRussian ? 'Инженерный подход' : 'Engineering approach',
+          body: isRussian ? 'Принцип работы.' : 'Working principle.',
+        },
+      ],
     },
     personal: {
       heading: isRussian ? 'Вне экрана' : 'Beyond the screen',
@@ -1354,8 +1397,18 @@ function renderFixtureDocument({
   heroMarkup,
   omittedValues,
 }) {
+  // One h1 holding both title phrases as spans, mirroring the application.
+  // Both phrases are taken out of the flat value list so neither is emitted a
+  // second time as a heading of its own.
+  const titleLines = content.hero.titleLines.filter(
+    (line) => !omittedValues.has(line),
+  );
+  const headingMarkup = titleLines.length
+    ? `<h1>${titleLines.map((line) => `<span>${escapeHtml(line)}</span>`).join(' ')}</h1>`
+    : '';
   const visibleValues = collectVisibleStrings(content).filter(
-    (value) => !omittedValues.has(value),
+    (value) =>
+      !omittedValues.has(value) && !content.hero.titleLines.includes(value),
   );
   const headingElements = collectHeadingElements(content);
   const renderedValues = visibleValues
@@ -1384,14 +1437,15 @@ function renderFixtureDocument({
     content,
   }).join('');
 
-  return `<!doctype html><html lang="${locale}"><head>${pageMetadata}${head}${bootstrap}</head><body><div id="root"><a href="#main-content">Skip to content</a><header></header><main id="main-content" data-fixture-route="${file}"><section data-hero>${heroMarkup}</section>${renderedValues}${personalFrames}</main><footer></footer></div></body></html>`;
+  return `<!doctype html><html lang="${locale}"><head>${pageMetadata}${head}${bootstrap}</head><body><div id="root"><a href="#main-content">Skip to content</a><header></header><main id="main-content" data-fixture-route="${file}"><section data-hero>${heroMarkup}</section>${headingMarkup}${renderedValues}${personalFrames}</main><footer></footer></div></body></html>`;
 }
 
+// The h1 is not here: its two phrases are rendered together as one heading by
+// `renderFixtureDocument`, the way the application renders them.
 function collectHeadingElements(content) {
   return new Map([
-    [content.hero.title, 'h1'],
     [content.projectsHeading, 'h2'],
-    [content.principles.heading, 'h2'],
+    [content.engineering.heading, 'h2'],
     [content.personal.heading, 'h2'],
     [content.contact.heading, 'h2'],
     ...content.projects.map((project) => [project.name, 'h3']),
@@ -1407,8 +1461,12 @@ function collectVisibleStrings(content) {
 
 function visit(value, key, values) {
   if (typeof value === 'string') {
-    // `alt` is rendered as an image attribute, not as page text.
-    if (key !== 'slug' && key !== 'alt' && value !== '') values.push(value);
+    // `alt` reaches the page as an image attribute; `slug` names an asset and
+    // `variant` picks a composition. None of the three is ever page text, so
+    // the fixture renders none of them — which is what lets the checker's own
+    // handling of them be tested rather than assumed.
+    const structural = key === 'slug' || key === 'alt' || key === 'variant';
+    if (!structural && value !== '') values.push(value);
     return;
   }
   if (Array.isArray(value)) {

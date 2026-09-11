@@ -58,7 +58,10 @@ for (const locale of qualityLocales) {
           ).not.toContain(ruleId);
         }
 
-        await assertSingleHeadingHierarchy(page, content.hero.title);
+        await assertSingleHeadingHierarchy(
+          page,
+          content.hero.titleLines.join(' '),
+        );
         await assertLandmarkOrder(page);
         await assertImageAlternativeText(page);
         await assertPrimaryTargetSizes(page, locale);

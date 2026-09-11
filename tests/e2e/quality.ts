@@ -24,14 +24,15 @@ export async function assertCoreContent(page: Page, locale: Locale) {
   const content = getContent(locale);
 
   await expect(page.locator('html')).toHaveAttribute('lang', locale);
+  // The h1 is two phrases in two spans; its accessible text is both of them.
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    content.hero.title,
+    content.hero.titleLines.join(' '),
   );
   await expect(
     page.getByRole('heading', { name: content.projectsHeading }),
   ).toBeVisible();
   await expect(
-    page.getByRole('heading', { name: content.principles.heading }),
+    page.getByRole('heading', { name: content.engineering.heading }),
   ).toBeVisible();
   await expect(
     page.getByRole('heading', { name: content.personal.heading }),

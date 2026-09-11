@@ -12,7 +12,12 @@ const motionEnhancementQuery = '(prefers-reduced-motion: no-preference)';
 const coarsePointerQuery = '(pointer: coarse)';
 const maximumParallax = 4;
 
-function getMediaQuery(query: string): MediaQueryList | null {
+/**
+ * A media query, or `null` when the environment cannot answer one — during a
+ * server render, or in a browser without `matchMedia`. Shared with
+ * `useHeroLens`, which has the same "no query, no enhancement" contract.
+ */
+export function getMediaQuery(query: string): MediaQueryList | null {
   if (
     typeof window === 'undefined' ||
     typeof window.matchMedia !== 'function'

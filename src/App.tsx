@@ -40,7 +40,9 @@ function buildPersonalPhotos(
 }
 
 export function App({ locale }: { locale: Locale }) {
-  useMotionEnhancementGate();
+  // The page's single motion gate. Its answer is passed down rather than
+  // re-derived, so no component installs a second root-mutating gate.
+  const motionEnabled = useMotionEnhancementGate();
   useSectionHash(sectionIds);
   const content = getContent(locale);
   const personalPhotos = buildPersonalPhotos(content.personal.photos);
@@ -49,7 +51,7 @@ export function App({ locale }: { locale: Locale }) {
     <>
       <Navigation locale={locale} labels={content.nav} />
       <main id="main-content" data-locale={locale} tabIndex={-1}>
-        <Hero content={content.hero} />
+        <Hero content={content.hero} motionEnabled={motionEnabled} />
 
         <ProofRow points={content.hero.proofPoints} />
 

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { LandingContent } from '../content';
-import { usePointerParallax } from '../lib/motion';
+import { useHeroLens } from '../lib/useHeroLens';
+import { HeroBlueprint } from './HeroBlueprint';
 import styles from './Hero.module.css';
 
 const portraitSources = {
@@ -15,30 +16,49 @@ const portraitSizes = '56px';
 
 interface HeroProps {
   content: LandingContent['hero'];
+  /**
+   * The boolean from the application's single `useMotionEnhancementGate()`.
+   * The hero never runs a gate of its own — there is exactly one
+   * root-mutating gate on the page, and it lives in `App`.
+   */
+  motionEnabled: boolean;
 }
 
-export function Hero(_props: HeroProps) {
-  const { content } = _props;
-  const portraitMotion = usePointerParallax<HTMLPictureElement>();
+export function Hero({ content, motionEnabled }: HeroProps) {
   const [portraitFailed, setPortraitFailed] = useState(false);
+  const heroRef = useRef<HTMLElement>(null);
+
+  useHeroLens(heroRef, motionEnabled);
 
   return (
     <section
+      ref={heroRef}
       className={styles.hero}
       data-hero="landing"
       data-motion-hero="true"
       aria-labelledby="hero-heading"
     >
+      {/*
+       * The engineering drawing (plan §5). Purely decorative: hidden from
+       * assistive technology, transparent to pointer events, and painted
+       * below the copy, so the heading, the body and both calls to action
+       * stay exactly where they are and stay clickable.
+       */}
+      <div className={styles.decor} aria-hidden="true">
+        <HeroBlueprint className={styles.decorBase} layer="base" />
+        <HeroBlueprint className={styles.decorLens} layer="lens" />
+        <div className={styles.decorScrim} />
+      </div>
+
       <div className={styles.identityRow} data-motion-enter="portrait">
+        {/*
+         * No pointer parallax here. The lens is the hero's only
+         * pointer-driven motion (plan §5: «Дополнительный parallax hero:
+         * отсутствует: не суммировать с линзой»), so one mouse move drives one
+         * effect — and nothing in the hero reads layout on every pointer move.
+         */}
         <div className={styles.portrait} aria-hidden="true">
-          <picture
-            ref={portraitMotion.ref}
-            data-image-state={portraitFailed ? 'failed' : undefined}
-            data-motion-parallax="true"
-            data-motion-parallax-layer="true"
-            onPointerMove={portraitMotion.onPointerMove}
-            onPointerLeave={portraitMotion.onPointerLeave}
-          >
+          <picture data-image-state={portraitFailed ? 'failed' : undefined}>
             <source
               type="image/avif"
               srcSet={portraitSources.avif}

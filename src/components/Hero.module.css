@@ -11,6 +11,96 @@
   }
 }
 
+/*
+ * The engineering lens (plan §5). Three stacked decorative layers below the
+ * copy: the resting drawing, the cyan copy of the same drawing clipped to a
+ * circular mask, and a soft scrim that keeps the text area readable. The host
+ * `.hero` carries `--lens-x`, `--lens-y`, `--lens-opacity`, `--lens-fade` and
+ * `--lens-radius`, all written by `useHeroLens`.
+ *
+ * `overflow: clip` sits here rather than on `.hero` so the drawing can never
+ * widen the page, while focus rings on the actions stay unclipped.
+ */
+.decor {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: clip;
+  pointer-events: none;
+}
+
+.decor svg {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+/* Not an inherited property, so it is set here instead of on every node. */
+.decor :is(rect, path, circle, polyline) {
+  vector-effect: non-scaling-stroke;
+  stroke-width: 1;
+}
+
+.decorBase {
+  color: var(--color-text-muted);
+  opacity: 0.1;
+}
+
+/*
+ * The revealed layer. Fully opaque out to 55% of the lens radius, then a
+ * linear falloff to nothing at the edge. Parked off-canvas until the first
+ * pointer event, so it can never appear at a corner before the hook has a
+ * real position; the fade only ever runs on opacity, so the position never
+ * animates.
+ */
+.decorLens {
+  color: var(--color-cyan-300);
+  opacity: var(--lens-opacity, 0);
+  transition: opacity var(--lens-fade, 180ms) ease-out;
+  -webkit-mask-image: radial-gradient(
+    circle var(--lens-radius, 160px) at var(--lens-x, -50vw)
+      var(--lens-y, -50vh),
+    #000 0 55%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(
+    circle var(--lens-radius, 160px) at var(--lens-x, -50vw)
+      var(--lens-y, -50vh),
+    #000 0 55%,
+    transparent 100%
+  );
+}
+
+/*
+ * A constant, soft ground under the *small* copy — the body paragraph and the
+ * actions — and nothing more (plan §5 layer 4, which is conditional on the
+ * drawing hurting readability).
+ *
+ * It deliberately stops short of the h1. The heading is 64px at weight 650 in
+ * near-white; hairlines behind it cost it nothing measurable, while the
+ * heading band is exactly where a visitor's cursor spends its time, so
+ * scrimming it was what made the reveal read as a faint glow. The 17px muted
+ * body text is the copy that genuinely needs the ground, and it sits lower.
+ */
+.decorScrim {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    46% 34% at 24% 80%,
+    rgb(8 11 15 / 0.74) 0%,
+    rgb(8 11 15 / 0.34) 52%,
+    transparent 84%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .decorLens {
+    opacity: 0 !important;
+    transition: none !important;
+  }
+}
+
 .identityRow {
   position: relative;
   z-index: 1;
