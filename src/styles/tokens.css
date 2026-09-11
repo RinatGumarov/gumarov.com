@@ -50,6 +50,39 @@
   --shadow-deep: 0 2rem 5rem rgb(0 0 0 / 0.34);
   --content-reading: 46rem;
   --content-default: 72rem;
-  --content-wide: 88rem;
-  --page-gutter: clamp(1rem, 4vw, 4rem);
+  /* Desktop max width from the redesign's grid contract (plan §4): 1280px. */
+  --content-wide: 80rem;
+
+  /*
+   * Grid gutters, column gap and intersection spacing from the redesign's
+   * grid contract (plan §4). Values are stepped at the plan's own
+   * breakpoints (768px, 1200px) rather than fluid, so they land on exact
+   * pixel values instead of interpolating between them.
+   */
+  --page-gutter: 20px;
+  --grid-gap: 16px;
+  --section-spacing: 64px;
+}
+
+@media (min-width: 48em) {
+  :root {
+    --page-gutter: 32px;
+    --grid-gap: 20px;
+    --section-spacing: 80px;
+  }
+}
+
+@media (min-width: 75em) {
+  :root {
+    --page-gutter: 48px;
+    --grid-gap: 24px;
+    --section-spacing: 112px;
+  }
+}
+
+/* The grid contract calls out 320px specifically: gutters drop to 16px there. */
+@media (max-width: 20em) {
+  :root {
+    --page-gutter: 16px;
+  }
 }

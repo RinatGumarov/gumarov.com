@@ -1,181 +1,41 @@
 .hero {
   position: relative;
   width: min(100% - (2 * var(--page-gutter)), var(--content-wide));
-  min-block-size: min(54rem, calc(100svh - 76px));
   margin-inline: auto;
-  display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(16rem, 0.75fr);
-  align-items: center;
-  gap: clamp(var(--space-8), 7vw, var(--space-16));
-  padding-block: clamp(var(--space-12), 10vw, var(--space-20));
+  padding-block: 40px 32px;
 }
 
-.hero::before {
-  content: '';
-  position: absolute;
-  inset-block: 0;
-  inset-inline-start: calc(65% - 1px);
-  inline-size: 1px;
-  background: var(--color-line);
-  pointer-events: none;
+@media (min-width: 48em) {
+  .hero {
+    padding-block: 64px 48px;
+  }
 }
 
-.copy {
+.identityRow {
   position: relative;
   z-index: 1;
-  min-inline-size: 0;
-}
-
-.identity {
-  margin: 0 0 var(--space-4);
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-
-.eyebrow {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  margin: 0 0 var(--space-7);
-  color: var(--color-amber-300);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  line-height: 1.5;
-  text-transform: uppercase;
-}
-
-.eyebrow::before {
-  content: '';
-  inline-size: 2.75rem;
-  block-size: 1px;
-  flex: 0 0 auto;
-  background: currentColor;
-}
-
-.title {
-  max-inline-size: 10.5ch;
-  margin: 0;
-  color: var(--color-text-strong);
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: clamp(3rem, 7.4vw, 7.75rem);
-  font-weight: 660;
-  letter-spacing: -0.055em;
-  line-height: 0.91;
-  overflow-wrap: normal;
-  hyphens: manual;
-  text-wrap: balance;
-}
-
-/* Each phrase is a structural line of its own, not a `<br>` inside the string. */
-.titleLine {
-  display: block;
-}
-
-/*
- * Russian headline words are longer than the English measure, so the shared
- * 10.5ch line length used to break words such as "амбициозные" in the middle.
- * Widening the measure and softening the type scale keeps every word intact
- * while staying inside the hero column at 320px and above.
- */
-:global(html[lang='ru']) .title {
-  max-inline-size: 12.5ch;
-  font-size: clamp(2.5rem, 6.4vw, 6.75rem);
-}
-
-.body {
-  max-inline-size: 39rem;
-  margin: var(--space-8) 0 0;
-  color: var(--color-text-muted);
-  font-size: clamp(var(--text-lg), 2vw, var(--text-xl));
-  line-height: 1.6;
-}
-
-.actions {
-  margin-block-start: var(--space-9);
-  display: flex;
-  flex-wrap: wrap;
   gap: var(--space-4);
-}
-
-.primaryAction,
-.secondaryAction {
-  display: inline-flex;
-  min-block-size: 52px;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-4);
-  padding-inline: var(--space-6);
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  font-weight: 750;
-  letter-spacing: 0.015em;
-  text-decoration: none;
-}
-
-.primaryAction {
-  color: var(--color-graphite-950);
-  background: var(--color-cyan-300);
-}
-
-.primaryAction:hover {
-  background: var(--color-cyan-200);
-}
-
-.secondaryAction {
-  color: var(--color-text);
-  border-color: var(--color-line-strong);
-  background: var(--color-surface-glass);
-}
-
-.secondaryAction:hover {
-  color: var(--color-cyan-200);
-  border-color: var(--color-cyan-400);
+  margin-block-end: var(--space-8);
 }
 
 .portrait {
   position: relative;
-  min-inline-size: 0;
-  margin: 0;
+  flex: 0 0 auto;
+  inline-size: 56px;
+  block-size: 70px;
   isolation: isolate;
 }
 
 .portrait picture {
   position: relative;
   display: block;
-  aspect-ratio: 4 / 5;
+  inline-size: 100%;
+  block-size: 100%;
   overflow: hidden;
   border: 1px solid var(--color-line-strong);
   background-color: var(--color-graphite-800);
-  background-image:
-    linear-gradient(var(--color-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--color-line) 1px, transparent 1px);
-  background-size: 4rem 4rem;
-  box-shadow: var(--shadow-deep);
-}
-
-.portrait picture::before,
-.portrait picture::after {
-  content: '';
-  position: absolute;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.portrait picture::before {
-  inset: 0;
-  background:
-    linear-gradient(135deg, rgb(26 174 210 / 0.1), transparent 38%),
-    linear-gradient(180deg, transparent 46%, rgb(8 11 15 / 0.44));
-}
-
-.portrait picture::after {
-  inset: 8%;
-  border: 1px solid var(--color-line-strong);
 }
 
 .portrait img {
@@ -185,83 +45,165 @@
   object-fit: cover;
 }
 
-/* A failed portrait leaves the framed container, its caption, and the hero copy in place. */
+/* A failed portrait leaves the framed container and the hero copy in place. */
 .portrait picture[data-image-state='failed'] img {
   visibility: hidden;
 }
 
-.portrait figcaption {
-  position: absolute;
-  z-index: 2;
-  inset: auto var(--space-5) var(--space-5);
+.identityText {
+  min-inline-size: 0;
+}
+
+.identity {
+  margin: 0;
+  color: var(--color-text-strong);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.eyebrow {
   display: flex;
-  justify-content: space-between;
-  color: var(--color-text-subtle);
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-1) 0 0;
+  color: var(--color-amber-300);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.1em;
+  line-height: 1.5;
 }
 
-@media (max-width: 64rem) {
-  .hero {
-    min-block-size: auto;
-    grid-template-columns: minmax(0, 1fr) minmax(15rem, 0.6fr);
-  }
+.copy {
+  position: relative;
+  z-index: 1;
+  min-inline-size: 0;
+}
 
-  .hero::before {
-    inset-inline-start: 62%;
-  }
+/*
+ * H1 sizing/tracking per the grid contract (plan §4): a fixed weight and
+ * tracking, with a font-size and line-height that step at the plan's own
+ * breakpoints (1200px, 768px) rather than one fluid clamp across the whole
+ * viewport range. Line-height 1.02 (1.06 on mobile) replaces the previous
+ * 0.91, which clipped long Russian headline words.
+ */
+.title {
+  max-inline-size: 1120px;
+  margin: 0;
+  color: var(--color-text-strong);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(2.25rem, 8.8vw, 3.5rem);
+  font-weight: 650;
+  letter-spacing: -0.045em;
+  line-height: 1.06;
+  overflow-wrap: normal;
+  hyphens: manual;
+  text-wrap: balance;
+}
 
+.titleLine {
+  display: block;
+}
+
+/*
+ * The second phrase is the hero's one deliberate colour accent (plan §3.2):
+ * the first phrase stays the strong off-white the rest of the heading uses,
+ * the second renders in cyan. No other text in the hero carries colour
+ * besides this and the actions.
+ */
+.titleLineAccent {
+  color: var(--color-cyan-300);
+}
+
+.body {
+  max-inline-size: 680px;
+  margin: var(--space-8) 0 0;
+  color: var(--color-text-muted);
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.actions {
+  margin-block-start: var(--space-9);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+/*
+ * "Светлая" (plan §3.2) means the near-white surface, not cyan — cyan is the
+ * hero's one deliberate accent, spent on the h1's second phrase. Keeping the
+ * button cyan too would put that accent in two places and flatten the
+ * hierarchy the plan is building.
+ */
+.primaryAction {
+  display: inline-flex;
+  min-block-size: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding-inline: var(--space-6);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-graphite-950);
+  background: var(--color-text-strong);
+  font-size: var(--text-sm);
+  font-weight: 750;
+  letter-spacing: 0.015em;
+  text-decoration: none;
+}
+
+.primaryAction:hover {
+  background: var(--color-text);
+}
+
+/* A plain text link with an arrow and a large hit area, not a bordered button. */
+.secondaryAction {
+  display: inline-flex;
+  min-block-size: 52px;
+  align-items: center;
+  gap: var(--space-3);
+  padding-inline: var(--space-2);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 750;
+  letter-spacing: 0.015em;
+  text-decoration: underline;
+  text-decoration-color: var(--color-line-strong);
+  text-underline-offset: 0.28em;
+}
+
+.secondaryAction:hover {
+  color: var(--color-cyan-200);
+  text-decoration-color: var(--color-cyan-400);
+}
+
+@media (min-width: 48em) {
   .title {
-    font-size: clamp(3rem, 7vw, 5.6rem);
+    font-size: clamp(3rem, 6.2vw, 4.625rem);
+    line-height: 1.02;
+  }
+
+  .body {
+    font-size: 18px;
   }
 }
 
-@media (max-width: 46rem) {
-  .hero {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-12);
-  }
-
-  .hero::before {
-    inset-inline-start: 1.25rem;
-  }
-
-  .copy {
-    margin-inline-start: var(--space-5);
-  }
-
-  /*
-   * Stacked under the copy, the portrait no longer forms the right edge of a
-   * two-column composition, so the desktop `justify-self: end` would pin it to
-   * the trailing edge once the column grew past the portrait's own 28rem cap.
-   * Centre it instead, and keep it free of the copy's leading indent so the
-   * centring stays symmetric.
-   */
-  .portrait {
-    width: min(100%, 28rem);
-    justify-self: center;
-  }
-}
-
-@media (max-width: 28rem) {
+@media (min-width: 75em) {
   .title {
-    font-size: clamp(2.65rem, 14vw, 4rem);
+    font-size: clamp(4rem, 6.5vw, 6rem);
   }
+}
 
-  /* "амбициозные" is wider than the English longest word at the same size. */
-  :global(html[lang='ru']) .title {
-    font-size: clamp(2.05rem, 11.2vw, 3.4rem);
-  }
-
+@media (max-width: 20rem) {
   .actions {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .primaryAction,
-  .secondaryAction {
+  .primaryAction {
     inline-size: 100%;
   }
 }

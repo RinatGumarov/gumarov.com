@@ -35,8 +35,9 @@ it('presents the localized frontend-first hero with direct conversion links', ()
   const picture = container.querySelector('[data-hero="landing"] picture');
   const image = picture?.querySelector('img');
   const sources = picture?.querySelectorAll('source');
-  const responsiveSizes =
-    '(max-width: 46rem) min(100vw - 4rem, 28rem), (max-width: 64rem) 38vw, 30vw';
+  // The portrait is a fixed 56x70 avatar beside the name at every
+  // breakpoint (plan §3.2), so it always requests the smallest candidate.
+  const responsiveSizes = '56px';
 
   expect(sources).toHaveLength(2);
   expect(sources?.[0]).toHaveAttribute('type', 'image/avif');
@@ -100,7 +101,10 @@ it('reveals the portrait container when the image fails and keeps the copy', () 
   expect(
     screen.getByRole('link', { name: 'View selected work' }),
   ).toBeInTheDocument();
-  expect(screen.getByText('RG')).toBeInTheDocument();
+  // The name beside the portrait already carries identity, so a failed
+  // image leaves the framed (now empty) container and the copy in place
+  // rather than needing a text fallback of its own.
+  expect(screen.getByText('Rinat Gumarov')).toBeInTheDocument();
 });
 
 it('keeps the internal hero contact jump out of channel click analytics', async () => {

@@ -26,17 +26,21 @@ export function SelectedWork({
         <h2 id="projects-heading">{heading}</h2>
       </div>
       <div className={styles.scenes}>
-        {projects.map((project, index) => (
-          <ProjectScene
-            key={project.slug}
-            index={index}
-            project={project}
-            locale={locale}
-            screenshotAlt={
-              screenshots.find((shot) => shot.slug === project.slug)?.alt
-            }
-          />
-        ))}
+        {projects.map((project) => {
+          const screenshot = screenshots.find(
+            (shot) => shot.slug === project.slug,
+          );
+
+          return (
+            <ProjectScene
+              key={project.slug}
+              project={project}
+              locale={locale}
+              screenshotAlt={screenshot?.alt}
+              screenshotCaption={screenshot?.caption}
+            />
+          );
+        })}
       </div>
     </section>
   );
