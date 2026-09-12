@@ -227,7 +227,7 @@ export function HeroRibbon({ className }: { className?: string }) {
         </linearGradient>
 
         {/*
-         * The one warm note the brief allows, placed where the surface turns
+         * The one warm note in the palette, placed where the surface turns
          * over near the top so it reads as a reflection rather than a colour
          * wash.
          */}

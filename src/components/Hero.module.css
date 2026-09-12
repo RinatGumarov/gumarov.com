@@ -284,13 +284,13 @@
 }
 
 /*
- * H1 sizing/tracking per the grid contract (plan §4): a fixed weight and
+ * H1 sizing and tracking: a fixed weight and
  * tracking, with a font-size and line-height that step at the plan's own
  * breakpoints (1200px, 768px) rather than one fluid clamp across the whole
  * viewport range.
  *
  * The family is `--font-display`, like every other heading on the page, so the
- * heading renders in Onest once the deferred brand stylesheet lands (plan §7).
+ * heading renders in Onest once the deferred brand stylesheet lands.
  * It is not on the critical path: Onest is never inlined and never preloaded —
  * `scripts/check-dist.mjs` fails the build for either — so the heading still
  * paints in a system font and swaps afterwards.
@@ -322,7 +322,7 @@
 }
 
 /*
- * The second phrase is the hero's one deliberate colour accent (plan §3.2):
+ * The second phrase is the hero's one deliberate colour accent:
  * the first phrase stays the strong off-white the rest of the heading uses,
  * the second renders in cyan. No other text in the hero carries colour
  * besides this and the actions.
@@ -348,7 +348,7 @@
 }
 
 /*
- * "Светлая" (plan §3.2) means the near-white surface, not cyan — cyan is the
+ * The primary action is the near-white surface, not cyan — cyan is the
  * hero's one deliberate accent, spent on the h1's second phrase. Keeping the
  * button cyan too would put that accent in two places and flatten the
  * hierarchy the plan is building.
@@ -396,7 +396,7 @@
 }
 
 /*
- * The CTA arrow (plan §6): 3px of travel over 160ms, and nothing else. The
+ * The CTA arrow: 3px of travel over 160ms, and nothing else. The
  * transform lands on the arrow glyph, never on the link, so the link box and
  * its hit area stay exactly where they are — the arrow is `aria-hidden`
  * decoration inside an inline-flex row, so moving it cannot reflow the label.

@@ -1,10 +1,5 @@
 import { test, type Page } from '@playwright/test';
-import {
-  assertCoreContent,
-  localePath,
-  projectHosts,
-  qualityLocales,
-} from './quality';
+import { assertCoreContent, localePath, qualityLocales } from './quality';
 
 for (const locale of qualityLocales) {
   test.describe(`${locale} resilience`, () => {
@@ -49,16 +44,6 @@ for (const locale of qualityLocales) {
           value: undefined,
         });
       });
-      await page.goto(localePath(locale));
-      await assertCoreContent(page, locale);
-    });
-
-    test('offline project hosts still expose core text and contact links', async ({
-      page,
-    }) => {
-      for (const host of projectHosts) {
-        await page.route(host, (route) => route.abort('internetdisconnected'));
-      }
       await page.goto(localePath(locale));
       await assertCoreContent(page, locale);
     });

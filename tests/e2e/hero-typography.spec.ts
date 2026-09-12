@@ -22,17 +22,22 @@ const locales = ['en', 'ru'] as const;
  * state a real visitor sees:
  *
  * - `firstPaint` is `--font-display` as `src/styles/tokens.css` declares it.
- *   Onest is banned from the inlined critical CSS (`scripts/check-dist.mjs`
- *   fails the build over it), so this is what the LCP heading paints in, and
- *   it is also what a visitor whose webfonts never arrive keeps.
- * - `metricFallback` is the size-adjusted face in `faces.css`. It covers the
- *   window between the brand stylesheet landing and the woff2 arriving.
+ *   The Onest webfont is banned from the inlined critical CSS
+ *   (`scripts/check-dist.mjs` fails the build over it), so this is what the LCP
+ *   heading paints in, and it is also what a visitor whose webfonts never
+ *   arrive keeps. It leads with the metric-adjusted fallback, which is the
+ *   whole point: the raw system stack is whatever the visitor's OS provides,
+ *   and pinning the heading's line count to an unknown font is not something a
+ *   stylesheet can do.
+ * - `metricFallback` is that size-adjusted face on its own. It pins the
+ *   `size-adjust` numbers, which the stack above would otherwise hide.
  * - the brand face is Onest itself.
  *
  * All three have to agree about how many lines the heading takes, or the page
  * below it jumps when the visitor is already reading.
  */
-const firstPaintStack = 'ui-sans-serif, system-ui, sans-serif';
+const firstPaintStack =
+  "'Onest Fallback', ui-sans-serif, system-ui, sans-serif";
 const metricFallbackStack = '"Onest Fallback", ui-sans-serif, sans-serif';
 
 /**
@@ -145,7 +150,12 @@ for (const locale of locales) {
           // Proves this case measures what it claims to.
           expect(await renderedFamily(page)).toMatch(/(^|\s)Onest(,|$)/u);
         } else {
-          expect(await renderedFamily(page)).not.toMatch(/Onest/u);
+          // `'Onest Fallback'` stays in the stack — it is the metric-adjusted
+          // local face, and having it here is the point. What must be absent
+          // is the Onest webfont itself.
+          expect(await renderedFamily(page)).not.toMatch(
+            /\bOnest\b(?!\s+Fallback)/u,
+          );
         }
 
         // A word rendered across more than one line box was broken mid-word.
@@ -176,8 +186,7 @@ for (const locale of locales) {
 
       const heading = page.locator('h1#hero-heading');
       await expect(heading).toBeVisible();
-      // Plan §7: the heading is Onest, not the permanent system stack it used
-      // to be pinned to.
+      // The heading becomes Onest; it is not pinned to the system stack.
       await expect(heading).toHaveCSS('font-family', /(^|\s)Onest(,|$)/u);
 
       /*

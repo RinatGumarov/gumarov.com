@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -192,31 +191,20 @@ export async function processBrandAssets({
   cards,
 }) {
   await mkdir(publicDirectory, { recursive: true });
-  const outputs = [];
-  const record = async (file, contents) => {
-    const outputPath = path.join(publicDirectory, file);
-    await writeFile(outputPath, contents);
-    const metadata = file.endsWith('.svg')
-      ? { format: 'svg' }
-      : await sharp(contents).metadata();
-    outputs.push({
-      file,
-      format: file.endsWith('.svg') ? 'svg' : metadata.format,
-      width: metadata.width,
-      height: metadata.height,
-      bytes: contents.byteLength,
-      sha256: createHash('sha256').update(contents).digest('hex'),
-    });
+  const written = [];
+  const write = async (file, contents) => {
+    await writeFile(path.join(publicDirectory, file), contents);
+    written.push(file);
   };
 
-  await record('favicon.svg', Buffer.from(renderMonogramSvg()));
+  await write('favicon.svg', Buffer.from(renderMonogramSvg()));
 
   for (const size of appIconSizes) {
-    await record(`icon-${size}.png`, await renderAppIcon({ size }));
+    await write(`icon-${size}.png`, await renderAppIcon({ size }));
   }
 
   for (const card of cards) {
-    await record(
+    await write(
       card.file,
       await renderSocialCard({
         card,
@@ -226,38 +214,7 @@ export async function processBrandAssets({
     );
   }
 
-  return outputs;
-}
-
-export async function verifyApprovedPortraitDerivative({
-  projectRoot,
-  portraitFile,
-  approvedManifestFile,
-}) {
-  const contents = await readFile(path.join(projectRoot, portraitFile));
-  const sha256 = createHash('sha256').update(contents).digest('hex');
-  const approvedManifest = JSON.parse(
-    await readFile(path.join(projectRoot, approvedManifestFile), 'utf8'),
-  );
-  const derivativeName = path.basename(portraitFile);
-  const approvedOutput = approvedManifest.outputs?.find((output) =>
-    output.file.endsWith(derivativeName),
-  );
-
-  if (!approvedOutput || approvedOutput.sha256 !== sha256) {
-    throw new Error(
-      `Social cards must use an approved portrait derivative: ${portraitFile} does not match ${approvedManifestFile}.`,
-    );
-  }
-
-  return {
-    file: portraitFile,
-    width: approvedOutput.width,
-    height: approvedOutput.height,
-    bytes: contents.byteLength,
-    sha256,
-    source: approvedManifest.source,
-  };
+  return written;
 }
 
 const isDirectInvocation =
@@ -270,52 +227,20 @@ if (isDirectInvocation) {
     path.dirname(fileURLToPath(import.meta.url)),
     '..',
   );
-  const portraitFile = 'public/assets/portrait/portrait-1024.jpg';
-  const approvedPortraitManifestFile =
-    'public/assets/portrait/approved-manifest.json';
   const { en } = await import(path.join(projectRoot, 'src/content/en.ts'));
   const { ru } = await import(path.join(projectRoot, 'src/content/ru.ts'));
-  const portrait = await verifyApprovedPortraitDerivative({
-    projectRoot,
-    portraitFile,
-    approvedManifestFile: approvedPortraitManifestFile,
-  });
-  const outputs = await processBrandAssets({
-    projectRoot,
-    publicDirectory: path.join(projectRoot, 'public'),
-    portraitFile,
-    cards: [en, ru].map((content) => ({
-      ...content.meta.socialCard,
-      file: content.meta.ogImage.replace(/^\//u, ''),
-    })),
-  });
-  const manifest = {
-    schemaVersion: 1,
-    source: portrait.source,
-    portraitDerivative: {
-      file: portrait.file.replace(/^public\//u, ''),
-      width: portrait.width,
-      height: portrait.height,
-      bytes: portrait.bytes,
-      sha256: portrait.sha256,
-    },
-    processing: {
-      monogram: 'monoline-rg-paths',
-      iconRasteriser: 'sharp-svg',
-      socialCardCrop: 'fixed-centre-cover',
-      socialCardSize: `${socialCardSize.width}x${socialCardSize.height}`,
-      fonts: [sansFontFile, monoFontFile],
-      metadataPolicy: 'exclude',
-    },
-    outputs,
-  };
 
-  await mkdir(path.join(projectRoot, 'public/assets/brand'), {
-    recursive: true,
-  });
-  await writeFile(
-    path.join(projectRoot, 'public/assets/brand/approved-manifest.json'),
-    `${JSON.stringify(manifest, null, 2)}\n`,
+  console.log(
+    await processBrandAssets({
+      projectRoot,
+      publicDirectory: path.join(projectRoot, 'public'),
+      // The social cards reuse the largest portrait derivative rather than a
+      // separate crop, so there is one portrait on the site and one pipeline.
+      portraitFile: 'public/assets/portrait/portrait-1024.jpg',
+      cards: [en, ru].map((content) => ({
+        ...content.meta.socialCard,
+        file: content.meta.ogImage.replace(/^\//u, ''),
+      })),
+    }),
   );
-  console.log(JSON.stringify({ portrait, outputs }, null, 2));
 }

@@ -30,8 +30,7 @@ export type ProjectVariant = 'lead' | 'major' | 'product' | 'compact';
  * This is an explicit field rather than "a screenshot entry happens to be
  * missing". A scene with no capture used to fall through to a decorative
  * geometry fallback, so deleting a screenshot swapped one picture for another
- * instead of removing the picture — exactly the outcome the refinement brief
- * rules out for Stoic and Evercity. Declaring the mode makes "this project has
+ * instead of removing the picture. Declaring the mode makes "this project has
  * no image" a statement the renderer can honour, and the type below makes
  * "text mode plus a screenshot" unrepresentable.
  */
@@ -80,7 +79,7 @@ export type Project = ProjectBase &
   );
 
 /**
- * The projects that ship an approved capture. A screenshot entry for any other
+ * The projects that ship a capture. A screenshot entry for any other
  * slug would describe an image the page never renders, so the type refuses it
  * rather than letting it sit in the content file looking like shipped copy.
  */

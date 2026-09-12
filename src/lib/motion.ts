@@ -14,8 +14,8 @@ const maximumParallax = 4;
 
 /**
  * A media query, or `null` when the environment cannot answer one — during a
- * server render, or in a browser without `matchMedia`. Shared with
- * `useHeroLens`, which has the same "no query, no enhancement" contract.
+ * server render, or in a browser without `matchMedia`. Every caller treats
+ * `null` the same way: no query, no enhancement.
  */
 export function getMediaQuery(query: string): MediaQueryList | null {
   if (

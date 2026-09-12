@@ -198,9 +198,9 @@ test('missing matchMedia leaves every enhancement in its complete final state', 
 /*
  * This used to read one pseudo-element on the hero, because one ambient
  * `8s ... infinite` drift lived there. That selector died with the hero
- * rewrite and the rule was removed; plan §6 forbids the whole category — "not
- * a single infinite background animation" — so the check is now the category
- * rather than the one rule that used to break it.
+ * rewrite and the rule was removed. The page forbids the whole category — not
+ * a single infinite background animation — so the check is the category rather
+ * than the one rule that used to break it.
  */
 test('runs no endlessly looping animation anywhere on the page', async ({
   page,

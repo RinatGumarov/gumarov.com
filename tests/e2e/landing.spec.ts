@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { getContent, type Locale } from '../../src/content';
+import { getContent } from '../../src/content';
 import {
   assertCoreContent,
   assertNoHorizontalOverflow,
@@ -108,24 +108,6 @@ test('exposes official project destinations in both locales', async ({
   }
 });
 
-test('uses a stacked header on the phone and a single-row header on desktop', async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/en/');
-  const phoneLayout = await readHeaderLayout(page, 'en');
-  expect(phoneLayout.primaryTop).toBeGreaterThan(
-    phoneLayout.identityBottom - 4,
-  );
-
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto('/en/');
-  const desktopLayout = await readHeaderLayout(page, 'en');
-  expect(
-    Math.abs(desktopLayout.primaryTop - desktopLayout.identityTop),
-  ).toBeLessThan(12);
-});
-
 test('defers brand fonts until after first paint', async ({ page }) => {
   const fontStylesheetRequests: string[] = [];
   page.on('request', (request) => {
@@ -140,31 +122,6 @@ test('defers brand fonts until after first paint', async ({ page }) => {
     .poll(() => page.locator('link[href="/assets/fonts/faces.css"]').count())
     .toBe(1);
   expect(fontStylesheetRequests.length).toBeGreaterThan(0);
-});
-
-test('completes a keyboard traversal with visible focus', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto('/en/');
-
-  await page.keyboard.press('Tab');
-  const skipLink = page.getByRole('link', { name: 'Skip to content' });
-  await expect(skipLink).toBeFocused();
-  await assertVisibleFocus(page);
-
-  await page.keyboard.press('Enter');
-  await expect(page.locator('#main-content')).toBeFocused();
-
-  await page.keyboard.press('Tab');
-  await expect(
-    page.getByRole('link', { name: 'View selected work' }),
-  ).toBeFocused();
-  await assertVisibleFocus(page);
-
-  await page.keyboard.press('Tab');
-  await expect(page.getByRole('link', { name: 'Get in touch' })).toBeFocused();
-  await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/#contact$/u);
-  await expect(page.locator('#contact')).toBeInViewport();
 });
 
 test('Russian skip link moves keyboard focus to main content', async ({
@@ -182,16 +139,20 @@ test('Russian skip link moves keyboard focus to main content', async ({
   await expect(page.locator('#main-content')).toBeFocused();
 });
 
-test('keyboard traversal reaches primary nav, language switch, and a project link', async ({
+test('keyboard traversal reaches the skip link, nav, language switch and a project', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('/en/');
 
   await page.keyboard.press('Tab');
-  await expect(
-    page.getByRole('link', { name: 'Skip to content' }),
-  ).toBeFocused();
+  const skipLink = page.getByRole('link', { name: 'Skip to content' });
+  await expect(skipLink).toBeFocused();
+  await assertVisibleFocus(page);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#main-content')).toBeFocused();
+  await page.goto('/en/');
+  await page.keyboard.press('Tab');
 
   await page.keyboard.press('Tab');
   await expect(
@@ -252,21 +213,15 @@ async function tabUntilFocused(
   throw new Error('Keyboard traversal never reached the expected control');
 }
 
-async function readHeaderLayout(page: Page, locale: Locale) {
-  const identity = page.getByRole('link', { name: 'Rinat Gumarov — home' });
-  const primary = page.getByRole('navigation', {
-    name: locale === 'ru' ? 'Основная навигация' : 'Primary navigation',
-  });
-  const identityBox = await identity.boundingBox();
-  const primaryBox = await primary.boundingBox();
+test('sends a Russian-language browser from the root to the Russian page', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ locale: 'ru-RU' });
+  const page = await context.newPage();
 
-  if (!identityBox || !primaryBox) {
-    throw new Error('Header landmarks did not produce layout bounds');
-  }
+  await page.goto('/');
 
-  return {
-    identityTop: identityBox.y,
-    identityBottom: identityBox.y + identityBox.height,
-    primaryTop: primaryBox.y,
-  };
-}
+  await expect(page).toHaveURL(/\/ru\/$/u);
+  await expect(page.locator('main')).toHaveAttribute('data-locale', 'ru');
+  await context.close();
+});

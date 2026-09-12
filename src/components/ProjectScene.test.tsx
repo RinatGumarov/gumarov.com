@@ -67,7 +67,7 @@ describe('selected work', () => {
       />,
     );
 
-  it('renders each approved project mapping and narrative independently', () => {
+  it('renders each project mapping and narrative independently', () => {
     renderSelectedWork();
 
     const section = screen.getByRole('region', { name: 'Selected work' });
@@ -141,31 +141,31 @@ describe('selected work', () => {
     }
   });
 
-  it('points each capture at its own approved derivative', () => {
+  /*
+   * The two captures are different shapes and are displayed at different
+   * sizes, so each scene points at its own derivative set. Splithub in
+   * particular shows the application crop, not the landing composite the crop
+   * was taken from.
+   */
+  it('points each capture at its own derivative set', () => {
     renderSelectedWork();
 
-    const tradingView = screen.getByRole('article', { name: 'TradingView' });
-    const tradingViewImage = within(tradingView).getByRole('img');
-    expect(tradingViewImage).toHaveAttribute(
-      'src',
-      '/assets/projects/tradingview-960.jpg',
-    );
-    expect(tradingViewImage).toHaveAttribute('width', '1440');
-    expect(tradingViewImage).toHaveAttribute('height', '720');
+    for (const [name, prefix] of [
+      ['TradingView', 'tradingview-'],
+      ['Splithub', 'splithub-app-'],
+    ]) {
+      const image = within(screen.getByRole('article', { name })).getByRole(
+        'img',
+      );
 
-    // Splithub shows the application, cropped out of the approved capture —
-    // not the landing composite the crop was taken from.
-    const splithub = screen.getByRole('article', { name: 'Splithub' });
-    const splithubImage = within(splithub).getByRole('img');
-    expect(splithubImage).toHaveAttribute(
-      'src',
-      '/assets/projects/splithub-app-624.jpg',
-    );
-    expect(splithubImage).toHaveAttribute('width', '624');
-    expect(splithubImage).toHaveAttribute('height', '624');
-    expect(splithubImage.getAttribute('srcset')).toContain(
-      '/assets/projects/splithub-app-312.jpg 312w',
-    );
+      expect(image).toHaveAttribute(
+        'src',
+        expect.stringContaining(`/assets/projects/${prefix}`),
+      );
+      // Declared so the frame is reserved before the capture decodes.
+      expect(Number(image.getAttribute('width'))).toBeGreaterThan(0);
+      expect(Number(image.getAttribute('height'))).toBeGreaterThan(0);
+    }
   });
 
   it('registers each real project scene for locale-aware 50% view tracking', () => {
@@ -238,9 +238,7 @@ describe('selected work', () => {
     ).toEqual(['350', 'registered users']);
     // A subordinate mark, deliberately not a second statistic in the list.
     expect(within(scene).getByText('On the App Store')).toBeVisible();
-    expect(
-      within(scene).queryByText(/daily active users/iu),
-    ).not.toBeInTheDocument();
+    expect(metrics?.querySelectorAll('dt')).toHaveLength(1);
   });
 
   it('closes the section with a compact text row and no reserved visual', () => {

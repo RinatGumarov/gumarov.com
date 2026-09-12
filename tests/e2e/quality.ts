@@ -9,13 +9,6 @@ export const qualityViewports = [
   { name: 'desktop', width: 1440, height: 1000 },
 ] as const;
 
-export const projectHosts = [
-  'https://www.tradingview.com/**',
-  'https://stoic.ai/**',
-  'https://splithub.app/**',
-  'https://evercity.io/**',
-] as const;
-
 export function localePath(locale: Locale) {
   return `/${locale}/`;
 }

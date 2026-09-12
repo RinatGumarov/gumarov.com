@@ -23,31 +23,21 @@ export function useViewedOnce<T extends Element>({
   useEffect(() => {
     if (viewed) return;
 
-    let active = true;
     if (!ref.current || !canObserveIntersections()) return;
 
-    let disconnected = false;
-    const disconnect = () => {
-      if (disconnected) return;
-      disconnected = true;
-      observer.disconnect();
-    };
+    // Setting `viewed` re-runs this effect, and its cleanup is what
+    // disconnects; the callback does not need to do it a second time.
     const observer = new window.IntersectionObserver(
       (entries) => {
-        if (!active || !entries.some((entry) => entry.isIntersecting)) return;
-        active = false;
+        if (!entries.some((entry) => entry.isIntersecting)) return;
         setObserved(true);
         setViewed(true);
-        disconnect();
       },
       { rootMargin, threshold },
     );
     observer.observe(ref.current);
 
-    return () => {
-      active = false;
-      disconnect();
-    };
+    return () => observer.disconnect();
   }, [rootMargin, threshold, viewed]);
 
   return { observed, ref, viewed };

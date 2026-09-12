@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Locale, Project } from '../content';
+import type { Locale, Project, ScreenshotProjectSlug } from '../content';
 import { observeProjectViewOnce } from '../lib/analytics';
 import { usePointerParallax } from '../lib/motion';
 import { useViewedOnce } from '../lib/useViewedOnce';
@@ -19,11 +19,11 @@ interface ProjectSceneProps {
  * The screenshot geometry, per project rather than per variant.
  *
  * TradingView is a 2:1 desktop capture that runs the content width; Splithub is
- * a near-square crop of the app itself, taken from the approved capture at its
- * own resolution. They are displayed at different sizes and different shapes,
- * so neither the `sizes` hint nor the intrinsic dimensions can be shared.
+ * a near-square crop of the app itself. They are displayed at different sizes
+ * and in different shapes, so neither the `sizes` hint nor the intrinsic
+ * dimensions can be shared.
  */
-const screenshots = {
+const screenshots: Record<ScreenshotProjectSlug, ScreenshotGeometry> = {
   tradingview: {
     slug: 'tradingview',
     widths: [640, 960, 1440],
@@ -34,9 +34,7 @@ const screenshots = {
   },
   splithub: {
     // A crop of the phone and its two floating notifications, lifted from the
-    // approved Splithub capture. See `scripts/process-images.mjs` for the
-    // rectangle and `public/assets/projects/approved-manifest.json` for its
-    // provenance.
+    // Splithub capture; `scripts/process-images.mjs` holds the rectangle.
     slug: 'splithub-app',
     widths: [312, 624],
     fallbackWidth: 624,
@@ -44,14 +42,15 @@ const screenshots = {
     height: 624,
     sizes: '(min-width: 56rem) 532px, min(532px, calc(100vw - 56px))',
   },
-} as const;
+};
 
-type ScreenshotKey = keyof typeof screenshots;
-
-function screenshotFor(slug: string) {
-  return slug in screenshots
-    ? screenshots[slug as ScreenshotKey]
-    : screenshots.tradingview;
+interface ScreenshotGeometry {
+  slug: string;
+  widths: readonly number[];
+  fallbackWidth: number;
+  width: number;
+  height: number;
+  sizes: string;
 }
 
 export function ProjectScene({
@@ -94,7 +93,7 @@ export function ProjectScene({
     });
   }, [locale, project.slug]);
 
-  const shot = screenshotFor(project.slug);
+  const shot = screenshots[project.slug as ScreenshotProjectSlug];
 
   /*
    * The capture sits on a neutral plate with real padding rather than running
@@ -102,7 +101,7 @@ export function ProjectScene({
    * reads as a pasted-in rectangle, and the inset is what makes it read as a
    * framed exhibit instead.
    */
-  const visual = (
+  const visual = shot ? (
     <div
       ref={visualMotion.ref}
       className={`${styles.visual} ${project.slug === 'splithub' ? styles.appVisual : styles.wideVisual}`}
@@ -151,7 +150,7 @@ export function ProjectScene({
         />
       </picture>
     </div>
-  );
+  ) : null;
 
   const titleHeading = (
     <h3 className={styles.title} id={headingId}>
@@ -287,7 +286,7 @@ export function ProjectScene({
    * Stoic (`major`) in text mode: the summary and the contribution set in two
    * columns, sized by the type rather than by the screenshot that used to sit
    * beside them. Splithub (`product`) keeps the visual-left, copy-right
-   * composition the brief asks for.
+   * composition.
    */
   if (variant === 'major' && project.media === 'text') {
     return (

@@ -69,7 +69,7 @@
 }
 
 /*
- * Three equal frames. The middle one is nudged down by 8px — the brief's
+ * Three equal frames. The middle one is nudged down by 8px — the
  * ceiling — so the row reads as a hand-laid strip rather than a grid of
  * thumbnails, and by no more than that, so nothing looks misaligned.
  */

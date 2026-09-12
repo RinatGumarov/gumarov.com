@@ -9,7 +9,7 @@
  * The section title is deliberately small (48px, flat — not a fluid clamp up
  * to 112px) with a tight 32px gap to the first project. A "Selected work"
  * screen that reads as its own full-height slide competes with TradingView
- * for being the lead of the section (plan §4, SelectedWork layout).
+ * for being the lead of the section.
  */
 .header {
   display: flex;

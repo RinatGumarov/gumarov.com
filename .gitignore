@@ -12,6 +12,7 @@ lhci_reports/
 .lighthouseci/
 
 .DS_Store
+.claude/
 .idea/
 .vscode/
 *.swp

@@ -20,7 +20,7 @@
   }
 }
 
-/* Plan §6: translateY 12 -> 0px, opacity 0 -> 1, once. */
+/* translateY 12 -> 0px, opacity 0 -> 1, once. */
 @keyframes motion-scene-enter {
   from {
     opacity: 0;
@@ -56,7 +56,7 @@
   }
 
   /*
-   * Plan §6's hero row: the decor appears smoothly over 400ms once the page is
+   * The hero row: the decor appears smoothly over 400ms once the page is
    * ready, and the LCP text is never hidden before hydration. The drawing is
    * the only thing this fades — it is `aria-hidden` decoration, it carries no
    * text, and it only ever animates opacity, so it cannot move the heading or
