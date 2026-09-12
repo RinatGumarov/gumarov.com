@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
-import { afterEach, describe, expect, it } from 'vitest';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { cp, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -52,6 +52,47 @@ afterEach(async () => {
 });
 
 /*
+ * The approved image set, encoded once for the whole file.
+ *
+ * Every test needs its own mutable `dist`, because most of them delete a file
+ * or rewrite a manifest entry and then assert the checker complains. What they
+ * do *not* each need is to re-encode the images: the portrait, personal and
+ * project sets are byte-identical every time — deterministic Sharp output from
+ * fixed inputs, with no dependence on the per-test content — and encoding them
+ * is almost the entire cost of building a fixture. Roughly a hundred AVIF and
+ * WebP encodes, a few of them at 1920px, repeated 45 times.
+ *
+ * So they are written once into a template directory and copied per test.
+ * Copying a file is two milliseconds against fifty to encode one, which is the
+ * difference between this suite fitting inside its 60s per-test ceiling on a
+ * shared CI runner and timing out on the very first test.
+ *
+ * The brand assets are deliberately left out: they are derived from the
+ * fixture's content, which varies per test, and they are cheap PNGs anyway.
+ */
+let approvedAssetTemplate = null;
+
+async function ensureApprovedAssetTemplate() {
+  if (!approvedAssetTemplate) {
+    const directory = await mkdtemp(path.join(tmpdir(), 'check-dist-assets-'));
+    await writeValidPortraitAssets(directory);
+    await writeValidPersonalAssets(directory);
+    await writeValidProjectAssets(directory);
+    // Not registered in `temporaryDirectories`: that list is emptied after
+    // every test, and this one has to outlive them all.
+    approvedAssetTemplate = directory;
+  }
+
+  return approvedAssetTemplate;
+}
+
+afterAll(async () => {
+  if (!approvedAssetTemplate) return;
+  await rm(approvedAssetTemplate, { recursive: true, force: true });
+  approvedAssetTemplate = null;
+});
+
+/*
  * These suites encode AVIF/WebP/JPEG with Sharp and spawn the distribution
  * checker as a subprocess. Shared CI runners need far more than Vitest's
  * 5s default, so the whole suite gets an explicit ceiling.
@@ -61,6 +102,11 @@ const slowSuiteTimeout = 60_000;
 describe(
   'distribution checker',
   () => {
+    // Encoding the template is charged here rather than to whichever test
+    // happens to run first, so one test's budget is never the whole suite's
+    // setup cost.
+    beforeAll(ensureApprovedAssetTemplate, slowSuiteTimeout);
+
     it('requires every exact metadata-free portrait variant at its declared dimensions', async () => {
       const missingFixture = await createDistributionFixture();
       await rm(
@@ -1058,9 +1104,9 @@ async function createDistributionFixture(options = {}) {
   await mkdir(path.join(distDirectory, 'ru'), { recursive: true });
   await mkdir(serverDirectory, { recursive: true });
   await writeFile(path.join(fixtureRoot, 'package.json'), '{"type":"module"}');
-  await writeValidPortraitAssets(distDirectory);
-  await writeValidPersonalAssets(distDirectory);
-  await writeValidProjectAssets(distDirectory);
+  await cp(await ensureApprovedAssetTemplate(), distDirectory, {
+    recursive: true,
+  });
 
   const contentByLocale = {
     en: createContent(
