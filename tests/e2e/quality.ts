@@ -32,7 +32,7 @@ export async function assertCoreContent(page: Page, locale: Locale) {
     page.getByRole('heading', { name: content.projectsHeading }),
   ).toBeVisible();
   await expect(
-    page.getByRole('heading', { name: content.engineering.heading }),
+    page.getByRole('heading', { name: content.performanceLab.name }),
   ).toBeVisible();
   await expect(
     page.getByRole('heading', { name: content.personal.heading }),

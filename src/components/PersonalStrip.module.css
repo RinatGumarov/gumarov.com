@@ -1,14 +1,24 @@
+/*
+ * The compact About block: copy on the left, a three-frame strip on the right.
+ *
+ * The proportions come from the section's job on the page. About is the short
+ * human note between the work and the contact, so it gets one screen-band, not
+ * a gallery: the strip is given the larger of the two columns but the whole
+ * section still resolves under the height budget the refinement brief sets
+ * (~600px at 1440, ~850px at 390).
+ */
 .personal {
   width: min(100% - (2 * var(--page-gutter)), var(--content-wide));
   margin-inline: auto;
   padding-block: clamp(var(--space-10), 7vw, var(--space-16));
-  display: flex;
-  flex-direction: column;
-  gap: clamp(var(--space-8), 5vw, var(--space-12));
+  display: grid;
+  grid-template-columns: minmax(17rem, 0.78fr) minmax(0, 1.22fr);
+  align-items: center;
+  gap: clamp(var(--space-8), 6vw, var(--space-12));
   border-block-start: 1px solid var(--color-line);
 }
 
-.headingRow {
+.copy {
   min-inline-size: 0;
 }
 
@@ -20,12 +30,12 @@
   letter-spacing: 0.14em;
 }
 
-.headingRow h2 {
-  max-inline-size: 20ch;
+.copy h2 {
+  max-inline-size: 12ch;
   margin: 0;
   color: var(--color-text-strong);
   font-family: var(--font-display);
-  font-size: clamp(2.25rem, 4.6vw, 4.75rem);
+  font-size: clamp(2.25rem, 4.2vw, 3.75rem);
   font-weight: 650;
   letter-spacing: -0.045em;
   line-height: 0.98;
@@ -33,24 +43,12 @@
   text-wrap: balance;
 }
 
-/*
- * Everything photographic lives in one pointer-tracked wrapper so the whole
- * story (lead frame, portrait, activity grid) parallaxes together, matching
- * the single-container pattern the rest of the site uses.
- */
-.visual {
-  min-inline-size: 0;
-  display: flex;
-  flex-direction: column;
-  gap: clamp(var(--space-8), 5vw, var(--space-12));
-}
-
 .summary {
-  max-inline-size: 42rem;
-  margin: 0;
+  max-inline-size: 34rem;
+  margin: var(--space-6) 0 0;
   color: var(--color-text-muted);
   font-size: var(--text-lg);
-  line-height: 1.65;
+  line-height: 1.6;
 }
 
 .interests {
@@ -71,170 +69,115 @@
 }
 
 /*
- * The lead frame is a content image, not a decorative thumbnail: full
- * opacity, no darkening filter, no scrim gradient. Desktop crops the
- * approved 4:3 source down to 16:9 with object-fit; mobile shows it at its
- * native 4:3 (plan §4/§7).
+ * Three equal frames. The middle one is nudged down by 8px — the brief's
+ * ceiling — so the row reads as a hand-laid strip rather than a grid of
+ * thumbnails, and by no more than that, so nothing looks misaligned.
  */
-.lead {
-  position: relative;
-  margin: 0;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  border: 1px solid var(--color-line-strong);
-}
-
-.lead picture,
-.lead img {
-  display: block;
-  inline-size: 100%;
-  block-size: 100%;
-}
-
-.lead img {
-  object-fit: cover;
-  object-position: 50% 50%;
-}
-
-@media (max-width: 54rem) {
-  .lead {
-    aspect-ratio: 4 / 3;
-  }
-}
-
-/* Portrait (3 columns) beside the body copy (6 columns, offset 1). */
-.introRow {
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  align-items: start;
-  gap: clamp(1rem, 2vw, 1.5rem);
-}
-
-.copy {
-  grid-column: 5 / span 6;
-  /*
-   * Sparse auto-placement would otherwise seat `.copy` (first in DOM) in
-   * row 1, advance the placement cursor past column 11, and then be unable
-   * to backtrack `.portraitFrame` into columns 1–4 of that same row —
-   * dropping it to row 2 with a dead zone beside each. Pin both to row 1
-   * explicitly so they sit side by side regardless of DOM order.
-   */
-  grid-row: 1;
+.filmStrip {
   min-inline-size: 0;
-}
-
-.portraitFrame {
-  grid-column: 1 / span 3;
-  grid-row: 1;
-  margin: 0;
-  aspect-ratio: 4 / 5;
-  overflow: hidden;
-  border: 1px solid var(--color-line-strong);
-}
-
-.portraitFrame picture,
-.portraitFrame img {
-  display: block;
-  inline-size: 100%;
-  block-size: 100%;
-}
-
-.portraitFrame img {
-  object-fit: cover;
-}
-
-@media (max-width: 54rem) {
-  .introRow {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .copy {
-    grid-column: auto;
-    grid-row: auto;
-    max-inline-size: var(--content-reading);
-  }
-
-  /* Natural DOM order carries the mobile stack: text, then portrait. */
-  .portraitFrame {
-    grid-column: auto;
-    grid-row: auto;
-    inline-size: min(240px, 60%);
-    margin-inline: auto;
-  }
-}
-
-/*
- * Five activity photos, asymmetric on desktop (plan §4): drift-front and
- * skate share the first row at 7+5 columns, snowboard/powder/drift-rear
- * share the second at 4+4+4. Column placement (not the `order` property)
- * does the desktop rearranging, so DOM order stays the reading order.
- */
-.activityGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(1rem, 2vw, 1.5rem);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: clamp(var(--space-3), 1.4vw, var(--space-4));
 }
 
-/* Mobile: natural two-column flow, last photo spans the full row. */
-.activityGrid .frame:last-child {
-  grid-column: 1 / -1;
+.filmStrip .frame:nth-child(2) {
+  margin-block-start: 8px;
 }
 
 /*
- * Desktop asymmetric placement lives behind its own min-width query (rather
- * than being overridden back to `auto` under a max-width query) so a more
- * specific `:nth-child` selector can never outrank the mobile reset — the
- * bug that shrank rows 2/3 into implicit auto-sized tracks below 54rem.
+ * The frame is a hairline and a dark ground, nothing more. The old strip wore
+ * an amber border, a sprocket-hole pattern and a drop shadow; only the faintest
+ * trace of that survives, as a single 1px top rule in the accent colour.
  */
-@media (min-width: 54.001rem) {
-  .activityGrid {
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-  }
-
-  .activityGrid .frame:nth-child(1) {
-    grid-column: 1 / span 7;
-  }
-
-  .activityGrid .frame:nth-child(2) {
-    grid-column: 8 / span 5;
-  }
-
-  .activityGrid .frame:nth-child(3) {
-    grid-column: 1 / span 4;
-  }
-
-  .activityGrid .frame:nth-child(4) {
-    grid-column: 5 / span 4;
-  }
-
-  .activityGrid .frame:nth-child(5) {
-    grid-column: 9 / span 4;
-  }
-}
-
 .frame {
   position: relative;
   min-inline-size: 0;
   margin: 0;
-  aspect-ratio: 4 / 3;
   overflow: hidden;
-  border: 1px solid var(--color-line);
+  border: 1px solid var(--color-line-strong);
+  background: var(--color-graphite-850);
+}
+
+.frame::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  inset-block-start: 0;
+  inset-inline: 0;
+  block-size: 1px;
+  background: var(--color-amber-300);
+  opacity: 0.28;
+  pointer-events: none;
 }
 
 .frame picture,
 .frame img {
   display: block;
   inline-size: 100%;
-  block-size: 100%;
 }
 
+/*
+ * Photographs at full strength. The old strip dimmed them to 0.78 and pulled
+ * saturation and contrast down so they would sit behind the text; here the text
+ * is in its own column, so nothing has to be darkened to stay readable.
+ *
+ * Each subject is kept inside its frame with an explicit `object-position`
+ * rather than the default centre: the surfer sits low and right in the approved
+ * 4:3 crop, the snowboarder high, and the car low.
+ */
 .frame img {
+  block-size: 100%;
+  aspect-ratio: 4 / 5;
   object-fit: cover;
 }
 
+.filmStrip .frame:nth-child(1) img {
+  object-position: 62% 62%;
+}
+
+.filmStrip .frame:nth-child(2) img {
+  object-position: 50% 34%;
+}
+
+.filmStrip .frame:nth-child(3) img {
+  object-position: 50% 62%;
+}
+
 /* A failed photo keeps its frame and never disturbs the surrounding story. */
-.lead[data-image-state='failed'] img,
-.portraitFrame[data-image-state='failed'] img,
 .frame[data-image-state='failed'] img {
   visibility: hidden;
+}
+
+@media (max-width: 54rem) {
+  .personal {
+    grid-template-columns: minmax(0, 1fr);
+    /* Keeps the stacked section inside its ~850px budget at 390px. */
+    gap: var(--space-7);
+  }
+
+  .copy {
+    max-inline-size: var(--content-reading);
+  }
+
+  /*
+   * Mobile: the first frame takes the full width, the other two share the row
+   * below it. No carousel, no hidden frames, no "show more" — all three are on
+   * the page at every width.
+   */
+  .filmStrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filmStrip .frame:nth-child(1) {
+    grid-column: 1 / -1;
+  }
+
+  .filmStrip .frame:nth-child(1) img {
+    aspect-ratio: 16 / 10;
+  }
+
+  .filmStrip .frame:nth-child(2) {
+    margin-block-start: 0;
+  }
 }

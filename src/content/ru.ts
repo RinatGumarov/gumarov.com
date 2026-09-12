@@ -32,7 +32,7 @@ export const ru = {
     proofPoints: [
       { value: '9+ лет', label: 'frontend-разработки' },
       { value: 'TradingView', label: 'Pine Editor · Strategy Tester' },
-      { value: 'SplitHub', label: 'продукт в команде из двух человек' },
+      { value: 'Splithub', label: 'С нуля до App Store · 350 пользователей' },
     ],
     workCta: 'Смотреть проекты',
     contactCta: 'Связаться',
@@ -50,6 +50,7 @@ export const ru = {
         'Сложные frontend-системы · Интерфейсы с высокими требованиями к производительности',
       href: 'https://www.tradingview.com/',
       variant: 'lead',
+      media: 'screenshot',
       linkLabel: 'Открыть TradingView',
       proofs: [
         {
@@ -76,35 +77,34 @@ export const ru = {
       capabilities: 'React · TypeScript · Next.js',
       href: 'https://stoic.ai/',
       variant: 'major',
+      media: 'text',
       linkLabel: 'Открыть Stoic',
     },
     {
       slug: 'splithub',
-      name: 'SplitHub',
-      eyebrow: 'Владение продуктом',
-      summary: 'iOS-продукт для совместного учёта расходов.',
+      name: 'Splithub',
+      eyebrow: 'От идеи до App Store',
+      summary: 'iOS-приложение для совместного учёта расходов.',
       contribution:
-        'Создал продукт в команде из двух человек: UX, SwiftUI-приложение и бэкенд.',
-      capabilities: 'Продуктовая стратегия · UX · iOS-разработка',
+        'Прошёл полный цикл создания продукта: от идеи и UX до SwiftUI-приложения, бэкенда и запуска в App Store.',
+      capabilities: 'UX · SwiftUI · Backend · Запуск',
       href: 'https://splithub.app/',
       variant: 'product',
-      linkLabel: 'Открыть SplitHub',
-      metrics: [
-        { value: '350+', label: 'зарегистрированных пользователей' },
-        { value: 'Примерно 50', label: 'активных пользователей в день' },
-      ],
+      media: 'screenshot',
+      linkLabel: 'Открыть Splithub',
+      metrics: [{ value: '350', label: 'зарегистрированных пользователей' }],
+      availability: 'В App Store',
     },
     {
       slug: 'evercity',
       name: 'Evercity',
       eyebrow: 'Устойчивое финансирование',
-      summary:
-        'Платформа для управления, выпуска и мониторинга устойчивого финансирования.',
       contribution:
         'Участвовал во frontend-разработке платформы устойчивого финансирования.',
       capabilities: 'Frontend · Устойчивое финансирование',
       href: 'https://evercity.io/',
       variant: 'compact',
+      media: 'text',
       linkLabel: 'Открыть Evercity',
     },
   ],
@@ -115,53 +115,31 @@ export const ru = {
       caption: 'Pine Editor и Strategy Tester',
     },
     {
-      slug: 'stoic',
-      alt: 'Выбор стратегии в Stoic: фильтры по биржам и риску рядом с карточками стратегий.',
-      caption: 'Stoic',
-    },
-    {
       slug: 'splithub',
-      alt: 'Лендинг SplitHub рядом с iOS-приложением: балансы по валютам и кто кому должен.',
-      caption: 'SplitHub',
-    },
-    {
-      slug: 'evercity',
-      alt: 'Каталог проектов Evercity: фильтры устойчивого развития над карточками углеродных проектов.',
+      alt: 'Splithub на iPhone: балансы по валютам, итог в вашу пользу и список участников с суммами.',
+      caption: 'Splithub на iOS',
     },
   ],
-  engineering: {
-    heading: 'Качество видно в деталях.',
-    items: [
-      {
-        title: 'Большие списки',
-        body: 'Виртуализация истории версий, чтобы не выводить весь список одновременно.',
-      },
-      {
-        title: 'Сложное состояние',
-        body: 'Autosave, история и восстановление предыдущих изменений в редакторе.',
-      },
-      {
-        title: 'Путь до релиза',
-        body: 'От UX до SwiftUI-приложения и бэкенда SplitHub в команде из двух человек.',
-      },
-    ],
+  performanceLab: {
+    eyebrow: 'Интерактивный эксперимент · Open source',
+    name: 'Frontend Performance Lab',
+    thesis: '100 000 строк. Проверьте, как они рендерятся.',
+    description:
+      'Сравните Baseline и Optimized на одном наборе данных: прокрутите таблицу, исследуйте график и посмотрите на счётчики рендеров. Виртуализация и изоляция обновлений tooltip на React и TypeScript.',
+    note: 'Синтетические данные. Сравнение режимов — до 10K строк; Optimized — до 100K. Демо на английском.',
+    demoCta: 'Попробовать демо',
+    demoHref: 'https://rinatgumarov.github.io/frontend-performance-lab/',
+    sourceCta: 'Исходный код',
+    sourceHref: 'https://github.com/RinatGumarov/frontend-performance-lab',
+    newTabHint: 'откроется в новой вкладке',
   },
   personal: {
     heading: 'Вне экрана',
-    body: 'Вне экрана — сёрфинг, сноуборд, скейт и дрифт на BMW E30, который я частично собирал сам. Параллельно делаю небольшие приложения и технические эксперименты.',
+    body: 'Вне экрана — сёрфинг, сноуборд, скейт и дрифт на BMW E30, который я частично собирал сам.',
     items: ['Сёрфинг', 'Сноуборд', 'Скейтбординг', 'Мотоциклы', 'Дрифт'],
     photos: [
       { slug: 'surf', alt: 'Ринат едет по склону волны.' },
-      { slug: 'skate', alt: 'Ринат на рампе в скейтпарке ночью.' },
       { slug: 'snowboard', alt: 'Ринат в прыжке на сноуборде.' },
-      {
-        slug: 'drift-rear',
-        alt: 'BMW E30 Рината в заносе, из-под колёс идёт дым.',
-      },
-      {
-        slug: 'powder',
-        alt: 'Ринат едет по пухляку между заснеженных деревьев.',
-      },
       {
         slug: 'drift-front',
         alt: 'BMW E30 Рината в заносе на трассе, вид спереди.',

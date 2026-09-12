@@ -329,6 +329,73 @@ export async function processProjectScreenshots({
   return manifest;
 }
 
+/*
+ * The Splithub app crop.
+ *
+ * Unlike every other derivative here, this one is cut from an approved
+ * *derivative* rather than from an original capture: the project sources live
+ * outside the repository, and the largest Splithub pixels available locally are
+ * the 1440x720 JPEG this pipeline already produced. The rectangle below lifts
+ * the phone and both of its floating notifications out of that composite so the
+ * portfolio can show the application instead of another landing page.
+ *
+ * The consequence is a hard ceiling: 624px is the crop's native width and
+ * nothing here upscales past it. If the original 3024px capture is ever added
+ * to `assets-source/projects/`, this should be re-cut from it — run `--projects`
+ * first, then this mode, since this one merges into the manifest that writes.
+ */
+export const approvedSplithubAppCrop = {
+  slug: 'splithub-app',
+  // The approved 1440w Splithub derivative, by content hash.
+  source: 'assets/projects/splithub-1440.jpg',
+  sha256: '8f99d3d2e89ca09fe3f2bb8abed8cd4eb69edb064ee0cb0a33722604fe7f38ab',
+  // Bounds the device (x 864-1168, y 111-720) and both notification cards
+  // (x 720-891 / y 138-188 and x 1125-1308 / y 632-682) with a small margin,
+  // so nothing in the composition is cut.
+  crop: { left: 696, top: 96, width: 624, height: 624 },
+  widths: [312, 624],
+};
+
+export async function processSplithubAppCrop({
+  sourcePath,
+  outputDirectory,
+  descriptor = approvedSplithubAppCrop,
+}) {
+  await mkdir(outputDirectory, { recursive: true });
+  const manifest = [];
+
+  for (const width of descriptor.widths) {
+    const height = Math.round(
+      (width * descriptor.crop.height) / descriptor.crop.width,
+    );
+
+    for (const format of portraitFormats) {
+      const fileName = `${descriptor.slug}-${width}.${format.extension}`;
+      const outputPath = path.join(outputDirectory, fileName);
+      // Flat interface pixels, like the other project captures: no modulate
+      // pass, so the application stays exactly as it was captured.
+      const image = sharp(sourcePath)
+        .extract(descriptor.crop)
+        .resize({ width, height, fit: 'cover', kernel: sharp.kernel.lanczos3 })
+        .toColourspace('srgb');
+
+      await format.encode(image).toFile(outputPath);
+      const contents = await readFile(outputPath);
+      manifest.push({
+        file: fileName,
+        slug: descriptor.slug,
+        format: format.name,
+        width,
+        height,
+        bytes: (await stat(outputPath)).size,
+        sha256: createHash('sha256').update(contents).digest('hex'),
+      });
+    }
+  }
+
+  return manifest;
+}
+
 const isDirectInvocation =
   process.argv[1] &&
   path.resolve(process.argv[1]) ===
@@ -386,6 +453,50 @@ if (isDirectInvocation && process.argv[2] === '--projects') {
     `${JSON.stringify(manifest, null, 2)}\n`,
   );
   console.log(JSON.stringify({ sources, outputs }, null, 2));
+} else if (isDirectInvocation && process.argv[2] === '--splithub-app') {
+  const projectRoot = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '..',
+  );
+  const outputDirectory = path.resolve(
+    projectRoot,
+    process.argv[3] ?? 'public/assets/projects',
+  );
+  const sourcePath = path.join(
+    projectRoot,
+    'public',
+    approvedSplithubAppCrop.source,
+  );
+  const source = await verifyApprovedSource(
+    sourcePath,
+    approvedSplithubAppCrop.sha256,
+  );
+  const outputs = await processSplithubAppCrop({ sourcePath, outputDirectory });
+  const manifestPath = path.join(outputDirectory, 'approved-manifest.json');
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  const entry = {
+    slug: approvedSplithubAppCrop.slug,
+    file: approvedSplithubAppCrop.source,
+    derivedFrom: 'splithub',
+    bytes: source.bytes,
+    sha256: approvedSplithubAppCrop.sha256,
+    crop: approvedSplithubAppCrop.crop,
+  };
+  manifest.sources = [
+    ...manifest.sources.filter((item) => item.slug !== entry.slug),
+    entry,
+  ];
+  manifest.outputs = [
+    ...manifest.outputs.filter(
+      (item) => item.slug !== approvedSplithubAppCrop.slug,
+    ),
+    ...outputs.map((output) => ({
+      ...output,
+      file: `assets/projects/${output.file}`,
+    })),
+  ];
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  console.log(JSON.stringify({ source, outputs }, null, 2));
 } else if (isDirectInvocation && process.argv[2] === '--personal') {
   const projectRoot = path.resolve(
     path.dirname(fileURLToPath(import.meta.url)),

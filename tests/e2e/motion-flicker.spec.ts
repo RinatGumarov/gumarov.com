@@ -10,7 +10,12 @@ test('project scenes never flash from visible to hidden', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/en/', { waitUntil: 'networkidle' });
 
-  const scene = page.locator('[data-project-slug="evercity"]');
+  /*
+   * Splithub rather than Evercity: Evercity is a text case now and has no
+   * visual to reveal, so the scene that can actually flash is one that frames a
+   * capture. It is still far below the fold at this viewport.
+   */
+  const scene = page.locator('[data-project-slug="splithub"]');
   await expect(scene).toHaveAttribute('data-motion-project', 'true');
 
   // Far below the fold, so it has not been viewed yet.

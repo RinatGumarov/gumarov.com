@@ -19,8 +19,8 @@ const expectedProjects = [
     contribution:
       'I work on Pine Editor and Strategy Tester: code editing, version history, and interfaces for analysing trading strategies.',
     capabilities: 'Complex frontend systems · Performance-sensitive interfaces',
-    visualName: 'TradingView: Trading interfaces',
     linkLabel: 'Visit TradingView',
+    media: 'screenshot',
   },
   {
     name: 'Stoic',
@@ -29,18 +29,18 @@ const expectedProjects = [
     contribution:
       'Primary frontend engineer who built the React, TypeScript, and Next.js application from scratch.',
     capabilities: 'React · TypeScript · Next.js',
-    visualName: 'Stoic: Fintech from the ground up',
     linkLabel: 'Visit Stoic',
+    media: 'text',
   },
   {
-    name: 'SplitHub',
+    name: 'Splithub',
     slug: 'splithub',
     href: 'https://splithub.app/',
     contribution:
-      'Co-created the product in a two-person team: UX, the SwiftUI app, and its backend.',
-    capabilities: 'Product strategy · UX · iOS delivery',
-    visualName: 'SplitHub: Product ownership',
-    linkLabel: 'Visit SplitHub',
+      'Took the product through the full development cycle: from idea and UX to the SwiftUI app, backend, and App Store launch.',
+    capabilities: 'UX · SwiftUI · Backend · Launch',
+    linkLabel: 'Visit Splithub',
+    media: 'screenshot',
   },
   {
     name: 'Evercity',
@@ -49,8 +49,8 @@ const expectedProjects = [
     contribution:
       'Contributed frontend work on a sustainable-finance platform.',
     capabilities: 'Frontend · Sustainable finance',
-    visualName: 'Evercity: Sustainable finance',
     linkLabel: 'Visit Evercity',
+    media: 'text',
   },
 ] as const;
 
@@ -98,7 +98,13 @@ describe('selected work', () => {
     }
   });
 
-  it('shows an approved screenshot where one exists and geometry elsewhere', () => {
+  /*
+   * Two captures, and nothing standing in for the other two. A text case must
+   * render no image, no figure, no reserved frame and no decorative substitute
+   * — removing a screenshot has to remove a picture, not swap it for another
+   * one.
+   */
+  it('frames a capture only for the two screenshot projects', () => {
     renderSelectedWork();
 
     for (const project of expectedProjects) {
@@ -107,32 +113,59 @@ describe('selected work', () => {
         (entry) => entry.slug === project.slug,
       );
 
-      if (shot) {
-        // The image carries its own accessible name, so the container must not
-        // announce a second one.
+      expect(scene).toHaveAttribute('data-project-media', project.media);
+
+      if (project.media === 'screenshot') {
+        expect(shot).toBeDefined();
+        if (!shot) throw new Error(`Missing screenshot for ${project.slug}`);
+
         const image = within(scene).getByRole('img', { name: shot.alt });
         expect(image.tagName).toBe('IMG');
         expect(image.closest('[data-visual-kind]')).toHaveAttribute(
           'data-visual-kind',
           'product-screenshot',
         );
-        expect(
-          within(scene).queryByRole('img', { name: project.visualName }),
-        ).not.toBeInTheDocument();
+        expect(within(scene).getByText(shot.caption)).toBeVisible();
         continue;
       }
 
-      const visual = within(scene).getByRole('img', {
-        name: project.visualName,
-      });
-      expect(visual).toHaveAttribute('data-visual-kind', 'abstract-geometry');
-      expect(
-        [...visual.querySelectorAll('[data-geometry-layer]')].map((layer) =>
-          layer.getAttribute('data-geometry-layer'),
-        ),
-      ).toEqual(['light-plane', 'depth-plane', 'arc', 'line-field', 'nodes']);
-      expect(within(visual).queryByRole('button')).not.toBeInTheDocument();
+      expect(shot).toBeUndefined();
+      expect(within(scene).queryAllByRole('img')).toHaveLength(0);
+      expect(scene.querySelectorAll('img, picture, svg, canvas')).toHaveLength(
+        0,
+      );
+      expect(scene.querySelectorAll('figure')).toHaveLength(0);
+      // No frame, no plate, no geometry layers left holding the space.
+      expect(scene.querySelectorAll('[data-visual-kind]')).toHaveLength(0);
+      expect(scene.querySelectorAll('[data-geometry-layer]')).toHaveLength(0);
     }
+  });
+
+  it('points each capture at its own approved derivative', () => {
+    renderSelectedWork();
+
+    const tradingView = screen.getByRole('article', { name: 'TradingView' });
+    const tradingViewImage = within(tradingView).getByRole('img');
+    expect(tradingViewImage).toHaveAttribute(
+      'src',
+      '/assets/projects/tradingview-960.jpg',
+    );
+    expect(tradingViewImage).toHaveAttribute('width', '1440');
+    expect(tradingViewImage).toHaveAttribute('height', '720');
+
+    // Splithub shows the application, cropped out of the approved capture —
+    // not the landing composite the crop was taken from.
+    const splithub = screen.getByRole('article', { name: 'Splithub' });
+    const splithubImage = within(splithub).getByRole('img');
+    expect(splithubImage).toHaveAttribute(
+      'src',
+      '/assets/projects/splithub-app-624.jpg',
+    );
+    expect(splithubImage).toHaveAttribute('width', '624');
+    expect(splithubImage).toHaveAttribute('height', '624');
+    expect(splithubImage.getAttribute('srcset')).toContain(
+      '/assets/projects/splithub-app-312.jpg 312w',
+    );
   });
 
   it('registers each real project scene for locale-aware 50% view tracking', () => {
@@ -191,10 +224,10 @@ describe('selected work', () => {
     }
   });
 
-  it('shows the two SplitHub metrics as labeled facts beside the description', () => {
+  it('shows one headline Splithub metric with the shipped state beside it', () => {
     renderSelectedWork();
 
-    const scene = screen.getByRole('article', { name: 'SplitHub' });
+    const scene = screen.getByRole('article', { name: 'Splithub' });
     const metrics = scene.querySelector('dl');
 
     expect(metrics).not.toBeNull();
@@ -202,60 +235,57 @@ describe('selected work', () => {
       [...(metrics?.querySelectorAll('dt, dd') ?? [])].map((node) =>
         node.textContent?.trim(),
       ),
-    ).toEqual(['350+', 'registered users', 'Around 50', 'daily active users']);
+    ).toEqual(['350', 'registered users']);
+    // A subordinate mark, deliberately not a second statistic in the list.
+    expect(within(scene).getByText('On the App Store')).toBeVisible();
+    expect(
+      within(scene).queryByText(/daily active users/iu),
+    ).not.toBeInTheDocument();
   });
 
-  it('closes the section with a compact row instead of a full visual scene', () => {
+  it('closes the section with a compact text row and no reserved visual', () => {
     renderSelectedWork();
 
     const compact = screen.getByRole('article', { name: 'Evercity' });
 
-    // The three full scenes frame their capture in a figure with a caption;
-    // the closing row carries only a thumbnail, so it has no figure at all.
     expect(compact.querySelectorAll('figure')).toHaveLength(0);
-    for (const project of expectedProjects.slice(0, 3)) {
-      const scene = screen.getByRole('article', { name: project.name });
+    expect(compact.querySelectorAll('img, picture, svg')).toHaveLength(0);
+    expect(
+      within(compact).getByRole('link', { name: 'Visit Evercity' }),
+    ).toBeVisible();
+
+    // The two captured scenes still frame their capture in a figure.
+    for (const slug of ['TradingView', 'Splithub']) {
+      const scene = screen.getByRole('article', { name: slug });
       expect(scene.querySelectorAll('figure')).toHaveLength(1);
     }
-
-    // The approved capture is still there, just small — not a placeholder.
-    expect(
-      within(compact).getByRole('img', {
-        name: 'Evercity project catalogue: sustainability filters above carbon project cards.',
-      }),
-    ).toBeInTheDocument();
   });
 
   it('keeps the name, description, and link readable when a capture fails', () => {
     renderSelectedWork();
 
-    const scene = screen.getByRole('article', { name: 'Stoic' });
-    const image = within(scene).getByRole('img', {
-      name: 'Stoic strategy selection: exchange and risk filters beside strategy cards with performance charts.',
-    });
+    const scene = screen.getByRole('article', { name: 'Splithub' });
+    const image = within(scene).getByRole('img');
 
     fireEvent.error(image);
 
     expect(
-      within(scene).getByRole('heading', { level: 3, name: 'Stoic' }),
+      within(scene).getByRole('heading', { level: 3, name: 'Splithub' }),
     ).toBeVisible();
     expect(
-      within(scene).getByText(
-        'A fintech web app for automated trading strategies.',
-      ),
+      within(scene).getByText('An iOS app for sharing expenses.'),
     ).toBeVisible();
-    expect(
-      within(scene).getByText(
-        'Primary frontend engineer who built the React, TypeScript, and Next.js application from scratch.',
-      ),
-    ).toBeVisible();
-    const namedLink = within(scene).getByRole('link', { name: 'Visit Stoic' });
+    const namedLink = within(scene).getByRole('link', {
+      name: 'Visit Splithub',
+    });
     expect(namedLink).toBeVisible();
-    expect(namedLink).toHaveAttribute('href', 'https://stoic.ai/');
+    expect(namedLink).toHaveAttribute('href', 'https://splithub.app/');
+    // The plate goes with the capture rather than staying as an empty frame,
+    // and the caption goes with it because it described the picture.
+    expect(within(scene).queryAllByRole('img')).toHaveLength(0);
     expect(
-      within(scene).getByRole('img', {
-        name: 'Stoic: Fintech from the ground up',
-      }),
-    ).toHaveAttribute('data-visual-kind', 'abstract-geometry');
+      within(scene).queryByText('Splithub on iOS'),
+    ).not.toBeInTheDocument();
+    expect(scene.querySelectorAll('[data-geometry-layer]')).toHaveLength(0);
   });
 });

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { getContent } from './index';
 import {
   personalPhotoSlugs,
-  uncaptionedProjectSlugs,
+  screenshotProjectSlugs,
   type ProjectVariant,
 } from './types';
 
@@ -48,10 +48,20 @@ const quantifiedClaim =
 const approvedMetricClaims = [
   '9+ years in frontend engineering',
   '9+ лет frontend-разработки',
-  '350+ registered users',
-  '350+ зарегистрированных пользователей',
-  'Around 50 daily active users',
-  'Примерно 50 активных пользователей в день',
+  // Splithub: registered users, confirmed in the candidate profile. Written
+  // once as the project's own metric and once as the proof band's label.
+  '350 registered users',
+  '350 зарегистрированных пользователей',
+  'From zero to the App Store · 350 users',
+  'С нуля до App Store · 350 пользователей',
+  // Frontend Performance Lab: row counts in a synthetic dataset, and the two
+  // modes' documented ceilings. Not a speed claim — see the note copy.
+  '100,000 rows',
+  '100 000 строк',
+  'up to 10K rows',
+  'до 10K строк',
+  'up to 100K',
+  'до 100K',
 ];
 
 /** Every quantified claim in `copy` that the allowlist does not account for. */
@@ -99,6 +109,47 @@ function collectCopy(value: unknown, collected: string[] = []): string[] {
   return collected;
 }
 
+/**
+ * The strings a reader actually meets, with identifiers left out.
+ *
+ * `slug`, `variant`, `media` and every `href` name an asset, pick a rendering
+ * or address a destination; none of them is ever page text. The brand-spelling
+ * guard below cares about copy, alt text and accessible labels, and the URL
+ * `https://splithub.app/` is deliberately lowercase — asserting a capital there
+ * would demand a broken link.
+ */
+function collectReaderFacingCopy(
+  value: unknown,
+  key = '',
+  collected: string[] = [],
+): string[] {
+  const isIdentifier =
+    key === 'slug' ||
+    key === 'variant' ||
+    key === 'media' ||
+    key === 'href' ||
+    key.endsWith('Href') ||
+    key === 'ogImage';
+
+  if (typeof value === 'string') {
+    if (!isIdentifier) collected.push(value);
+    return collected;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) collectReaderFacingCopy(item, key, collected);
+    return collected;
+  }
+
+  if (value && typeof value === 'object') {
+    for (const [childKey, child] of Object.entries(value)) {
+      collectReaderFacingCopy(child, childKey, collected);
+    }
+  }
+
+  return collected;
+}
+
 describe('landing content', () => {
   it.each(['en', 'ru'] as const)('returns complete %s copy', (locale) => {
     const content = getContent(locale);
@@ -112,8 +163,9 @@ describe('landing content', () => {
     expect(content.hero.workCta).not.toBe('');
     expect(content.hero.contactCta).not.toBe('');
     expect(content.projectsHeading).not.toBe('');
-    expect(content.engineering.heading).not.toBe('');
-    expect(content.engineering.items.length).toBeGreaterThan(0);
+    expect(content.performanceLab.name).not.toBe('');
+    expect(content.performanceLab.thesis).not.toBe('');
+    expect(content.performanceLab.description).not.toBe('');
     expect(content.personal.heading).not.toBe('');
     expect(content.personal.body).not.toBe('');
     expect(content.personal.items.length).toBeGreaterThan(0);
@@ -233,29 +285,43 @@ describe('landing content', () => {
   });
 
   /*
-   * A caption belongs to a `<figure>`, and the compact scene has none — it
-   * renders a bare thumbnail by design. So a caption declared for a compact
-   * project is copy that reaches nobody, and the two sets have to stay in step
-   * as variants change.
+   * The media mode is the contract, not "a screenshot entry happens to be
+   * missing". A project in text mode renders no figure at all, so a screenshot
+   * declared for one would be copy — and an alt string — that reaches nobody.
    */
   it.each(['en', 'ru'] as const)(
-    'captions the framed screenshots and leaves the bare one uncaptioned in %s',
+    'ships a capture for exactly the screenshot projects in %s',
     (locale) => {
       const content = getContent(locale);
-      const compactSlugs = content.projects
-        .filter((project) => project.variant === 'compact')
+      const withScreenshots = content.projects
+        .filter((project) => project.media === 'screenshot')
         .map((project) => project.slug);
 
-      expect(compactSlugs).toEqual([...uncaptionedProjectSlugs]);
+      expect(withScreenshots).toEqual([...screenshotProjectSlugs]);
+      expect(content.projectScreenshots.map((shot) => shot.slug)).toEqual([
+        ...screenshotProjectSlugs,
+      ]);
 
       for (const screenshot of content.projectScreenshots) {
         expect(screenshot.alt.trim().length).toBeGreaterThan(0);
+        expect(screenshot.caption.trim().length).toBeGreaterThan(0);
+      }
+    },
+  );
 
-        if (compactSlugs.includes(screenshot.slug)) {
-          expect(screenshot.caption).toBeUndefined();
-        } else {
-          expect(screenshot.caption?.trim().length).toBeGreaterThan(0);
-        }
+  it.each(['en', 'ru'] as const)(
+    'declares Stoic and Evercity as text cases in %s',
+    (locale) => {
+      const content = getContent(locale);
+      const textSlugs = content.projects
+        .filter((project) => project.media === 'text')
+        .map((project) => project.slug);
+
+      expect(textSlugs).toEqual(['stoic', 'evercity']);
+      for (const project of content.projects) {
+        if (project.media !== 'text') continue;
+        // `proofs` renders beneath a capture, so a text case must not carry one.
+        expect(project.proofs).toBeUndefined();
       }
     },
   );
@@ -368,21 +434,118 @@ describe('landing content', () => {
     }
   });
 
-  it('keeps SplitHub’s approved metrics intact with their qualifiers attached', () => {
+  it('keeps Splithub’s single headline metric and its shipped state', () => {
     const en = getContent('en').projects.find((p) => p.slug === 'splithub');
     const ru = getContent('ru').projects.find((p) => p.slug === 'splithub');
 
-    expect(en?.metrics).toEqual([
-      { value: '350+', label: 'registered users' },
-      { value: 'Around 50', label: 'daily active users' },
-    ]);
+    expect(en?.metrics).toEqual([{ value: '350', label: 'registered users' }]);
     expect(ru?.metrics).toEqual([
-      { value: '350+', label: 'зарегистрированных пользователей' },
-      { value: 'Примерно 50', label: 'активных пользователей в день' },
+      { value: '350', label: 'зарегистрированных пользователей' },
     ]);
-    expect(en?.contribution).toContain('two-person team');
-    expect(ru?.contribution).toContain('команде из двух человек');
+    expect(en?.availability).toBe('On the App Store');
+    expect(ru?.availability).toBe('В App Store');
+    expect(en?.contribution).toContain('full development cycle');
+    expect(ru?.contribution).toContain('полный цикл');
   });
+
+  it.each(['en', 'ru'] as const)(
+    'states the proof band as the full cycle and 350 users in %s',
+    (locale) => {
+      const splithub = getContent(locale).hero.proofPoints.at(2);
+
+      expect(splithub?.value).toBe('Splithub');
+      expect(splithub?.label).toBe(
+        locale === 'ru'
+          ? 'С нуля до App Store · 350 пользователей'
+          : 'From zero to the App Store · 350 users',
+      );
+    },
+  );
+
+  /*
+   * The product is spelled Splithub — one capital, the way the product itself
+   * spells it. The slug, the URL and the analytics identifier are lowercase
+   * identifiers and are deliberately not covered here; this is about copy a
+   * reader sees, including alt text and accessible labels.
+   */
+  it.each(['en', 'ru'] as const)(
+    'spells the product Splithub in %s',
+    (locale) => {
+      const offenders = collectReaderFacingCopy(getContent(locale)).filter(
+        (copy) => /split\s?hub/iu.test(copy) && !copy.includes('Splithub'),
+      );
+
+      expect(offenders).toEqual([]);
+    },
+  );
+
+  /*
+   * The full-cycle wording describes involvement and responsibility. It must
+   * not drift into sole authorship or into owning the App Store account, since
+   * neither is true: Splithub was built with a co-author and released through
+   * their developer account.
+   */
+  it.each(['en', 'ru'] as const)(
+    'never claims solo authorship or account ownership for Splithub in %s',
+    (locale) => {
+      const copy = collectCopy(getContent(locale)).join(' ').toLowerCase();
+
+      for (const forbidden of [
+        'solo',
+        'single-handed',
+        'sole developer',
+        'only developer',
+        'my app store',
+        'my developer account',
+        'в одиночку',
+        'единственный разработчик',
+        'создал один',
+        'мой developer account',
+        'мой аккаунт',
+      ]) {
+        expect(copy).not.toContain(forbidden);
+      }
+    },
+  );
+
+  it.each(['en', 'ru'] as const)(
+    'points the performance lab at its verified demo and repository in %s',
+    (locale) => {
+      const lab = getContent(locale).performanceLab;
+
+      expect(lab.name).toBe('Frontend Performance Lab');
+      expect(lab.demoHref).toBe(
+        'https://rinatgumarov.github.io/frontend-performance-lab/',
+      );
+      expect(lab.sourceHref).toBe(
+        'https://github.com/RinatGumarov/frontend-performance-lab',
+      );
+      expect(lab.demoCta.trim().length).toBeGreaterThan(0);
+      expect(lab.sourceCta.trim().length).toBeGreaterThan(0);
+      expect(lab.newTabHint.trim().length).toBeGreaterThan(0);
+      // The note carries the limits the demo actually has; without it the
+      // headline row count reads as a promise about both modes.
+      expect(lab.note).toMatch(/10K/u);
+      expect(lab.note).toMatch(/100K/u);
+    },
+  );
+
+  /*
+   * The lab is a rendering experiment on synthetic data, not a benchmark: no
+   * frame rate, no millisecond figure, and no "zero renders" absolute.
+   */
+  it.each(['en', 'ru'] as const)(
+    'makes no speed promise in the performance lab copy in %s',
+    (locale) => {
+      const lab = getContent(locale).performanceLab;
+      const copy = Object.values(lab).join(' ');
+
+      expect(copy).not.toMatch(/\bfps\b/iu);
+      expect(copy).not.toMatch(/\d+\s?ms\b/iu);
+      expect(copy).not.toMatch(/\bкадр(ов)?\/с/iu);
+      expect(copy).not.toMatch(/60\s?(hz|гц)/iu);
+    },
+  );
 
   it('keeps the 9+ years frontend claim in the hero proof points', () => {
     expect(getContent('en').hero.proofPoints[0]).toEqual({

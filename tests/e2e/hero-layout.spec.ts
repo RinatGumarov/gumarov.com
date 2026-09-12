@@ -3,7 +3,7 @@ import { localePath, qualityLocales } from './quality';
 
 /**
  * The hero no longer opens with a large portrait figure that the copy sits
- * under. The portrait is now a fixed 56x70 avatar beside the name (plan §3.2),
+ * under. The portrait is now the page's single 44px avatar beside the name,
  * so "is the figure centred in the viewport" has no subject any more. What
  * replaced it is a single content column: the avatar, the name and the heading
  * all start on the same edge, and the column itself is what the page gutter
@@ -19,10 +19,10 @@ const stackedWidths = [320, 360, 390, 430, 480, 540, 600, 700, 736] as const;
 // Sub-pixel rounding and scrollbar reservation can differ by a pixel.
 const alignmentTolerance = 2;
 
-// The avatar's reserved box (plan §3.2). Fixed at every breakpoint, and
-// declared in CSS rather than left to the image, so the hero's layout is
-// settled before the portrait decodes — or fails.
-const portraitBox = { width: 56, height: 70 };
+// The avatar's reserved box. Fixed at every breakpoint, and declared in CSS
+// rather than left to the image, so the hero's layout is settled before the
+// portrait decodes — or fails.
+const portraitBox = { width: 44, height: 44 };
 
 for (const locale of qualityLocales) {
   for (const width of stackedWidths) {

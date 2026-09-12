@@ -32,7 +32,7 @@ export const en = {
     proofPoints: [
       { value: '9+ years', label: 'in frontend engineering' },
       { value: 'TradingView', label: 'Pine Editor · Strategy Tester' },
-      { value: 'SplitHub', label: 'co-created in a two-person team' },
+      { value: 'Splithub', label: 'From zero to the App Store · 350 users' },
     ],
     workCta: 'View selected work',
     contactCta: 'Get in touch',
@@ -50,6 +50,7 @@ export const en = {
         'Complex frontend systems · Performance-sensitive interfaces',
       href: 'https://www.tradingview.com/',
       variant: 'lead',
+      media: 'screenshot',
       linkLabel: 'Visit TradingView',
       proofs: [
         {
@@ -76,35 +77,34 @@ export const en = {
       capabilities: 'React · TypeScript · Next.js',
       href: 'https://stoic.ai/',
       variant: 'major',
+      media: 'text',
       linkLabel: 'Visit Stoic',
     },
     {
       slug: 'splithub',
-      name: 'SplitHub',
-      eyebrow: 'Product ownership',
-      summary: 'An iOS expense-sharing product for groups.',
+      name: 'Splithub',
+      eyebrow: 'From idea to the App Store',
+      summary: 'An iOS app for sharing expenses.',
       contribution:
-        'Co-created the product in a two-person team: UX, the SwiftUI app, and its backend.',
-      capabilities: 'Product strategy · UX · iOS delivery',
+        'Took the product through the full development cycle: from idea and UX to the SwiftUI app, backend, and App Store launch.',
+      capabilities: 'UX · SwiftUI · Backend · Launch',
       href: 'https://splithub.app/',
       variant: 'product',
-      linkLabel: 'Visit SplitHub',
-      metrics: [
-        { value: '350+', label: 'registered users' },
-        { value: 'Around 50', label: 'daily active users' },
-      ],
+      media: 'screenshot',
+      linkLabel: 'Visit Splithub',
+      metrics: [{ value: '350', label: 'registered users' }],
+      availability: 'On the App Store',
     },
     {
       slug: 'evercity',
       name: 'Evercity',
       eyebrow: 'Sustainable finance',
-      summary:
-        'A platform for sustainable-finance management, issuance, and monitoring.',
       contribution:
         'Contributed frontend work on a sustainable-finance platform.',
       capabilities: 'Frontend · Sustainable finance',
       href: 'https://evercity.io/',
       variant: 'compact',
+      media: 'text',
       linkLabel: 'Visit Evercity',
     },
   ],
@@ -115,50 +115,31 @@ export const en = {
       caption: 'Pine Editor and Strategy Tester',
     },
     {
-      slug: 'stoic',
-      alt: 'Stoic strategy selection: exchange and risk filters beside strategy cards with performance charts.',
-      caption: 'Stoic',
-    },
-    {
       slug: 'splithub',
-      alt: 'The SplitHub landing beside the iOS app showing balances by currency and who owes whom.',
-      caption: 'SplitHub',
-    },
-    {
-      slug: 'evercity',
-      alt: 'Evercity project catalogue: sustainability filters above carbon project cards.',
+      alt: 'Splithub on iPhone: balances by currency, the net total in your favour, and the list of friends with amounts.',
+      caption: 'Splithub on iOS',
     },
   ],
-  engineering: {
-    heading: 'Quality lives in the details.',
-    items: [
-      {
-        title: 'Large lists',
-        body: 'Virtualized version history, so the entire list does not need to render at once.',
-      },
-      {
-        title: 'Complex state',
-        body: 'Autosave, history, and restoring previous changes in the editor.',
-      },
-      {
-        title: 'Through to release',
-        body: 'From UX to the SplitHub SwiftUI app and backend in a two-person team.',
-      },
-    ],
+  performanceLab: {
+    eyebrow: 'Interactive experiment · Open source',
+    name: 'Frontend Performance Lab',
+    thesis: '100,000 rows. Explore how they render.',
+    description:
+      'Compare Baseline and Optimized on the same dataset: scroll the table, explore the chart, and inspect render counters. Virtualization and isolated tooltip updates with React and TypeScript.',
+    note: 'Synthetic data. Compare modes at up to 10K rows; explore Optimized at up to 100K.',
+    demoCta: 'Try the live demo',
+    demoHref: 'https://rinatgumarov.github.io/frontend-performance-lab/',
+    sourceCta: 'View source',
+    sourceHref: 'https://github.com/RinatGumarov/frontend-performance-lab',
+    newTabHint: 'opens in a new tab',
   },
   personal: {
     heading: 'Beyond the screen',
-    body: 'Beyond the screen: surfing, snowboarding, skating, and drifting a BMW E30 I partly built myself. Alongside that, I build small apps and technical experiments.',
+    body: 'Away from the screen: surfing, snowboarding, skating, and drifting a BMW E30 I partly built myself.',
     items: ['Surfing', 'Snowboarding', 'Skating', 'Motorcycles', 'Drifting'],
     photos: [
       { slug: 'surf', alt: 'Rinat riding the face of a breaking wave.' },
-      { slug: 'skate', alt: 'Rinat riding a skatepark ramp at night.' },
       { slug: 'snowboard', alt: 'Rinat mid-air on a snowboard.' },
-      {
-        slug: 'drift-rear',
-        alt: 'Rinat’s BMW E30 sliding through a corner in tyre smoke.',
-      },
-      { slug: 'powder', alt: 'Rinat riding powder between snowy trees.' },
       {
         slug: 'drift-front',
         alt: 'Rinat’s BMW E30 mid-drift on track, seen head-on.',

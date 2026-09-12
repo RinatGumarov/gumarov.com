@@ -1,0 +1,200 @@
+/*
+ * A compact editorial band, not a fourth project scene and not a dashboard:
+ * name and claim on the left, the explanation and the two links on the right.
+ * It closes the work sequence, so it is deliberately shorter than any of the
+ * scenes above it.
+ */
+.lab {
+  width: min(100% - (2 * var(--page-gutter)), var(--content-wide));
+  margin-inline: auto;
+  padding-block: clamp(var(--space-12), 8vw, var(--space-20));
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(var(--space-8), 5vw, var(--space-12));
+  border-block-start: 1px solid var(--color-line);
+}
+
+.intro {
+  min-inline-size: 0;
+}
+
+.index {
+  margin: 0 0 var(--space-4);
+  color: var(--color-amber-300);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.eyebrow {
+  margin: 0 0 var(--space-4);
+  color: var(--color-cyan-300);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.name {
+  margin: 0;
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: clamp(var(--text-xl), 2.1vw, var(--text-2xl));
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+}
+
+/*
+ * The claim is the block's headline — larger than the lab's own name, because
+ * the number is what makes a visitor curious enough to open the demo.
+ */
+.thesis {
+  max-inline-size: 16ch;
+  margin: var(--space-4) 0 0;
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3.6vw, 3.25rem);
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  line-height: 1.04;
+  text-wrap: balance;
+}
+
+.detail {
+  min-inline-size: 0;
+  padding-inline-start: clamp(0px, 2vw, var(--space-8));
+  border-inline-start: 1px solid var(--color-line);
+}
+
+.description {
+  max-inline-size: 44ch;
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--text-lg);
+  line-height: 1.6;
+}
+
+/*
+ * The limits, kept beside the claim rather than hidden: the dataset is
+ * synthetic, and the two modes do not both reach 100K.
+ */
+.note {
+  max-inline-size: 46ch;
+  margin: var(--space-6) 0 0;
+  color: var(--color-text-subtle);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+}
+
+.actions {
+  margin-block-start: var(--space-8);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-5) var(--space-6);
+}
+
+.primaryAction {
+  display: inline-flex;
+  min-block-size: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding-inline: var(--space-6);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-graphite-950);
+  background: var(--color-text-strong);
+  font-size: var(--text-sm);
+  font-weight: 750;
+  letter-spacing: 0.015em;
+  text-decoration: none;
+}
+
+.primaryAction:hover {
+  background: var(--color-text);
+}
+
+.secondaryAction {
+  display: inline-flex;
+  min-block-size: 52px;
+  align-items: center;
+  gap: var(--space-3);
+  padding-inline: var(--space-2);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 750;
+  letter-spacing: 0.015em;
+  text-decoration: underline;
+  text-decoration-color: var(--color-line-strong);
+  text-underline-offset: 0.28em;
+}
+
+.secondaryAction:hover {
+  color: var(--color-cyan-200);
+  text-decoration-color: var(--color-cyan-400);
+}
+
+/*
+ * Both links open a new tab, which a sighted visitor reads from the arrow. This
+ * says the same thing to a screen reader by joining the link's accessible name,
+ * so the announcement is "Try the live demo (opens in a new tab)".
+ */
+.newTabHint {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.primaryAction span[aria-hidden],
+.secondaryAction span[aria-hidden] {
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.primaryAction:hover span[aria-hidden],
+.primaryAction:focus-visible span[aria-hidden],
+.secondaryAction:hover span[aria-hidden],
+.secondaryAction:focus-visible span[aria-hidden] {
+  transform: translate(2px, -2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .primaryAction span[aria-hidden],
+  .secondaryAction span[aria-hidden] {
+    transition: none;
+    transform: none !important;
+  }
+}
+
+@media (max-width: 56rem) {
+  .lab {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .detail {
+    padding-inline-start: 0;
+    border-inline-start: none;
+  }
+
+  .thesis {
+    max-inline-size: 20ch;
+  }
+}
+
+@media (max-width: 20rem) {
+  .actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .primaryAction {
+    inline-size: 100%;
+  }
+}

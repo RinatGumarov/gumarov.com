@@ -288,6 +288,50 @@ describe(
       expect(result.status).toBe(1);
     });
 
+    it('requires the Splithub app crop at its own square dimensions', async () => {
+      const fixture = await createDistributionFixture();
+      await rm(
+        path.join(
+          fixture.distDirectory,
+          'assets/projects/splithub-app-624.avif',
+        ),
+      );
+
+      const result = runChecker(fixture.distDirectory);
+
+      expect(result.stderr).toContain(
+        'Required project asset is missing: assets/projects/splithub-app-624.avif',
+      );
+      expect(result.status).toBe(1);
+    });
+
+    /*
+     * The crop is cut from an approved derivative rather than from a source in
+     * `assets-source/`, so its provenance is a chain: the pinned hash has to be
+     * the very Splithub derivative the crop came out of. Without this, the crop
+     * could name any hash at all and still pass.
+     */
+    it('rejects an app crop that is not cut from the approved Splithub derivative', async () => {
+      const fixture = await createDistributionFixture();
+      const manifestPath = path.join(
+        fixture.distDirectory,
+        'assets/projects/approved-manifest.json',
+      );
+      const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+      const parent = manifest.outputs.find(
+        (output) => output.file === 'assets/projects/splithub-1440.jpg',
+      );
+      parent.sha256 = 'c'.repeat(64);
+      await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+      const result = runChecker(fixture.distDirectory);
+
+      expect(result.stderr).toContain(
+        'assets/projects/approved-manifest.json: splithub-app is not cut from the approved splithub derivative.',
+      );
+      expect(result.status).toBe(1);
+    });
+
     it('rejects unrelated metadata-free pixels that do not match the approved output manifest', async () => {
       const missingManifestFixture = await createDistributionFixture();
       await rm(
@@ -338,7 +382,7 @@ describe(
           path: 'projects[0].contribution',
           value: 'TradingView contribution',
         },
-        { path: 'engineering.items[0].body', value: 'Working principle.' },
+        { path: 'performanceLab.description', value: 'Lab description.' },
         { path: 'personal.body', value: 'Personal story.' },
         { path: 'contact.heading', value: 'Let’s talk' },
       ];
@@ -1101,6 +1145,23 @@ async function writeValidPortraitAssets(distDirectory) {
   );
 }
 
+/*
+ * The Splithub app crop is cut from the approved 1440w Splithub derivative, so
+ * the checker verifies that its pinned source hash really is that derivative's
+ * hash. A synthetic fixture image cannot satisfy a chain that ends in real
+ * bytes, so these files are copied from the repository rather than generated —
+ * which is also what makes the provenance check meaningful here instead of
+ * merely self-consistent.
+ */
+const chainedProjectFiles = [
+  'splithub-1440.jpg',
+  'splithub-app-312.avif',
+  'splithub-app-312.webp',
+  'splithub-app-312.jpg',
+  'splithub-app-624.avif',
+  'splithub-app-624.webp',
+  'splithub-app-624.jpg',
+];
 const approvedProjectSources = [
   {
     slug: 'tradingview',
@@ -1125,12 +1186,26 @@ async function writeValidProjectAssets(distDirectory) {
   await mkdir(directory, { recursive: true });
   const outputs = [];
 
+  const record = async (file, slug, format, width, height) => {
+    const contents = await readFile(path.join(directory, file));
+    outputs.push({
+      file: `assets/projects/${file}`,
+      slug,
+      format,
+      width,
+      height,
+      bytes: contents.byteLength,
+      sha256: createHash('sha256').update(contents).digest('hex'),
+    });
+  };
+
   for (const { slug } of approvedProjectSources) {
     for (const width of [640, 960, 1440]) {
       for (const format of ['avif', 'webp', 'jpeg']) {
         const extension = format === 'jpeg' ? 'jpg' : format;
         const file = `${slug}-${width}.${extension}`;
-        const outputPath = path.join(directory, file);
+        if (chainedProjectFiles.includes(file)) continue;
+
         await sharp({
           create: {
             width,
@@ -1140,25 +1215,46 @@ async function writeValidProjectAssets(distDirectory) {
           },
         })
           .toFormat(format, { quality: 10 })
-          .toFile(outputPath);
-        const contents = await readFile(outputPath);
-        outputs.push({
-          file: `assets/projects/${file}`,
-          slug,
-          format,
-          width,
-          height: Math.round(width / 2),
-          bytes: contents.byteLength,
-          sha256: createHash('sha256').update(contents).digest('hex'),
-        });
+          .toFile(path.join(directory, file));
+        await record(file, slug, format, width, Math.round(width / 2));
       }
     }
   }
 
+  for (const file of chainedProjectFiles) {
+    const source = path.resolve(process.cwd(), 'public/assets/projects', file);
+    await writeFile(path.join(directory, file), await readFile(source));
+    const metadata = await sharp(path.join(directory, file)).metadata();
+    const format = metadata.format === 'heif' ? 'avif' : metadata.format;
+    await record(
+      file,
+      file.startsWith('splithub-app') ? 'splithub-app' : 'splithub',
+      format,
+      metadata.width,
+      metadata.height,
+    );
+  }
+
+  const splithubDerivative = outputs.find(
+    (output) => output.file === 'assets/projects/splithub-1440.jpg',
+  );
+
   await writeFile(
     path.join(directory, 'approved-manifest.json'),
     `${JSON.stringify(
-      { schemaVersion: 1, sources: approvedProjectSources, outputs },
+      {
+        schemaVersion: 1,
+        sources: [
+          ...approvedProjectSources,
+          {
+            slug: 'splithub-app',
+            file: 'assets/projects/splithub-1440.jpg',
+            derivedFrom: 'splithub',
+            sha256: splithubDerivative.sha256,
+          },
+        ],
+        outputs,
+      },
       null,
       2,
     )}\n`,
@@ -1356,14 +1452,17 @@ function createContent(locale, heroBody) {
       contribution: `${name} contribution`,
       href,
     })),
-    engineering: {
-      heading: isRussian ? 'Как я работаю' : 'How I work',
-      items: [
-        {
-          title: isRussian ? 'Инженерный подход' : 'Engineering approach',
-          body: isRussian ? 'Принцип работы.' : 'Working principle.',
-        },
-      ],
+    performanceLab: {
+      eyebrow: isRussian ? 'Эксперимент' : 'Experiment',
+      name: 'Frontend Performance Lab',
+      thesis: isRussian ? 'Проверьте рендеринг.' : 'Explore how it renders.',
+      description: isRussian ? 'Описание лаборатории.' : 'Lab description.',
+      note: isRussian ? 'Синтетические данные.' : 'Synthetic data.',
+      demoCta: isRussian ? 'Демо' : 'Live demo',
+      demoHref: 'https://rinatgumarov.github.io/frontend-performance-lab/',
+      sourceCta: isRussian ? 'Код' : 'Source',
+      sourceHref: 'https://github.com/RinatGumarov/frontend-performance-lab',
+      newTabHint: isRussian ? 'новая вкладка' : 'opens in a new tab',
     },
     personal: {
       heading: isRussian ? 'Вне экрана' : 'Beyond the screen',
@@ -1447,7 +1546,7 @@ function renderFixtureDocument({
 function collectHeadingElements(content) {
   return new Map([
     [content.projectsHeading, 'h2'],
-    [content.engineering.heading, 'h2'],
+    [content.performanceLab.name, 'h2'],
     [content.personal.heading, 'h2'],
     [content.contact.heading, 'h2'],
     ...content.projects.map((project) => [project.name, 'h3']),
@@ -1463,11 +1562,13 @@ function collectVisibleStrings(content) {
 
 function visit(value, key, values) {
   if (typeof value === 'string') {
-    // `alt` reaches the page as an image attribute; `slug` names an asset and
-    // `variant` picks a composition. None of the three is ever page text, so
-    // the fixture renders none of them — which is what lets the checker's own
-    // handling of them be tested rather than assumed.
-    const structural = key === 'slug' || key === 'alt' || key === 'variant';
+    // `alt` reaches the page as an image attribute; `slug` names an asset,
+    // `variant` picks a composition and `media` says whether that composition
+    // carries a capture. None of the four is ever page text, so the fixture
+    // renders none of them — which is what lets the checker's own handling of
+    // them be tested rather than assumed.
+    const structural =
+      key === 'slug' || key === 'alt' || key === 'variant' || key === 'media';
     if (!structural && value !== '') values.push(value);
     return;
   }

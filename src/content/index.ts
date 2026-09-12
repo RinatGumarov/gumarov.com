@@ -13,12 +13,21 @@ export type {
   LandingContent,
   Locale,
   PageMeta,
+  PerformanceLab,
+  PersonalPhotoAlt,
+  PersonalPhotoSlug,
   Project,
+  ProjectMedia,
   ProjectProof,
   ProjectScreenshot,
   ProjectSlug,
   ProjectVariant,
   ProofPoint,
+  ScreenshotProjectSlug,
   SocialCardCopy,
 } from './types';
-export { projectSlugs } from './types';
+export {
+  personalPhotoSlugs,
+  projectSlugs,
+  screenshotProjectSlugs,
+} from './types';

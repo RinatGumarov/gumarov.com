@@ -35,6 +35,34 @@ for (const locale of qualityLocales) {
         });
         await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
+        /*
+         * A full-page screenshot does not scroll, so every lazy image below the
+         * fold stays unrequested and the baseline records empty frames — which
+         * is exactly how six blank photo frames ended up in the reviewed
+         * snapshots. Walk the page once to trigger the loads, wait for them to
+         * decode, then return to the top before capturing.
+         */
+        await page.evaluate(async () => {
+          const step = window.innerHeight;
+          for (let y = 0; y < document.body.scrollHeight; y += step) {
+            window.scrollTo(0, y);
+            await new Promise((resolve) => setTimeout(resolve, 60));
+          }
+          window.scrollTo(0, 0);
+          await Promise.all(
+            [...document.images]
+              .filter((image) => !image.complete)
+              .map(
+                (image) =>
+                  new Promise((resolve) => {
+                    image.addEventListener('load', resolve, { once: true });
+                    image.addEventListener('error', resolve, { once: true });
+                  }),
+              ),
+          );
+          await new Promise((resolve) => setTimeout(resolve, 120));
+        });
+
         await expect(page).toHaveScreenshot(
           `landing-${locale}-${viewport.name}.png`,
           {

@@ -161,21 +161,52 @@ const approvedProjectSources = [
     sha256: 'dc6bd17beb17bb2791a076aeef8a110e3dee0e5f2b99441b2d5276cdb4f0a9be',
   },
 ];
-const requiredProjectAssets = approvedProjectSources.flatMap(({ slug }) =>
-  [640, 960, 1440].flatMap((width) =>
-    [
-      { extension: 'avif', manifestFormat: 'avif', metadataFormat: 'heif' },
-      { extension: 'webp', manifestFormat: 'webp', metadataFormat: 'webp' },
-      { extension: 'jpg', manifestFormat: 'jpeg', metadataFormat: 'jpeg' },
-    ].map(({ extension, manifestFormat, metadataFormat }) => ({
-      file: `assets/projects/${slug}-${width}.${extension}`,
-      manifestFormat,
-      metadataFormat,
-      width,
-      height: Math.round(width / 2),
-    })),
+/*
+ * The Splithub app crop: the phone and both of its notification cards, cut from
+ * the approved 1440w Splithub derivative because the original capture lives
+ * outside this repository. Its source entry therefore pins that derivative's
+ * hash rather than a file in `assets-source/`, which is what
+ * `derivedFromProjectSlug` records. Square rather than 2:1, so it carries its
+ * own dimensions instead of the shared `width / 2`.
+ */
+const approvedProjectCrops = [
+  {
+    slug: 'splithub-app',
+    sha256: '8f99d3d2e89ca09fe3f2bb8abed8cd4eb69edb064ee0cb0a33722604fe7f38ab',
+    derivedFromProjectSlug: 'splithub',
+    widths: [312, 624],
+    aspect: 1,
+  },
+];
+const imageFormats = [
+  { extension: 'avif', manifestFormat: 'avif', metadataFormat: 'heif' },
+  { extension: 'webp', manifestFormat: 'webp', metadataFormat: 'webp' },
+  { extension: 'jpg', manifestFormat: 'jpeg', metadataFormat: 'jpeg' },
+];
+const requiredProjectAssets = [
+  ...approvedProjectSources.flatMap(({ slug }) =>
+    [640, 960, 1440].flatMap((width) =>
+      imageFormats.map(({ extension, manifestFormat, metadataFormat }) => ({
+        file: `assets/projects/${slug}-${width}.${extension}`,
+        manifestFormat,
+        metadataFormat,
+        width,
+        height: Math.round(width / 2),
+      })),
+    ),
   ),
-);
+  ...approvedProjectCrops.flatMap(({ slug, widths, aspect }) =>
+    widths.flatMap((width) =>
+      imageFormats.map(({ extension, manifestFormat, metadataFormat }) => ({
+        file: `assets/projects/${slug}-${width}.${extension}`,
+        manifestFormat,
+        metadataFormat,
+        width,
+        height: Math.round(width / aspect),
+      })),
+    ),
+  ),
+];
 const routeContracts = [
   {
     file: 'index.html',
@@ -668,7 +699,7 @@ function validateScriptlessDocument(routeFile, html, content) {
     // into the scriptless document, not just the first.
     ...content.hero.titleLines,
     content.projectsHeading,
-    content.engineering.heading,
+    content.performanceLab.name,
     content.personal.heading,
     content.contact.heading,
     ...content.projects.map((project) => project.name),
@@ -698,6 +729,10 @@ function validateScriptlessDocument(routeFile, html, content) {
   const requiredDestinations = [
     ['Telegram link', content.contact.telegramHref],
     ['email link', content.contact.emailHref],
+    // The lab is a pair of outbound links and nothing else, so "works without
+    // JavaScript" is exactly "both destinations are in the served document".
+    ['performance lab demo', content.performanceLab.demoHref],
+    ['performance lab repository', content.performanceLab.sourceHref],
     ...content.projects.map((project) => [
       `${project.name} link`,
       project.href,
@@ -1039,10 +1074,32 @@ async function validateRequiredProjectAssets() {
           ? manifest.sources.map((source) => [source.slug, source.sha256])
           : [],
       );
-      for (const { slug, sha256: expected } of approvedProjectSources) {
+      for (const { slug, sha256: expected } of [
+        ...approvedProjectSources,
+        ...approvedProjectCrops,
+      ]) {
         if (declared.get(slug) !== expected) {
           failures.push(
             `${approvedProjectManifestFile}: source SHA-256 for ${slug} is not the pinned approved source.`,
+          );
+        }
+      }
+
+      // A crop's pinned source hash has to be the very derivative it was cut
+      // from, or the provenance chain says nothing: without this, the crop
+      // could name any hash at all and still pass.
+      const outputsByFile = new Map(
+        Array.isArray(manifest.outputs)
+          ? manifest.outputs.map((output) => [output.file, output])
+          : [],
+      );
+      for (const crop of approvedProjectCrops) {
+        const parent = outputsByFile.get(
+          `assets/projects/${crop.derivedFromProjectSlug}-1440.jpg`,
+        );
+        if (parent?.sha256 !== crop.sha256) {
+          failures.push(
+            `${approvedProjectManifestFile}: ${crop.slug} is not cut from the approved ${crop.derivedFromProjectSlug} derivative.`,
           );
         }
       }
@@ -1344,15 +1401,15 @@ function collectRequirements(value, pathName, key, requirements) {
 }
 
 /**
- * Identifiers and rendering discriminators are not copy. `slug` names an asset
- * and `variant` picks a scene composition; neither is ever page text, and
- * demanding them as visible content is not merely wrong but unstable — the
- * English hero happens to contain the word "product", so the requirement for
- * `projects[2].variant` passed on `/en/` and failed on `/ru/` purely by
- * accident of prose.
+ * Identifiers and rendering discriminators are not copy. `slug` names an asset,
+ * `variant` picks a scene composition and `media` says whether that scene
+ * carries a capture; none is ever page text, and demanding them as visible
+ * content is not merely wrong but unstable — the English hero happens to
+ * contain the word "product", so the requirement for `projects[2].variant`
+ * passed on `/en/` and failed on `/ru/` purely by accident of prose.
  */
 function isStructuralField(key) {
-  return key === 'slug' || key === 'variant';
+  return key === 'slug' || key === 'variant' || key === 'media';
 }
 
 function isDestinationField(key) {

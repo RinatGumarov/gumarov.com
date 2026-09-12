@@ -10,13 +10,15 @@ test('the sticky project column is never transformed', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/en/', { waitUntil: 'networkidle' });
 
-  const scene = page.locator('[data-project-slug="stoic"]');
+  // Splithub carries the side-by-side scene with a sticky copy column now that
+  // Stoic is a text case with no column to stick.
+  const scene = page.locator('[data-project-slug="splithub"]');
   const copy = scene.locator('[data-motion-sticky]');
   await expect(copy).toHaveCSS('position', 'sticky');
 
   const transforms = await page.evaluate(async () => {
     const column = document.querySelector(
-      '[data-project-slug="stoic"] [data-motion-sticky]',
+      '[data-project-slug="splithub"] [data-motion-sticky]',
     ) as HTMLElement;
     const seen: string[] = [];
     for (let i = 0; i < 45; i += 1) {

@@ -37,9 +37,9 @@ it('presents the localized frontend-first hero with direct conversion links', ()
   const picture = container.querySelector('[data-hero="landing"] picture');
   const image = picture?.querySelector('img');
   const sources = picture?.querySelectorAll('source');
-  // The portrait is a fixed 56x70 avatar beside the name at every
-  // breakpoint (plan §3.2), so it always requests the smallest candidate.
-  const responsiveSizes = '56px';
+  // The page's single avatar: a fixed 44px square beside the name at every
+  // breakpoint, so it always requests the smallest candidate.
+  const responsiveSizes = '44px';
 
   expect(sources).toHaveLength(2);
   expect(sources?.[0]).toHaveAttribute('type', 'image/avif');
@@ -54,14 +54,14 @@ it('presents the localized frontend-first hero with direct conversion links', ()
     '/assets/portrait/portrait-480.webp 480w, /assets/portrait/portrait-768.webp 768w, /assets/portrait/portrait-1024.webp 1024w',
   );
   expect(sources?.[1]).toHaveAttribute('sizes', responsiveSizes);
-  expect(image).toHaveAttribute('src', '/assets/portrait/portrait-768.jpg');
+  expect(image).toHaveAttribute('src', '/assets/portrait/portrait-480.jpg');
   expect(image).toHaveAttribute(
     'srcset',
     '/assets/portrait/portrait-480.jpg 480w, /assets/portrait/portrait-768.jpg 768w, /assets/portrait/portrait-1024.jpg 1024w',
   );
   expect(image).toHaveAttribute('sizes', responsiveSizes);
-  expect(image).toHaveAttribute('width', '768');
-  expect(image).toHaveAttribute('height', '960');
+  expect(image).toHaveAttribute('width', '480');
+  expect(image).toHaveAttribute('height', '600');
   expect(image).toHaveAttribute('alt', '');
   expect(image).toHaveAttribute('loading', 'eager');
   expect(image).toHaveAttribute('fetchpriority', 'high');
@@ -74,70 +74,91 @@ it('presents the localized frontend-first hero with direct conversion links', ()
   expect(heading.children[1]).toHaveTextContent('Effortless interactions.');
 });
 
-it('keeps the blueprint decoration out of the accessibility tree and out of the way', () => {
+it('keeps the ribbon decoration out of the accessibility tree and out of the way', () => {
   const { container } = render(
     <Hero content={getContent('en').hero} motionEnabled={false} />,
   );
   const hero = container.querySelector('[data-hero="landing"]');
-  const blueprints = container.querySelectorAll('[data-hero-blueprint]');
+  const ribbons = container.querySelectorAll('[data-hero-ribbon]');
 
-  // The resting drawing and the cyan copy the lens reveals.
-  expect(blueprints).toHaveLength(2);
-  expect(blueprints[0]).toHaveAttribute('data-hero-blueprint', 'base');
-  expect(blueprints[1]).toHaveAttribute('data-hero-blueprint', 'lens');
-
-  for (const blueprint of blueprints) {
-    // Decorative: never announced, never focusable, never a heading.
-    expect(blueprint).toHaveAttribute('aria-hidden', 'true');
-    expect(blueprint).toHaveAttribute('focusable', 'false');
-    expect(blueprint.closest('[aria-hidden="true"]')).not.toBeNull();
-    expect(blueprint.querySelector('title')).toBeNull();
-    expect(blueprint.querySelector('[tabindex]')).toBeNull();
-  }
+  // One object, drawn once. The enhancement layer is a canvas over this same
+  // shape, never a second drawing.
+  expect(ribbons).toHaveLength(1);
+  expect(ribbons[0]).toHaveAttribute('data-hero-ribbon', 'svg');
+  expect(ribbons[0]).toHaveAttribute('aria-hidden', 'true');
+  expect(ribbons[0]).toHaveAttribute('focusable', 'false');
+  expect(ribbons[0]?.closest('[aria-hidden="true"]')).not.toBeNull();
+  expect(ribbons[0]?.querySelector('title')).toBeNull();
+  expect(ribbons[0]?.querySelector('[tabindex]')).toBeNull();
 
   // The decoration is painted first so the copy sits above it.
   expect(hero?.firstElementChild).toHaveAttribute('aria-hidden', 'true');
-  expect(hero?.firstElementChild).toContainElement(
-    blueprints[0] as HTMLElement,
-  );
-  // No hook ran, so nothing wrote a lens position onto the host.
-  expect((hero as HTMLElement).style.getPropertyValue('--lens-opacity')).toBe(
-    '',
-  );
+  expect(hero?.firstElementChild).toContainElement(ribbons[0] as HTMLElement);
 });
 
-it('drives exactly one pointer effect in the hero', () => {
+/*
+ * The composition has to be finished before any enhancement runs: this is what
+ * a visitor sees with JavaScript disabled, with reduced motion, on a touch
+ * device and whenever WebGL is unavailable. So the server render carries the
+ * whole ribbon — surface, both edges, the interior strands — and the canvas
+ * starts empty.
+ */
+it('renders the complete static ribbon before any enhancement', () => {
   const { container } = render(
     <Hero content={getContent('en').hero} motionEnabled={false} />,
   );
   const hero = container.querySelector('[data-hero="landing"]');
+  const ribbon = container.querySelector('[data-hero-ribbon="svg"]');
 
-  // Plan §5: the lens is the hero's only pointer-driven motion, so a hero
-  // parallax must not be summed on top of it. The attributes below are what
-  // the shared parallax layer in motion.css keys off.
-  expect(hero?.querySelectorAll('[data-motion-parallax]')).toHaveLength(0);
-  expect(hero?.querySelectorAll('[data-motion-parallax-layer]')).toHaveLength(
-    0,
-  );
+  expect(hero).toHaveAttribute('data-hero-visual', 'static');
+  // The closed surface, the two edges and nine interior strands.
+  expect(ribbon?.querySelectorAll('path').length).toBeGreaterThanOrEqual(13);
+  const canvas = container.querySelector('[data-hero="landing"] canvas');
+  expect(canvas).not.toBeNull();
+  expect(canvas?.getAttribute('aria-hidden')).toBe(null);
+  expect(canvas?.closest('[aria-hidden="true"]')).not.toBeNull();
 });
 
-it('hides the decoration from pointers and keeps the lens layer mask-driven', async () => {
+it('leaves the hero motionless with the gate closed', () => {
+  const { container } = render(
+    <Hero content={getContent('en').hero} motionEnabled={false} />,
+  );
+  const hero = container.querySelector('[data-hero="landing"]') as HTMLElement;
+
+  // The ribbon is the hero's only pointer-driven motion, so the shared
+  // parallax layer must not be summed on top of it.
+  expect(hero.querySelectorAll('[data-motion-parallax]')).toHaveLength(0);
+  expect(hero.querySelectorAll('[data-motion-parallax-layer]')).toHaveLength(0);
+  // And with the gate closed nothing wrote a pointer position onto the host.
+  for (const property of [
+    '--hero-tilt-x',
+    '--hero-tilt-y',
+    '--hero-shift-x',
+    '--hero-shift-y',
+    '--hero-light-x',
+    '--hero-light-y',
+  ]) {
+    expect(hero.style.getPropertyValue(property)).toBe('');
+  }
+});
+
+it('hides the decoration from pointers and bounds the ribbon’s pointer response', async () => {
   const css = await readFile(
     path.join(path.dirname(fileURLToPath(import.meta.url)), 'Hero.module.css'),
     'utf8',
   );
   const decor = css.match(/\.decor \{([\s\S]*?)\n\}/u)?.[1] ?? '';
-  const lens = css.match(/\.decorLens \{([\s\S]*?)\n\}/u)?.[1] ?? '';
+  const stage = css.match(/\.stage \{([\s\S]*?)\n\}/u)?.[1] ?? '';
 
   expect(decor).toMatch(/pointer-events:\s*none/u);
-  // The drawing must never widen the page.
+  // The ribbon must never widen the page.
   expect(decor).toMatch(/overflow:\s*clip/u);
-  // The reveal is a mask over the same drawing, not a glowing circle.
-  expect(lens).toMatch(/mask-image:\s*radial-gradient/u);
-  expect(lens).toMatch(/var\(--lens-x/u);
-  expect(lens).toMatch(/var\(--lens-y/u);
-  expect(lens).toMatch(/opacity:\s*var\(--lens-opacity, 0\)/u);
-  // The system cursor is never hidden or replaced.
+  // The pointer moves the object, and the damping is a CSS transition rather
+  // than a JavaScript loop, so at rest the effect costs nothing.
+  expect(stage).toMatch(/var\(--hero-tilt-x/u);
+  expect(stage).toMatch(/var\(--hero-shift-x/u);
+  expect(stage).toMatch(/transition:\s*transform\s+1[0-8]0ms/u);
+  // The system cursor is never hidden or replaced, and no letters scramble.
   expect(css).not.toMatch(/cursor:\s*none/u);
 });
 

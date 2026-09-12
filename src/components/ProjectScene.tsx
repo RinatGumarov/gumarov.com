@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Locale, Project, ProjectVariant } from '../content';
+import type { Locale, Project } from '../content';
 import { observeProjectViewOnce } from '../lib/analytics';
 import { usePointerParallax } from '../lib/motion';
 import { useViewedOnce } from '../lib/useViewedOnce';
@@ -9,24 +9,50 @@ import styles from './ProjectScene.module.css';
 interface ProjectSceneProps {
   project: Project;
   locale: Locale;
-  /** Localized description; absent while a project has no approved capture. */
+  /** Localized description; present only for a project in screenshot mode. */
   screenshotAlt?: string;
-  /** Localized caption shown beneath the screenshot; absent along with the alt. */
+  /** Localized caption shown beneath the screenshot; present alongside the alt. */
   screenshotCaption?: string;
 }
 
-/*
- * Each variant gives the frame a different share of the page, so each needs its
- * own `sizes` hint: the lead frame runs the full content width, the two
- * side-by-side scenes take seven of twelve columns, and the closing compact row
- * shows a thumbnail that must not pull a 1440px source.
+/**
+ * The screenshot geometry, per project rather than per variant.
+ *
+ * TradingView is a 2:1 desktop capture that runs the content width; Splithub is
+ * a near-square crop of the app itself, taken from the approved capture at its
+ * own resolution. They are displayed at different sizes and different shapes,
+ * so neither the `sizes` hint nor the intrinsic dimensions can be shared.
  */
-const variantScreenshotSizes: Record<ProjectVariant, string> = {
-  lead: '(min-width: 80rem) 1184px, 92vw',
-  major: '(min-width: 56rem) 56vw, 100vw',
-  product: '(min-width: 56rem) 56vw, 100vw',
-  compact: '(min-width: 56rem) 200px, 18rem',
-};
+const screenshots = {
+  tradingview: {
+    slug: 'tradingview',
+    widths: [640, 960, 1440],
+    fallbackWidth: 960,
+    width: 1440,
+    height: 720,
+    sizes: '(min-width: 80rem) 1136px, 92vw',
+  },
+  splithub: {
+    // A crop of the phone and its two floating notifications, lifted from the
+    // approved Splithub capture. See `scripts/process-images.mjs` for the
+    // rectangle and `public/assets/projects/approved-manifest.json` for its
+    // provenance.
+    slug: 'splithub-app',
+    widths: [312, 624],
+    fallbackWidth: 624,
+    width: 624,
+    height: 624,
+    sizes: '(min-width: 56rem) 532px, min(532px, calc(100vw - 56px))',
+  },
+} as const;
+
+type ScreenshotKey = keyof typeof screenshots;
+
+function screenshotFor(slug: string) {
+  return slug in screenshots
+    ? screenshots[slug as ScreenshotKey]
+    : screenshots.tradingview;
+}
 
 export function ProjectScene({
   project,
@@ -35,7 +61,16 @@ export function ProjectScene({
   screenshotCaption,
 }: ProjectSceneProps) {
   const [screenshotFailed, setScreenshotFailed] = useState(false);
-  const showsScreenshot = Boolean(screenshotAlt) && !screenshotFailed;
+  /*
+   * Text mode is declared on the project, not inferred from a missing
+   * screenshot. A scene in text mode renders no figure, no frame and no
+   * substitute graphic — the copy is the scene — so removing a capture removes
+   * a picture instead of swapping it for a decorative one.
+   */
+  const showsScreenshot =
+    project.media === 'screenshot' &&
+    Boolean(screenshotAlt) &&
+    !screenshotFailed;
   const headingId = `project-${project.slug}-heading`;
   const { variant } = project;
   const { observed, ref: motionRef } = useViewedOnce<HTMLElement>();
@@ -59,74 +94,62 @@ export function ProjectScene({
     });
   }, [locale, project.slug]);
 
-  // An explicit map rather than a computed key, so every class is statically
-  // resolvable and a new variant fails to compile instead of silently
-  // rendering unstyled.
-  const visualVariantClass: Record<ProjectVariant, string | undefined> = {
-    lead: styles.leadVisual,
-    major: styles.majorVisual,
-    product: styles.productVisual,
-    compact: styles.compactVisual,
-  };
-  const screenshotSizes = variantScreenshotSizes[variant];
+  const shot = screenshotFor(project.slug);
 
+  /*
+   * The capture sits on a neutral plate with real padding rather than running
+   * edge to edge: a bright interface dropped straight onto a near-black page
+   * reads as a pasted-in rectangle, and the inset is what makes it read as a
+   * framed exhibit instead.
+   */
   const visual = (
     <div
       ref={visualMotion.ref}
-      className={`${styles.visual} ${visualVariantClass[variant]}`}
-      role={showsScreenshot ? undefined : 'img'}
-      aria-label={
-        showsScreenshot ? undefined : `${project.name}: ${project.eyebrow}`
-      }
-      data-visual-kind={
-        showsScreenshot ? 'product-screenshot' : 'abstract-geometry'
-      }
+      className={`${styles.visual} ${project.slug === 'splithub' ? styles.appVisual : styles.wideVisual}`}
+      data-visual-kind="product-screenshot"
       data-image-state={screenshotFailed ? 'failed' : undefined}
       data-motion-parallax="true"
       data-motion-reveal="visual"
       onPointerMove={visualMotion.onPointerMove}
       onPointerLeave={visualMotion.onPointerLeave}
     >
-      {showsScreenshot ? (
-        <picture className={styles.screenshot}>
-          <source
-            type="image/avif"
-            sizes={screenshotSizes}
-            srcSet={`/assets/projects/${project.slug}-640.avif 640w, /assets/projects/${project.slug}-960.avif 960w, /assets/projects/${project.slug}-1440.avif 1440w`}
-          />
-          <source
-            type="image/webp"
-            sizes={screenshotSizes}
-            srcSet={`/assets/projects/${project.slug}-640.webp 640w, /assets/projects/${project.slug}-960.webp 960w, /assets/projects/${project.slug}-1440.webp 1440w`}
-          />
-          <img
-            src={`/assets/projects/${project.slug}-960.jpg`}
-            srcSet={`/assets/projects/${project.slug}-640.jpg 640w, /assets/projects/${project.slug}-960.jpg 960w, /assets/projects/${project.slug}-1440.jpg 1440w`}
-            sizes={screenshotSizes}
-            alt={screenshotAlt ?? ''}
-            width="1440"
-            height="720"
-            loading="lazy"
-            decoding="async"
-            onError={() => setScreenshotFailed(true)}
-          />
-        </picture>
-      ) : null}
-      <div
-        className={styles.geometry}
-        aria-hidden="true"
-        data-motion-parallax-layer="true"
-      >
-        <span className={styles.lightPlane} data-geometry-layer="light-plane" />
-        <span className={styles.depthPlane} data-geometry-layer="depth-plane" />
-        <span className={styles.arc} data-geometry-layer="arc" />
-        <span className={styles.lineField} data-geometry-layer="line-field" />
-        <span className={styles.nodes} data-geometry-layer="nodes">
-          <span />
-          <span />
-          <span />
-        </span>
-      </div>
+      <picture className={styles.screenshot}>
+        <source
+          type="image/avif"
+          sizes={shot.sizes}
+          srcSet={shot.widths
+            .map(
+              (width) =>
+                `/assets/projects/${shot.slug}-${width}.avif ${width}w`,
+            )
+            .join(', ')}
+        />
+        <source
+          type="image/webp"
+          sizes={shot.sizes}
+          srcSet={shot.widths
+            .map(
+              (width) =>
+                `/assets/projects/${shot.slug}-${width}.webp ${width}w`,
+            )
+            .join(', ')}
+        />
+        <img
+          src={`/assets/projects/${shot.slug}-${shot.fallbackWidth}.jpg`}
+          srcSet={shot.widths
+            .map(
+              (width) => `/assets/projects/${shot.slug}-${width}.jpg ${width}w`,
+            )
+            .join(', ')}
+          sizes={shot.sizes}
+          alt={screenshotAlt ?? ''}
+          width={shot.width}
+          height={shot.height}
+          loading="lazy"
+          decoding="async"
+          onError={() => setScreenshotFailed(true)}
+        />
+      </picture>
     </div>
   );
 
@@ -165,24 +188,34 @@ export function ProjectScene({
   );
 
   /*
-   * A caption describes the capture, so it is dropped when the capture is gone
-   * — the link stays, keeping the fallback readable rather than captioned.
+   * A caption describes the capture, so both are dropped together: a scene
+   * whose image failed keeps its link and loses the caption, rather than
+   * captioning an empty box.
    */
-  const figure = (figureClassName: string | undefined) => (
-    <figure className={[styles.figure, figureClassName].join(' ')}>
-      {visual}
-      <figcaption className={styles.caption} data-motion-reveal="copy">
-        {showsScreenshot && screenshotCaption ? (
-          <span>{screenshotCaption}</span>
-        ) : null}
+  const figure = (figureClassName: string | undefined) =>
+    showsScreenshot ? (
+      <figure className={[styles.figure, figureClassName].join(' ')}>
+        {visual}
+        <figcaption className={styles.caption} data-motion-reveal="copy">
+          {screenshotCaption ? <span>{screenshotCaption}</span> : null}
+          {outboundLink}
+        </figcaption>
+      </figure>
+    ) : (
+      <p
+        className={[styles.figure, styles.captionOnly, figureClassName].join(
+          ' ',
+        )}
+        data-motion-reveal="copy"
+      >
         {outboundLink}
-      </figcaption>
-    </figure>
-  );
+      </p>
+    );
 
   const sceneProps = {
     ref: setSceneRef,
     'data-project-slug': project.slug,
+    'data-project-media': project.media,
     'data-motion-project': 'true',
     'data-motion-viewed': observed ? 'true' : undefined,
     'aria-labelledby': headingId,
@@ -200,7 +233,9 @@ export function ProjectScene({
             {titleHeading}
           </div>
           <div className={styles.leadDescription}>
-            <p className={styles.summary}>{project.summary}</p>
+            {project.summary ? (
+              <p className={styles.summary}>{project.summary}</p>
+            ) : null}
             <p className={styles.contribution}>{project.contribution}</p>
             {capabilities}
           </div>
@@ -222,6 +257,11 @@ export function ProjectScene({
     );
   }
 
+  /*
+   * Evercity: one compact row that closes the sequence. In text mode it is
+   * literally a row of text — name, one sentence of contribution, one link —
+   * with no column held open for a thumbnail that is not coming.
+   */
   if (variant === 'compact') {
     return (
       <article
@@ -233,20 +273,44 @@ export function ProjectScene({
           {titleHeading}
         </div>
         <div className={styles.compactBody} data-motion-reveal="copy">
-          <p className={styles.summary}>{project.summary}</p>
           <p className={styles.contribution}>{project.contribution}</p>
         </div>
         <div className={styles.compactMeta} data-motion-reveal="copy">
           {capabilities}
           {outboundLink}
         </div>
-        {visual}
       </article>
     );
   }
 
-  // `major` and `product` share a side-by-side composition and differ in which
-  // side the frame takes and whether a metrics row sits inside the copy.
+  /*
+   * Stoic (`major`) in text mode: the summary and the contribution set in two
+   * columns, sized by the type rather than by the screenshot that used to sit
+   * beside them. Splithub (`product`) keeps the visual-left, copy-right
+   * composition the brief asks for.
+   */
+  if (variant === 'major' && project.media === 'text') {
+    return (
+      <article
+        {...sceneProps}
+        className={`${styles.scene} ${styles.textScene}`}
+      >
+        <div className={styles.textIntro} data-motion-reveal="copy">
+          {eyebrow}
+          {titleHeading}
+          {project.summary ? (
+            <p className={styles.textLead}>{project.summary}</p>
+          ) : null}
+        </div>
+        <div className={styles.textDetail} data-motion-reveal="copy">
+          <p className={styles.contribution}>{project.contribution}</p>
+          {capabilities}
+          {outboundLink}
+        </div>
+      </article>
+    );
+  }
+
   const isProduct = variant === 'product';
 
   return (
@@ -261,10 +325,17 @@ export function ProjectScene({
       >
         {eyebrow}
         {titleHeading}
-        <p className={styles.summary}>{project.summary}</p>
+        {project.summary ? (
+          <p className={styles.summary}>{project.summary}</p>
+        ) : null}
         <p className={styles.contribution}>{project.contribution}</p>
         {project.metrics ? (
-          <ProofRow points={project.metrics} className={styles.metrics} />
+          <div className={styles.metricsRow}>
+            <ProofRow points={project.metrics} className={styles.metrics} />
+            {project.availability ? (
+              <p className={styles.availability}>{project.availability}</p>
+            ) : null}
+          </div>
         ) : null}
         {capabilities}
       </div>
