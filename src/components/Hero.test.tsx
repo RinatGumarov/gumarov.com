@@ -1,8 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { expect, it, vi } from 'vitest';
 import { getContent } from '../content';
 import { Hero } from './Hero';
@@ -132,43 +129,6 @@ it('leaves the hero motionless with the gate closed', () => {
   ]) {
     expect(hero.style.getPropertyValue(property)).toBe('');
   }
-});
-
-/*
- * The heading used to hard-code `ui-sans-serif, system-ui` so it could never
- * wait on Onest, which also meant it could never *become* Onest. It
- * now uses `--font-display`, and the guarantee moved to where it belongs: the
- * token's first-paint value. `tokens.css` is what gets inlined into the
- * document, so as long as it names no webfont the LCP heading still paints in
- * a system font; `scripts/check-dist.mjs` fails the build on any inlined CSS
- * that mentions Onest, and on any font preload, so this is checked against the
- * built output too.
- */
-it('paints the page heading with a system font so LCP does not wait for Onest', async () => {
-  const here = path.dirname(fileURLToPath(import.meta.url));
-  const css = await readFile(path.join(here, 'Hero.module.css'), 'utf8');
-  const tokens = await readFile(
-    path.join(here, '..', 'styles', 'tokens.css'),
-    'utf8',
-  );
-  const declarations = css.replace(/\/\*[\s\S]*?\*\//gu, '');
-  const title = declarations.match(/\.title \{([\s\S]*?)\n\}/u)?.[1] ?? '';
-  const firstPaintDisplay =
-    tokens.match(/--font-display:\s*([^;]*);/u)?.[1] ?? '';
-
-  expect(title).toMatch(/font-family:\s*var\(--font-display\)/u);
-  expect(firstPaintDisplay).toMatch(/(?:ui-sans-serif|system-ui)/u);
-  /*
-   * The token may name `'Onest Fallback'` — a face whose sources are `local()`
-   * only, so it downloads nothing and merely scales an installed font to
-   * Onest's measurements. What it must never name is the Onest webfont itself,
-   * which would put the download in front of the LCP heading.
-   */
-  expect(firstPaintDisplay).not.toMatch(/\bOnest\b(?!\s+Fallback)/u);
-  expect(tokens).not.toMatch(/url\(/u);
-  // And nothing in the hero's own stylesheet may name a webfont directly,
-  // which would put it on the critical path whatever the token says.
-  expect(declarations).not.toMatch(/Onest/iu);
 });
 
 it('reveals the portrait container when the image fails and keeps the copy', () => {

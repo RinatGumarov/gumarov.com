@@ -84,25 +84,15 @@ const personalWidths = [480, 768];
  * They keep each subject inside the 4:3 frame without a gravity heuristic, so
  * re-running the pipeline cannot silently re-frame a photo.
  *
- * Every derivative keeps the same 4:3 crop regardless of `widths`: the surf
- * frame's desktop 16:9 presentation is an `object-fit: cover` in CSS, not a
- * second, narrower rectangle extracted here. Widths beyond the shared
- * `personalWidths` default are declared per photo only where the layout
- * displays that photo wider than the 480/768 set was sized for.
+ * Every derivative keeps the same 4:3 crop: the surf frame's desktop 16:9
+ * presentation is an `object-fit: cover` in CSS, not a second, narrower
+ * rectangle extracted here.
  */
 export const personalPhotos = [
   {
     slug: 'surf',
     file: 'surf.jpg',
     crop: { left: 1000, top: 200, width: 4000, height: 3000 },
-    // The lead frame is displayed widest, so it needs real desktop pixels
-    // rather than a 768w raster stretched to fill them.
-    widths: [480, 768, 960, 1440, 1920],
-  },
-  {
-    slug: 'skate',
-    file: 'skate.jpg',
-    crop: { left: 0, top: 390, width: 3680, height: 2760 },
   },
   {
     slug: 'snowboard',
@@ -110,26 +100,11 @@ export const personalPhotos = [
     crop: { left: 480, top: 0, width: 2880, height: 2160 },
   },
   {
-    slug: 'drift-rear',
-    file: 'drift-rear.png',
-    // Source is 2560x1706 with a credit bar occupying the bottom 66px
-    // (from row 1640). Height 1620 clears it with margin.
-    crop: { left: 200, top: 0, width: 2160, height: 1620 },
-  },
-  {
-    slug: 'powder',
-    file: 'powder.png',
-    crop: { left: 480, top: 0, width: 2880, height: 2160 },
-  },
-  {
     slug: 'drift-front',
     file: 'drift-front.jpg',
-    // Source is 2880x1887 with a credit bar occupying the bottom 68px
-    // (from row 1819). Height 1800 clears it with margin.
+    // Source is 2880x1887 with an event photographer's credit bar occupying
+    // the bottom 68px (from row 1819). Height 1800 clears it with margin.
     crop: { left: 240, top: 0, width: 2400, height: 1800 },
-    // Displayed wider than 600 CSS px on desktop, so it gets a
-    // retina-capable derivative.
-    widths: [480, 768, 1200],
   },
 ];
 
@@ -144,7 +119,7 @@ export async function processPersonalPhotos({
   for (const photo of photos) {
     const inputPath = path.join(inputDirectory, photo.file);
 
-    for (const width of photo.widths ?? personalWidths) {
+    for (const width of personalWidths) {
       const height = Math.round((width * 3) / 4);
 
       for (const format of portraitFormats) {
@@ -188,18 +163,10 @@ export const projectScreenshots = [
     crop: { left: 0, top: 310, width: 3024, height: 1512 },
   },
   {
-    slug: 'stoic',
-    file: 'stoic.png',
-    crop: { left: 0, top: 440, width: 3024, height: 1512 },
-  },
-  {
+    // The landing composite is not rendered on the page, but it is the only
+    // Splithub source in the repository and `--splithub-app` cuts from it.
     slug: 'splithub',
     file: 'splithub.png',
-    crop: { left: 0, top: 310, width: 3024, height: 1512 },
-  },
-  {
-    slug: 'evercity',
-    file: 'evercity.png',
     crop: { left: 0, top: 310, width: 3024, height: 1512 },
   },
 ];
