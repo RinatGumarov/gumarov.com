@@ -1,3 +1,50 @@
+/*
+ * The metric-adjusted fallback, declared here rather than in `faces.css`.
+ *
+ * `faces.css` is deferred, so until it lands the page paints in the raw system
+ * stack — and that stack is whatever the visitor's OS provides. On macOS it is
+ * close enough to Onest that nothing moves; on Windows and Linux it is wider,
+ * and the h1 took an extra line until Onest arrived and pulled the whole page
+ * up by about 66px. That jump lands while the visitor is already reading.
+ *
+ * Both faces below download nothing: their sources are `local()` only, so this
+ * costs no request and no bytes on the critical path. It only tells the browser
+ * to scale a font it already has to Onest's measurements, which is what makes
+ * the first frame agree with the last one about how many lines the heading
+ * takes. A visitor with none of the named faces installed falls through to the
+ * system stack exactly as before.
+ *
+ * The numbers are Onest's own box (97% ascent / 30% descent) divided by each
+ * bucket's `size-adjust`, and the weight split exists because the browser will
+ * not synthesise bold for a face that declares itself bold — at heading weights
+ * `local('Arial')` resolves to Arial Regular and runs ~8% narrow.
+ *
+ * This is best effort, not a guarantee: a machine with none of the named faces
+ * installed gets the raw system stack and may still reflow when Onest lands.
+ * Re-measure against the shipped Onest file if these are ever changed.
+ */
+@font-face {
+  font-family: 'Onest Fallback';
+  src: local('Arial'), local('Helvetica Neue'), local('Liberation Sans');
+  font-weight: 100 500;
+  size-adjust: 105%;
+  ascent-override: 92.4%;
+  descent-override: 28.6%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Onest Fallback';
+  src:
+    local('Arial Bold'), local('Helvetica Neue Bold'),
+    local('Liberation Sans Bold');
+  font-weight: 501 900;
+  size-adjust: 98.5%;
+  ascent-override: 98.5%;
+  descent-override: 30.5%;
+  line-gap-override: 0%;
+}
+
 :root {
   color-scheme: dark;
 
@@ -19,8 +66,8 @@
   --color-line-strong: rgb(179 211 230 / 0.26);
   --color-surface-glass: rgb(23 32 42 / 0.58);
 
-  --font-sans: ui-sans-serif, system-ui, sans-serif;
-  --font-display: ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Onest Fallback', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Onest Fallback', ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, monospace;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
@@ -50,12 +97,12 @@
   --shadow-deep: 0 2rem 5rem rgb(0 0 0 / 0.34);
   --content-reading: 46rem;
   --content-default: 72rem;
-  /* Desktop max width from the redesign's grid contract (plan §4): 1280px. */
+  /* Desktop max width of the content column: 1280px. */
   --content-wide: 80rem;
 
   /*
    * Grid gutters, column gap and intersection spacing from the redesign's
-   * grid contract (plan §4). Values are stepped at the plan's own
+   * grid. Values are stepped at the
    * breakpoints (768px, 1200px) rather than fluid, so they land on exact
    * pixel values instead of interpolating between them.
    */

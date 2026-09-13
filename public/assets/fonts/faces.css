@@ -7,53 +7,12 @@
 }
 
 /*
- * Two metric-adjusted fallback faces, not one.
- *
- * The single previous face carried `size-adjust: 107%` with Onest's ascent and
- * descent guessed at 90% / 22%. Measured against the shipped Onest-Variable
- * file in Chromium, Onest's own box is 97% ascent / 30% descent, and the
- * advance-width ratio against Arial depends on weight: at 400 the face needs
- * ~105%, while at the heading weights (650-750) `local('Arial')` resolves to
- * Arial *Regular* — the browser does not synthesise bold for a face that
- * declares itself bold — so the fallback ran ~8% narrow under every heading.
- * That is what made Russian headings reflow by a whole line across a 200px
- * band of viewport widths when Onest arrived.
- *
- * Splitting the family by weight lets each bucket name a real source file and
- * carry its own measured `size-adjust`. The override percentages are resolved
- * against the unscaled em and then multiplied by `size-adjust`, so they are
- * Onest's 97% / 30% divided by the adjustment factor.
- *
- * The heading bucket's 98.5% is the point where two independent methods agree.
- * Measuring the real headline phrases at their real size, weight and tracking
- * puts the ratio at 98.85%; sweeping the value against the rendered heading
- * every 4px from 320 to 1440 in both locales bottoms out at 98.25-98.5%, with
- * three mismatching widths of 562. Anything is a compromise between the two
- * locales — English wants the fallback slightly wider, Russian slightly
- * narrower — so it is pinned by `hero-typography.spec.ts`, which fails if the
- * face and Onest disagree about how many lines a heading takes.
+ * The two metric-adjusted 'Onest Fallback' faces used to live here. They now
+ * sit in `src/styles/tokens.css`, which is inlined into the document, because a
+ * fallback that only exists in this deferred stylesheet cannot help the first
+ * paint — and the first paint was where the heading reflowed. Nothing else
+ * changed about them; see the comment there for the measurements.
  */
-@font-face {
-  font-family: 'Onest Fallback';
-  src: local('Arial'), local('Helvetica Neue'), local('Liberation Sans');
-  font-weight: 100 500;
-  size-adjust: 105%;
-  ascent-override: 92.4%;
-  descent-override: 28.6%;
-  line-gap-override: 0%;
-}
-
-@font-face {
-  font-family: 'Onest Fallback';
-  src:
-    local('Arial Bold'), local('Helvetica Neue Bold'),
-    local('Liberation Sans Bold');
-  font-weight: 501 900;
-  size-adjust: 98.5%;
-  ascent-override: 98.5%;
-  descent-override: 30.5%;
-  line-gap-override: 0%;
-}
 
 @font-face {
   font-family: 'IBM Plex Mono';

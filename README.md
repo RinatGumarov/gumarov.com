@@ -54,10 +54,11 @@ break.
 first paint from `/assets/fonts/faces.css`, so the LCP heading never waits on a
 download. What it paints in is a metric-adjusted fallback declared in
 `tokens.css` — `local()` sources only, so it costs no request — that scales an
-installed font to Onest's own ascent, descent and advance width. A Playwright
-test asserts the heading measures the same height in the first-paint stack, the
-fallback alone and Onest; that is what keeps the swap from reflowing the page
-out from under someone who is already reading.
+installed font to Onest's own ascent, descent and advance width, so the swap
+does not reflow the page out from under someone who is already reading. It is
+best effort — a machine with none of the named faces falls through to the raw
+system stack — so a Playwright test covers what always holds instead: the
+Russian heading breaks no word and overflows no viewport, in both font states.
 
 **Images.** `scripts/process-images.mjs` generates AVIF/WebP/JPEG derivatives at
 fixed widths from fixed crop rectangles (no gravity heuristics, so re-running

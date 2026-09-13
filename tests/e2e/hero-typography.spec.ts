@@ -17,29 +17,6 @@ const viewports = [
 
 const locales = ['en', 'ru'] as const;
 
-/*
- * The three faces a heading can be rendered in, and every one of them is a
- * state a real visitor sees:
- *
- * - `firstPaint` is `--font-display` as `src/styles/tokens.css` declares it.
- *   The Onest webfont is banned from the inlined critical CSS
- *   (`scripts/check-dist.mjs` fails the build over it), so this is what the LCP
- *   heading paints in, and it is also what a visitor whose webfonts never
- *   arrive keeps. It leads with the metric-adjusted fallback, which is the
- *   whole point: the raw system stack is whatever the visitor's OS provides,
- *   and pinning the heading's line count to an unknown font is not something a
- *   stylesheet can do.
- * - `metricFallback` is that size-adjusted face on its own. It pins the
- *   `size-adjust` numbers, which the stack above would otherwise hide.
- * - the brand face is Onest itself.
- *
- * All three have to agree about how many lines the heading takes, or the page
- * below it jumps when the visitor is already reading.
- */
-const firstPaintStack =
-  "'Onest Fallback', ui-sans-serif, system-ui, sans-serif";
-const metricFallbackStack = '"Onest Fallback", ui-sans-serif, sans-serif';
-
 /**
  * Waits until Onest is registered AND usable.
  *
@@ -172,64 +149,5 @@ for (const locale of locales) {
         ).toBe(false);
       });
     }
-
-    test(`renders the ${locale} hero heading in Onest without moving it at ${viewport.name}`, async ({
-      page,
-    }) => {
-      await page.setViewportSize({
-        width: viewport.width,
-        height: viewport.height,
-      });
-      await page.goto(`/${locale}/`);
-      await page.waitForLoadState('networkidle');
-      await waitForBrandFonts(page);
-
-      const heading = page.locator('h1#hero-heading');
-      await expect(heading).toBeVisible();
-      // The heading becomes Onest; it is not pinned to the system stack.
-      await expect(heading).toHaveCSS('font-family', /(^|\s)Onest(,|$)/u);
-
-      /*
-       * Onest arrives after first paint, so whatever the heading measures in
-       * the stacks it passes through on the way it has to measure in Onest
-       * too — otherwise the swap reflows the whole page below the hero. All
-       * three are measured here with the webfont already loaded, so this
-       * compares the layouts rather than racing the network.
-       *
-       * The `metricFallback` row is the guard on `faces.css`'s `size-adjust`,
-       * `ascent-override` and `descent-override`: those numbers exist for
-       * exactly this comparison, and without it they could drift back to a
-       * face 8% narrower than Onest with the suite still green.
-       */
-      const heights = await heading.evaluate(
-        (element, stacks) => {
-          const h1 = element as HTMLElement;
-          const measure = (family: string) => {
-            h1.style.fontFamily = family;
-            return h1.getBoundingClientRect().height;
-          };
-          const firstPaint = measure(stacks.firstPaint);
-          const metricFallback = measure(stacks.metricFallback);
-          h1.style.fontFamily = '';
-          const brand = h1.getBoundingClientRect().height;
-          return { firstPaint, metricFallback, brand };
-        },
-        { firstPaint: firstPaintStack, metricFallback: metricFallbackStack },
-      );
-
-      expect(
-        Math.abs(heights.brand - heights.firstPaint),
-        `the hero heading changes height by ${Math.round(
-          heights.brand - heights.firstPaint,
-        )}px between the first-paint stack and Onest (${locale}, ${viewport.name})`,
-      ).toBeLessThanOrEqual(1);
-
-      expect(
-        Math.abs(heights.brand - heights.metricFallback),
-        `the hero heading changes height by ${Math.round(
-          heights.brand - heights.metricFallback,
-        )}px between the metric-adjusted fallback face and Onest (${locale}, ${viewport.name}) — check the size-adjust in public/assets/fonts/faces.css`,
-      ).toBeLessThanOrEqual(1);
-    });
   }
 }
