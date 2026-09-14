@@ -76,7 +76,10 @@ export function Hero({ content, motionEnabled }: HeroProps) {
         data-motion-enter="decor"
       >
         <div className={styles.stage}>
-          <HeroRibbon className={styles.ribbon} />
+          <HeroRibbon
+            className={styles.ribbon}
+            shadowClassName={styles.ribbonShadow}
+          />
           <canvas ref={canvasRef} className={styles.canvas} />
           <div className={styles.sheen} />
         </div>

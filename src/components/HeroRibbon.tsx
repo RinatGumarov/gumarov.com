@@ -145,239 +145,288 @@ const litEdge = offsetPath(-1);
 const shadedEdge = offsetPath(1);
 const strands = strandOffsets.map((side) => offsetPath(side));
 
-export function HeroRibbon({ className }: { className?: string }) {
-  // Several ids in one document would collide, so every gradient and filter
+/*
+ * The lit edge's bloom, drawn as a stack of strokes rather than blurred.
+ *
+ * A `feGaussianBlur` is the obvious way to write this and the wrong one here.
+ * WebKit re-runs SVG filters in software whenever the filtered subtree is
+ * re-rendered, and the stage is re-rendered on every frame of the pointer
+ * response — so the two blurs in this drawing cost around 100ms a frame in
+ * Safari and turned a 160ms ease into a visible stutter. Measured on the
+ * shipped page: 130ms per frame with the filters, 17ms without them.
+ *
+ * The bloom is therefore drawn directly. Each entry is one step of the blurred
+ * stroke's cross-section: `width` in view-box units, `opacity` the increment
+ * that composites onto the steps outside it, `a = (T - Tprev) / (1 - Tprev)`,
+ * where `T` is the profile of the 9-unit stroke at 0.5 opacity this replaces,
+ * blurred by sigma 7. Summed, the steps land on that Gaussian to within a
+ * pixel value of 11 at the worst point and 0.15 on average.
+ */
+const bloomStack = [
+  [46, 0.0024],
+  [38, 0.0079],
+  [31, 0.0193],
+  [24, 0.0393],
+  [18, 0.0527],
+  [12, 0.0627],
+  [7, 0.0475],
+  [3, 0.0243],
+] as const;
+
+/*
+ * The ends. The band leaves the frame through the top and the bottom —
+ * `ribbon-bounds` keeps it off the left and right edges entirely — and this is
+ * what turns those two exits into distance instead of a crop line. It lives
+ * inside the SVG rather than in CSS because the view box is letterboxed inside
+ * its element: a CSS gradient would fade against the element's box and miss the
+ * edge doing the actual clipping. Both layers carry their own copy, so neither
+ * depends on the other being in the document.
+ */
+function EndMask({
+  gradientId,
+  maskId,
+}: {
+  gradientId: string;
+  maskId: string;
+}) {
+  return (
+    <>
+      <linearGradient
+        id={gradientId}
+        x1="0"
+        y1="0"
+        x2="0"
+        y2={viewBoxHeight}
+        gradientUnits="userSpaceOnUse"
+      >
+        <stop offset="0" stopColor="#000000" />
+        <stop offset="0.07" stopColor="#ffffff" />
+        <stop offset="0.78" stopColor="#ffffff" />
+        <stop offset="1" stopColor="#000000" />
+      </linearGradient>
+
+      <mask id={maskId} maskUnits="userSpaceOnUse">
+        <rect
+          width={viewBoxWidth}
+          height={viewBoxHeight}
+          fill={`url(#${gradientId})`}
+        />
+      </mask>
+    </>
+  );
+}
+
+interface HeroRibbonProps {
+  /** The drawing itself. */
+  className?: string;
+  /**
+   * The depth shadow, which is a layer of its own so that the one blur left in
+   * the composition is a CSS filter on an element the compositor can cache,
+   * rather than an SVG filter re-run per frame. Its radius is set there, in
+   * units of the layer's own box, so it tracks the drawing at every size.
+   */
+  shadowClassName?: string;
+}
+
+export function HeroRibbon({ className, shadowClassName }: HeroRibbonProps) {
+  // Several ids in one document would collide, so every gradient and mask
   // reference is namespaced per instance.
   const scope = useId().replace(/:/gu, '');
   const id = (name: string) => `hero-ribbon-${name}-${scope}`;
 
+  const frame = {
+    viewBox: `0 0 ${viewBoxWidth} ${viewBoxHeight}`,
+    preserveAspectRatio: 'xMidYMid meet',
+    'aria-hidden': true,
+    focusable: 'false',
+    role: 'presentation',
+  } as const;
+
   return (
-    <svg
-      className={className}
-      viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
-      preserveAspectRatio="xMidYMid meet"
-      aria-hidden="true"
-      focusable="false"
-      role="presentation"
-      data-hero-ribbon="svg"
-    >
-      <defs>
-        {/* The glass itself: barely there at the ends, coolest in the swell. */}
-        <linearGradient
-          id={id('body')}
-          x1="12%"
-          y1="96%"
-          x2="86%"
-          y2="6%"
-          gradientUnits="objectBoundingBox"
-        >
-          <stop offset="0" stopColor="#1aaed2" stopOpacity="0.1" />
-          <stop offset="0.32" stopColor="#5fd9f2" stopOpacity="0.26" />
-          <stop offset="0.58" stopColor="#cdf6ff" stopOpacity="0.34" />
-          <stop offset="0.82" stopColor="#4e78ff" stopOpacity="0.18" />
-          <stop offset="1" stopColor="#4e78ff" stopOpacity="0.06" />
-        </linearGradient>
+    <>
+      {/*
+       * The ground the ribbon sits on: the ambient bloom, and the same surface
+       * pushed back and blurred. Not a second ribbon — one object, its own
+       * shadow.
+       *
+       * It is a layer of its own because the blur is a CSS filter: the
+       * compositor keeps the blurred result and re-uses it as the stage tilts,
+       * where the SVG filter it replaces was re-rendered from scratch on every
+       * pointer frame. The bloom comes along because it was painted under the
+       * shadow in the single drawing, and staying under it is what keeps the
+       * two reading as one object; the blur passes over it without a trace,
+       * since it is already a gradient far softer than 18 units.
+       */}
+      <svg {...frame} className={shadowClassName} data-hero-ribbon="shadow">
+        <defs>
+          <radialGradient id={id('bloom')} cx="50%" cy="50%" r="50%">
+            <stop offset="0" stopColor="#9fe9ff" stopOpacity="0.3" />
+            <stop offset="0.55" stopColor="#3aa4c8" stopOpacity="0.1" />
+            <stop offset="1" stopColor="#0d1117" stopOpacity="0" />
+          </radialGradient>
 
-        {/*
-         * Across the band rather than along it: bright where the surface faces
-         * the light, falling away to nothing on the side turning from it. This
-         * is the gradient that makes the ribbon read as thick.
-         */}
-        <linearGradient
-          id={id('across')}
-          x1="0%"
-          y1="0%"
-          x2="100%"
-          y2="100%"
-          gradientUnits="objectBoundingBox"
-        >
-          <stop offset="0" stopColor="#ffffff" stopOpacity="0.38" />
-          <stop offset="0.26" stopColor="#9fe9ff" stopOpacity="0.1" />
-          <stop offset="0.68" stopColor="#080b0f" stopOpacity="0.28" />
-          <stop offset="1" stopColor="#080b0f" stopOpacity="0.52" />
-        </linearGradient>
+          <EndMask gradientId={id('shadowEnds')} maskId={id('shadowEndMask')} />
+        </defs>
 
-        <linearGradient
-          id={id('rim')}
-          x1="0%"
-          y1="100%"
-          x2="100%"
-          y2="0%"
-          gradientUnits="objectBoundingBox"
-        >
-          <stop offset="0" stopColor="#83edff" stopOpacity="0" />
-          <stop offset="0.22" stopColor="#cdf6ff" stopOpacity="0.75" />
-          <stop offset="0.5" stopColor="#ffffff" stopOpacity="0.95" />
-          <stop offset="0.78" stopColor="#83edff" stopOpacity="0.6" />
-          <stop offset="1" stopColor="#46d9f5" stopOpacity="0" />
-        </linearGradient>
-
-        <linearGradient
-          id={id('strand')}
-          x1="0%"
-          y1="100%"
-          x2="100%"
-          y2="0%"
-          gradientUnits="objectBoundingBox"
-        >
-          <stop offset="0" stopColor="#46d9f5" stopOpacity="0" />
-          <stop offset="0.3" stopColor="#b9f2ff" stopOpacity="0.42" />
-          <stop offset="0.72" stopColor="#83edff" stopOpacity="0.3" />
-          <stop offset="1" stopColor="#4e78ff" stopOpacity="0" />
-        </linearGradient>
-
-        {/*
-         * The one warm note in the palette, placed where the surface turns
-         * over near the top so it reads as a reflection rather than a colour
-         * wash.
-         */}
-        <radialGradient id={id('warm')} cx="50%" cy="50%" r="50%">
-          <stop offset="0" stopColor="#e7ad65" stopOpacity="0.34" />
-          <stop offset="1" stopColor="#e7ad65" stopOpacity="0" />
-        </radialGradient>
-
-        <radialGradient id={id('bloom')} cx="50%" cy="50%" r="50%">
-          <stop offset="0" stopColor="#9fe9ff" stopOpacity="0.3" />
-          <stop offset="0.55" stopColor="#3aa4c8" stopOpacity="0.1" />
-          <stop offset="1" stopColor="#0d1117" stopOpacity="0" />
-        </radialGradient>
-
-        <filter
-          id={id('soft')}
-          x="-35%"
-          y="-35%"
-          width="170%"
-          height="170%"
-          colorInterpolationFilters="sRGB"
-        >
-          <feGaussianBlur stdDeviation="18" />
-        </filter>
-
-        <filter
-          id={id('glow')}
-          x="-40%"
-          y="-40%"
-          width="180%"
-          height="180%"
-          colorInterpolationFilters="sRGB"
-        >
-          <feGaussianBlur stdDeviation="7" />
-        </filter>
-
-        <clipPath id={id('clip')}>
-          <path d={surface} />
-        </clipPath>
-
-        {/*
-         * The ends. The band leaves the frame through the top and the bottom —
-         * `ribbon-bounds` keeps it off the left and right edges entirely — and
-         * this is what turns those two exits into distance instead of a crop
-         * line. It lives inside the SVG rather than in CSS because the view box
-         * is letterboxed inside its element: a CSS gradient would fade against
-         * the element's box and miss the edge doing the actual clipping.
-         */}
-        <linearGradient
-          id={id('ends')}
-          x1="0"
-          y1="0"
-          x2="0"
-          y2={viewBoxHeight}
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop offset="0" stopColor="#000000" />
-          <stop offset="0.07" stopColor="#ffffff" />
-          <stop offset="0.78" stopColor="#ffffff" />
-          <stop offset="1" stopColor="#000000" />
-        </linearGradient>
-
-        <mask id={id('endMask')} maskUnits="userSpaceOnUse">
-          <rect
-            width={viewBoxWidth}
-            height={viewBoxHeight}
-            fill={`url(#${id('ends')})`}
-          />
-        </mask>
-      </defs>
-
-      <g mask={`url(#${id('endMask')})`}>
-        {/* Ambient bloom, so the ribbon sits in light instead of on black. */}
-        <ellipse
-          cx="300"
-          cy="420"
-          rx="290"
-          ry="360"
-          fill={`url(#${id('bloom')})`}
-        />
-
-        {/*
-         * Depth: the same surface, pushed back and blurred. Not a second ribbon —
-         * one object, its own shadow.
-         */}
-        <path
-          d={surface}
-          fill="#0b1b2a"
-          opacity="0.85"
-          filter={`url(#${id('soft')})`}
-          /*
-           * Scaled about the ribbon's own centre, written out as a translate
-           * pair rather than with `transform-origin` — that is a CSS property,
-           * not an SVG presentation attribute, so React rejects it here.
-           */
-          transform="translate(26 30) translate(340 430) scale(0.985) translate(-340 -430)"
-        />
-
-        <g clipPath={`url(#${id('clip')})`}>
-          <path d={surface} fill={`url(#${id('body')})`} />
-          <path d={surface} fill={`url(#${id('across')})`} />
+        <g mask={`url(#${id('shadowEndMask')})`}>
+          {/* Ambient bloom, so the ribbon sits in light instead of on black. */}
           <ellipse
-            cx="360"
-            cy="180"
-            rx="150"
-            ry="160"
-            fill={`url(#${id('warm')})`}
+            cx="300"
+            cy="420"
+            rx="290"
+            ry="360"
+            fill={`url(#${id('bloom')})`}
           />
 
-          {/* Interior strands, thin and unscaled at any render size. */}
-          <g
+          <path
+            d={surface}
+            fill="#0b1b2a"
+            opacity="0.85"
+            /*
+             * Scaled about the ribbon's own centre, written out as a translate
+             * pair rather than with `transform-origin` — that is a CSS property,
+             * not an SVG presentation attribute, so React rejects it here.
+             */
+            transform="translate(26 30) translate(340 430) scale(0.985) translate(-340 -430)"
+          />
+        </g>
+      </svg>
+
+      <svg {...frame} className={className} data-hero-ribbon="svg">
+        <defs>
+          {/* The lit edge, drawn once and stroked repeatedly for the bloom. */}
+          <path id={id('lit')} d={litEdge} />
+
+          {/* The glass itself: barely there at the ends, coolest in the swell. */}
+          <linearGradient
+            id={id('body')}
+            x1="12%"
+            y1="96%"
+            x2="86%"
+            y2="6%"
+            gradientUnits="objectBoundingBox"
+          >
+            <stop offset="0" stopColor="#1aaed2" stopOpacity="0.1" />
+            <stop offset="0.32" stopColor="#5fd9f2" stopOpacity="0.26" />
+            <stop offset="0.58" stopColor="#cdf6ff" stopOpacity="0.34" />
+            <stop offset="0.82" stopColor="#4e78ff" stopOpacity="0.18" />
+            <stop offset="1" stopColor="#4e78ff" stopOpacity="0.06" />
+          </linearGradient>
+
+          {/*
+           * Across the band rather than along it: bright where the surface faces
+           * the light, falling away to nothing on the side turning from it. This
+           * is the gradient that makes the ribbon read as thick.
+           */}
+          <linearGradient
+            id={id('across')}
+            x1="0%"
+            y1="0%"
+            x2="100%"
+            y2="100%"
+            gradientUnits="objectBoundingBox"
+          >
+            <stop offset="0" stopColor="#ffffff" stopOpacity="0.38" />
+            <stop offset="0.26" stopColor="#9fe9ff" stopOpacity="0.1" />
+            <stop offset="0.68" stopColor="#080b0f" stopOpacity="0.28" />
+            <stop offset="1" stopColor="#080b0f" stopOpacity="0.52" />
+          </linearGradient>
+
+          <linearGradient
+            id={id('rim')}
+            x1="0%"
+            y1="100%"
+            x2="100%"
+            y2="0%"
+            gradientUnits="objectBoundingBox"
+          >
+            <stop offset="0" stopColor="#83edff" stopOpacity="0" />
+            <stop offset="0.22" stopColor="#cdf6ff" stopOpacity="0.75" />
+            <stop offset="0.5" stopColor="#ffffff" stopOpacity="0.95" />
+            <stop offset="0.78" stopColor="#83edff" stopOpacity="0.6" />
+            <stop offset="1" stopColor="#46d9f5" stopOpacity="0" />
+          </linearGradient>
+
+          <linearGradient
+            id={id('strand')}
+            x1="0%"
+            y1="100%"
+            x2="100%"
+            y2="0%"
+            gradientUnits="objectBoundingBox"
+          >
+            <stop offset="0" stopColor="#46d9f5" stopOpacity="0" />
+            <stop offset="0.3" stopColor="#b9f2ff" stopOpacity="0.42" />
+            <stop offset="0.72" stopColor="#83edff" stopOpacity="0.3" />
+            <stop offset="1" stopColor="#4e78ff" stopOpacity="0" />
+          </linearGradient>
+
+          {/*
+           * The one warm note in the palette, placed where the surface turns
+           * over near the top so it reads as a reflection rather than a colour
+           * wash.
+           */}
+          <radialGradient id={id('warm')} cx="50%" cy="50%" r="50%">
+            <stop offset="0" stopColor="#e7ad65" stopOpacity="0.34" />
+            <stop offset="1" stopColor="#e7ad65" stopOpacity="0" />
+          </radialGradient>
+
+          <clipPath id={id('clip')}>
+            <path d={surface} />
+          </clipPath>
+
+          <EndMask gradientId={id('ends')} maskId={id('endMask')} />
+        </defs>
+
+        <g mask={`url(#${id('endMask')})`}>
+          <g clipPath={`url(#${id('clip')})`}>
+            <path d={surface} fill={`url(#${id('body')})`} />
+            <path d={surface} fill={`url(#${id('across')})`} />
+            <ellipse
+              cx="360"
+              cy="180"
+              rx="150"
+              ry="160"
+              fill={`url(#${id('warm')})`}
+            />
+
+            {/* Interior strands, thin and unscaled at any render size. */}
+            <g
+              fill="none"
+              stroke={`url(#${id('strand')})`}
+              strokeWidth="1"
+              vectorEffect="non-scaling-stroke"
+            >
+              {strands.map((d) => (
+                <path key={d} d={d} />
+              ))}
+            </g>
+          </g>
+
+          {/* The shaded edge: present, but only just. */}
+          <path
+            d={shadedEdge}
             fill="none"
-            stroke={`url(#${id('strand')})`}
+            stroke="#9fd4e8"
+            strokeOpacity="0.22"
             strokeWidth="1"
             vectorEffect="non-scaling-stroke"
-          >
-            {strands.map((d) => (
-              <path key={d} d={d} />
+          />
+
+          {/* The lit edge: the bloom in steps, then the hairline inside it. */}
+          <g fill="none" stroke={`url(#${id('rim')})`} strokeLinecap="round">
+            {bloomStack.map(([width, opacity]) => (
+              <use
+                key={width}
+                href={`#${id('lit')}`}
+                strokeWidth={width}
+                opacity={opacity}
+              />
             ))}
+            <use href={`#${id('lit')}`} strokeWidth="1.6" />
           </g>
         </g>
-
-        {/* The shaded edge: present, but only just. */}
-        <path
-          d={shadedEdge}
-          fill="none"
-          stroke="#9fd4e8"
-          strokeOpacity="0.22"
-          strokeWidth="1"
-          vectorEffect="non-scaling-stroke"
-        />
-
-        {/* The lit edge, twice: a soft bloom, then the hairline inside it. */}
-        <path
-          d={litEdge}
-          fill="none"
-          stroke={`url(#${id('rim')})`}
-          strokeWidth="9"
-          strokeLinecap="round"
-          opacity="0.5"
-          filter={`url(#${id('glow')})`}
-        />
-        <path
-          d={litEdge}
-          fill="none"
-          stroke={`url(#${id('rim')})`}
-          strokeWidth="1.6"
-          strokeLinecap="round"
-        />
-      </g>
-    </svg>
+      </svg>
+    </>
   );
 }

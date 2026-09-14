@@ -70,19 +70,30 @@ it('keeps the ribbon decoration out of the accessibility tree and out of the way
   const hero = container.querySelector('[data-hero="landing"]');
   const ribbons = container.querySelectorAll('[data-hero-ribbon]');
 
-  // One object, drawn once. The enhancement layer is a canvas over this same
-  // shape, never a second drawing.
-  expect(ribbons).toHaveLength(1);
-  expect(ribbons[0]).toHaveAttribute('data-hero-ribbon', 'svg');
-  expect(ribbons[0]).toHaveAttribute('aria-hidden', 'true');
-  expect(ribbons[0]).toHaveAttribute('focusable', 'false');
-  expect(ribbons[0]?.closest('[aria-hidden="true"]')).not.toBeNull();
-  expect(ribbons[0]?.querySelector('title')).toBeNull();
-  expect(ribbons[0]?.querySelector('[tabindex]')).toBeNull();
+  /*
+   * One object, drawn once: a single ribbon, and behind it the layer carrying
+   * its own shadow — which is a layer rather than a node inside the drawing
+   * only because its blur has to be a CSS filter the compositor can cache.
+   * The enhancement is still a canvas over this same shape, never a second
+   * drawing of it.
+   */
+  expect(ribbons).toHaveLength(2);
+  expect(
+    [...ribbons].map((layer) => layer.getAttribute('data-hero-ribbon')),
+  ).toEqual(['shadow', 'svg']);
 
-  // The decoration is painted first so the copy sits above it.
+  for (const layer of ribbons) {
+    expect(layer).toHaveAttribute('aria-hidden', 'true');
+    expect(layer).toHaveAttribute('focusable', 'false');
+    expect(layer.closest('[aria-hidden="true"]')).not.toBeNull();
+    expect(layer.querySelector('title')).toBeNull();
+    expect(layer.querySelector('[tabindex]')).toBeNull();
+
+    // The decoration is painted first so the copy sits above it.
+    expect(hero?.firstElementChild).toContainElement(layer as HTMLElement);
+  }
+
   expect(hero?.firstElementChild).toHaveAttribute('aria-hidden', 'true');
-  expect(hero?.firstElementChild).toContainElement(ribbons[0] as HTMLElement);
 });
 
 /*

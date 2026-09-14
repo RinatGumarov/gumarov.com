@@ -68,6 +68,12 @@
   transform-style: preserve-3d;
   transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
+  /*
+   * A size container, so the shadow layer's blur can be written in units of
+   * this box and track the drawing at every breakpoint rather than being a
+   * fixed pixel radius that is right at one width and wrong at the others.
+   */
+  container-type: size;
 }
 
 @media (min-width: 75em) {
@@ -85,11 +91,38 @@
  * here would fade against the wrong rectangle.
  */
 .ribbon,
+.ribbonShadow,
 .canvas {
   position: absolute;
   inset: 0;
   inline-size: 100%;
   block-size: 100%;
+}
+
+/*
+ * The ribbon's depth shadow: the same surface, pushed back and softened.
+ *
+ * The blur is here, as a CSS filter on a layer of its own, rather than an
+ * `feGaussianBlur` inside the drawing. WebKit re-runs SVG filters in software
+ * every time the filtered subtree is re-rendered, and the stage is re-rendered
+ * on every frame of the pointer response — which cost about 100ms a frame and
+ * was what made this block stutter in Safari. A CSS filter on its own element
+ * is rasterized once and re-used as the stage tilts.
+ *
+ * The radius is the `stdDeviation: 18` it replaces, expressed in the layer's
+ * own box: the view box is fitted `xMidYMid meet`, so its scale is
+ * `min(width / 740, height / 780)` and 18 user units are `min(2.4324cqw,
+ * 2.3077cqh)`.
+ */
+.ribbonShadow {
+  filter: blur(min(2.4324cqw, 2.3077cqh));
+  /*
+   * And a layer of its own to be rasterized into. Without this the blurred
+   * result is rebuilt as the stage's projection changes and the frame costs
+   * 26ms; with it the compositor re-uses it and the frame costs 19.5ms,
+   * against a 17ms floor for the same page with this layer hidden.
+   */
+  will-change: transform;
 }
 
 /*
@@ -200,6 +233,11 @@
   .stage {
     transform: none !important;
     transition: none !important;
+    will-change: auto;
+  }
+
+  /* Nothing moves here, so neither layer needs to be held on the compositor. */
+  .ribbonShadow {
     will-change: auto;
   }
 
