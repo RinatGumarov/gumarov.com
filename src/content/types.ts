@@ -21,18 +21,13 @@ export interface ProjectProof {
   body: string;
 }
 
-/** The visual treatment a project scene renders with; assigned explicitly per project. */
+/** The scene composition a project renders with, assigned explicitly. */
 export type ProjectVariant = 'lead' | 'major' | 'product' | 'compact';
 
 /**
- * Whether a scene carries a real capture or is a text-only case.
- *
- * This is an explicit field rather than "a screenshot entry happens to be
- * missing". A scene with no capture used to fall through to a decorative
- * geometry fallback, so deleting a screenshot swapped one picture for another
- * instead of removing the picture. Declaring the mode makes "this project has
- * no image" a statement the renderer can honour, and the type below makes
- * "text mode plus a screenshot" unrepresentable.
+ * Declared, not inferred from a missing screenshot: a scene without a capture
+ * used to fall through to a decorative graphic, so deleting a capture swapped
+ * one picture for another instead of removing the picture.
  */
 export type ProjectMedia = 'screenshot' | 'text';
 
@@ -40,11 +35,7 @@ interface ProjectBase {
   slug: ProjectSlug;
   name: string;
   eyebrow: string;
-  /**
-   * What the product is, in one line. Optional because the closing compact row
-   * carries a single sentence of contribution and nothing else — a summary
-   * declared there would be copy the page never renders.
-   */
+  /** What the product is, in one line. The compact row renders none. */
   summary?: string;
   contribution: string;
   capabilities: string;
@@ -52,37 +43,22 @@ interface ProjectBase {
   variant: ProjectVariant;
   /** Localized label for the explicit outbound link, e.g. "Visit TradingView". */
   linkLabel: string;
-  /** Short, titled claims shown beneath the project's screenshot. Absent means no block, not an empty one. */
+  /** Titled claims beneath the capture. Absent means no block, not an empty one. */
   proofs?: readonly ProjectProof[];
-  /** Small stats shown beside the project's description. Absent means no block, not an empty one. */
+  /** Stats beside the description. Absent means no block, not an empty one. */
   metrics?: readonly ProofPoint[];
   /**
-   * A short shipped-state mark rendered beside the metrics as a subordinate
-   * badge — deliberately not a second `ProofPoint`, so the one headline number
-   * keeps the weight and the availability reads as status, not as a rival
-   * statistic.
+   * A shipped-state mark beside the metrics. Not a second `ProofPoint`, so the
+   * one headline number keeps the weight and this reads as status.
    */
   availability?: string;
 }
 
+// A text scene renders no figure, so it cannot carry copy describing one.
 export type Project = ProjectBase &
-  (
-    | { media: 'screenshot' }
-    | {
-        media: 'text';
-        /**
-         * Text scenes carry no `<figure>`, no reserved visual column and no
-         * decorative substitute, so nothing here may describe a picture.
-         */
-        proofs?: never;
-      }
-  );
+  ({ media: 'screenshot' } | { media: 'text'; proofs?: never });
 
-/**
- * The projects that ship a capture. A screenshot entry for any other
- * slug would describe an image the page never renders, so the type refuses it
- * rather than letting it sit in the content file looking like shipped copy.
- */
+/** The projects that ship a capture; a screenshot for any other slug renders nowhere. */
 export const screenshotProjectSlugs = ['tradingview', 'splithub'] as const;
 export type ScreenshotProjectSlug = (typeof screenshotProjectSlugs)[number];
 
@@ -94,11 +70,7 @@ export interface ProjectScreenshot {
   caption: string;
 }
 
-/**
- * The three activity frames the About strip shows, in render order. The
- * portrait is the hero's alone: it appears exactly once on the page, so it is
- * deliberately absent here.
- */
+/** The three activity frames the About strip shows, in render order. */
 export const personalPhotoSlugs = ['surf', 'snowboard', 'drift-front'] as const;
 export type PersonalPhotoSlug = (typeof personalPhotoSlugs)[number];
 
@@ -122,16 +94,13 @@ export interface Contact {
 }
 
 /**
- * The personal open-source experiment that closes the work sequence. It links
- * out to a demo and a repository and renders no capture, no preview canvas and
- * no embedded copy of the lab, so every field here is either text or a
- * destination.
+ * The open-source experiment that closes the work sequence. It is links and
+ * text only — nothing here embeds the lab — so every field is copy or a URL.
  */
 export interface PerformanceLab {
   eyebrow: string;
   /** The experiment's own name; identical in both locales. */
   name: string;
-  /** The one-line claim that carries the block. */
   thesis: string;
   description: string;
   /** The honest limits of the demo: synthetic data and per-mode row ceilings. */

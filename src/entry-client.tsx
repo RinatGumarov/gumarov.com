@@ -8,39 +8,41 @@ scheduleBrandFonts();
 
 const rootElement = document.getElementById('root');
 
-function getDocumentLocale(): Locale {
-  return document.documentElement.lang.toLowerCase().startsWith('ru')
+if (rootElement?.hasChildNodes()) {
+  const locale: Locale = document.documentElement.lang
+    .toLowerCase()
+    .startsWith('ru')
     ? 'ru'
     : 'en';
-}
-
-if (rootElement?.hasChildNodes()) {
-  const locale = getDocumentLocale();
   scheduleLandingViewed(locale);
+
   const serverMarkup = rootElement.innerHTML;
   let hydrationRoot: ReturnType<typeof hydrateRoot> | undefined;
-  let restorationScheduled = false;
-  let serverMarkupRestored = false;
+  let restored = false;
+
+  /*
+   * The page is complete before React runs, so a failed hydration should leave
+   * the visitor with the served markup rather than whatever React managed to
+   * write. Restoring happens in a microtask because React is still unwinding
+   * when the error callback fires.
+   */
   const restoreServerMarkup = (error: unknown) => {
     if (import.meta.env.DEV) {
       console.error('Unable to hydrate the landing page.', error);
     }
-
-    if (restorationScheduled || serverMarkupRestored) return;
-    restorationScheduled = true;
+    if (restored) return;
 
     queueMicrotask(() => {
-      restorationScheduled = false;
-      if (serverMarkupRestored) return;
+      if (restored) return;
+      restored = true;
 
       try {
         hydrationRoot?.unmount();
       } catch {
-        // React may still be unwinding; restoring the static page remains safe.
+        // React may still be unwinding; the static page is restored regardless.
       }
 
       rootElement.innerHTML = serverMarkup;
-      serverMarkupRestored = true;
     });
   };
 

@@ -1,15 +1,13 @@
 import { useEffect, useState, type RefObject } from 'react';
 import type { RibbonRenderer } from './hero-ribbon-gl';
-import { getMediaQuery } from './motion';
+import { getMediaQuery, subscribeToMediaQuery } from './motion';
 
 const hoverQuery = '(hover: hover) and (pointer: fine)';
 const reducedMotionQuery = '(prefers-reduced-motion: reduce)';
 
-/**
- * The properties the CSS layer reads. They are written straight onto the host
- * element, never held in React state: a state update per pointer move would
- * re-render the hero on every frame, and the heading, the paragraph and both
- * calls to action are supposed to be motionless.
+/*
+ * Written straight onto the host element, never held in React state: a state
+ * update per pointer move would re-render the hero on every frame.
  */
 const pointerProperties = [
   '--hero-tilt-x',
@@ -20,27 +18,12 @@ const pointerProperties = [
   '--hero-light-y',
 ] as const;
 
-/*
- * The whole pointer budget, in one place. Rotation stays inside ±4° and the
- * shift inside ±8px; the damping is a CSS transition rather than a JavaScript
- * loop, so the SVG layer costs no frames at all.
- */
+// The whole pointer budget. Damping is a CSS transition rather than a frame
+// loop, so the SVG layer costs nothing at rest.
 const maximumTiltDegrees = 4;
 const maximumShiftPx = 8;
 
 export type HeroVisualState = 'static' | 'enhanced';
-
-function subscribeToMediaQuery(query: MediaQueryList, onChange: () => void) {
-  if (typeof query.addEventListener === 'function') {
-    query.addEventListener('change', onChange);
-    return () => query.removeEventListener('change', onChange);
-  }
-  if (typeof query.addListener === 'function') {
-    query.addListener(onChange);
-    return () => query.removeListener(onChange);
-  }
-  return () => undefined;
-}
 
 function round(value: number) {
   return Math.round(value * 1000) / 1000;
@@ -67,27 +50,18 @@ interface HeroVisualOptions {
   hostRef: RefObject<HTMLElement | null>;
   /** The canvas the enhancement draws into; may never be used. */
   canvasRef: RefObject<HTMLCanvasElement | null>;
-  /**
-   * The boolean from the application's single `useMotionEnhancementGate()`.
-   * This hook never mutates the document root, so there is exactly one
-   * root-mutating gate on the page.
-   */
   enabled: boolean;
 }
 
 /**
  * Drives the hero ribbon's optional behaviour and reports which layer is live.
  *
- * Three things are deliberately separate here. The *composition* is the SVG and
- * needs nothing from this hook. The *pointer response* is six custom properties
- * and a CSS transition, which run wherever a fine pointer and motion are
- * allowed. The *refraction* is WebGL, imported lazily and only once everything
- * else has passed, and it is the only part that can fail — when it does, or
- * when the context is later lost, the state falls back to `static` and the SVG
- * is simply still there.
- *
- * Everything that touches `window`, `document` or `CSS` happens inside the
- * effect, so the server render and the first client render are identical.
+ * The SVG is the composition and needs nothing from here. The pointer response
+ * is six custom properties and a CSS transition. The WebGL refraction is
+ * imported lazily, last, and is the only part that can fail — when it does, or
+ * when its context is lost, the state falls back to `static` and the SVG is
+ * simply still there. Everything touching `window` happens inside the effect,
+ * so the server render and the first client render are identical.
  */
 export function useHeroVisual({
   hostRef,

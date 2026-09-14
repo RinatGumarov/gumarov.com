@@ -5,22 +5,17 @@ import styles from './PersonalStrip.module.css';
 
 export interface PersonalPhoto {
   src: string;
-  /** Responsive JPEG candidates; omitted while a slot is still a placeholder. */
-  srcSet?: string;
-  /** Modern-format candidates offered ahead of the JPEG fallback. */
-  sources?: { avif: string; webp: string };
-  sizes?: string;
+  srcSet: string;
+  sources: { avif: string; webp: string };
+  sizes: string;
   width: number;
   height: number;
-  /** Localized description for meaningful photos; decorative placeholders use an empty string. */
   alt: string;
 }
 
 /**
- * Exactly three frames: surf, snowboard, drift-front. A tuple rather than an
- * array, because "three" is the composition — the strip's desktop grid, its
- * mobile 1+2 stack and the section's height budget are all written for three
- * frames, and a fourth would silently reflow all three.
+ * A tuple, not an array: the strip's desktop row and its mobile 1 + 2 stack are
+ * both written for exactly three frames.
  */
 export type PersonalPhotos = readonly [
   PersonalPhoto,
@@ -37,13 +32,7 @@ interface PersonalStripProps {
   photos: PersonalPhotos;
 }
 
-/**
- * The About section: a short paragraph beside a compact three-frame strip.
- *
- * There is no portrait here. The page shows exactly one avatar and it belongs
- * to the hero, so this section carries only the activities — repeating the
- * portrait added no story and cost the section a column.
- */
+/** The About section: a short paragraph beside a compact three-frame strip. */
 export function PersonalStrip({ content, photos }: PersonalStripProps) {
   const { observed, ref } = useViewedOnce<HTMLElement>();
   const stripMotion = usePointerParallax<HTMLDivElement>();
@@ -95,20 +84,16 @@ export function PersonalStrip({ content, photos }: PersonalStripProps) {
             data-motion-parallax-layer="true"
           >
             <picture>
-              {photo.sources ? (
-                <>
-                  <source
-                    type="image/avif"
-                    srcSet={photo.sources.avif}
-                    sizes={photo.sizes}
-                  />
-                  <source
-                    type="image/webp"
-                    srcSet={photo.sources.webp}
-                    sizes={photo.sizes}
-                  />
-                </>
-              ) : null}
+              <source
+                type="image/avif"
+                srcSet={photo.sources.avif}
+                sizes={photo.sizes}
+              />
+              <source
+                type="image/webp"
+                srcSet={photo.sources.webp}
+                sizes={photo.sizes}
+              />
               <img
                 src={photo.src}
                 srcSet={photo.srcSet}

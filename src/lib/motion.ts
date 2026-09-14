@@ -32,21 +32,42 @@ export function getMediaQuery(query: string): MediaQueryList | null {
   }
 }
 
-function getReducedMotionSnapshot() {
-  return getMediaQuery(reducedMotionQuery)?.matches ?? true;
-}
-
-function subscribeToReducedMotion(onChange: () => void) {
-  const mediaQuery = getMediaQuery(reducedMotionQuery);
-  if (!mediaQuery) return () => undefined;
-
+export function subscribeToMediaQuery(
+  mediaQuery: MediaQueryList,
+  onChange: () => void,
+) {
   if (typeof mediaQuery.addEventListener === 'function') {
     mediaQuery.addEventListener('change', onChange);
     return () => mediaQuery.removeEventListener('change', onChange);
   }
 
+  // Safari before 14 only has the deprecated listener API.
   mediaQuery.addListener(onChange);
   return () => mediaQuery.removeListener(onChange);
+}
+
+function subscribeToQuery(query: string) {
+  return (onChange: () => void) => {
+    const mediaQuery = getMediaQuery(query);
+    return mediaQuery
+      ? subscribeToMediaQuery(mediaQuery, onChange)
+      : () => undefined;
+  };
+}
+
+/*
+ * The two gates are separate queries, not one negated: a browser that cannot
+ * answer either should still assume reduced motion and offer no enhancement.
+ */
+const subscribeToReducedMotion = subscribeToQuery(reducedMotionQuery);
+const subscribeToMotionEnhancements = subscribeToQuery(motionEnhancementQuery);
+
+function getReducedMotionSnapshot() {
+  return getMediaQuery(reducedMotionQuery)?.matches ?? true;
+}
+
+function getMotionEnhancementSnapshot() {
+  return getMediaQuery(motionEnhancementQuery)?.matches === true;
 }
 
 export function useReducedMotion() {
@@ -78,23 +99,6 @@ export function useMotionEnhancementGate() {
   }, [enabled]);
 
   return enabled;
-}
-
-function getMotionEnhancementSnapshot() {
-  return getMediaQuery(motionEnhancementQuery)?.matches === true;
-}
-
-function subscribeToMotionEnhancements(onChange: () => void) {
-  const mediaQuery = getMediaQuery(motionEnhancementQuery);
-  if (!mediaQuery) return () => undefined;
-
-  if (typeof mediaQuery.addEventListener === 'function') {
-    mediaQuery.addEventListener('change', onChange);
-    return () => mediaQuery.removeEventListener('change', onChange);
-  }
-
-  mediaQuery.addListener(onChange);
-  return () => mediaQuery.removeListener(onChange);
 }
 
 function setParallax(element: HTMLElement | null, x: number, y: number) {
