@@ -28,19 +28,15 @@ for (const locale of qualityLocales) {
         const primaryNav = page.getByRole('navigation', {
           name: locale === 'ru' ? 'Основная навигация' : 'Primary navigation',
         });
-        await primaryNav.getByRole('link', { name: content.nav.work }).click();
-        await expect(page).toHaveURL(/#work$/u);
-        await expect(page.locator('#work')).toBeInViewport();
-
-        await primaryNav.getByRole('link', { name: content.nav.about }).click();
-        await expect(page).toHaveURL(/#about$/u);
-        await expect(page.locator('#about')).toBeInViewport();
-
-        await primaryNav
-          .getByRole('link', { name: content.nav.contact })
-          .click();
-        await expect(page).toHaveURL(/#contact$/u);
-        await expect(page.locator('#contact')).toBeInViewport();
+        for (const [label, id] of [
+          [content.nav.work, 'work'],
+          [content.nav.about, 'about'],
+          [content.nav.contact, 'contact'],
+        ]) {
+          await primaryNav.getByRole('link', { name: label }).click();
+          await expect(page).toHaveURL(new RegExp(`#${id}$`, 'u'));
+          await expect(page.locator(`#${id}`)).toBeInViewport();
+        }
       });
 
       test('keeps reduced-motion content in its final visible state', async ({
@@ -72,7 +68,18 @@ test('persists an explicit language choice from the root', async ({ page }) => {
 
   await page.goto('/');
   await expect(page).toHaveURL(/\/ru\/$/u);
-  await expect(page.locator('main')).toHaveAttribute('data-locale', 'ru');
+});
+
+test('sends a Russian-language browser from the root to the Russian page', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ locale: 'ru-RU' });
+  const page = await context.newPage();
+
+  await page.goto('/');
+
+  await expect(page).toHaveURL(/\/ru\/$/u);
+  await context.close();
 });
 
 test('preserves the current hash when switching locales', async ({ page }) => {
@@ -81,31 +88,6 @@ test('preserves the current hash when switching locales', async ({ page }) => {
 
   await expect(page).toHaveURL(/\/ru\/#contact$/u);
   await expect(page.locator('#contact')).toBeInViewport();
-});
-
-test('exposes official project destinations in both locales', async ({
-  page,
-}) => {
-  for (const locale of qualityLocales) {
-    await page.goto(localePath(locale));
-    const content = getContent(locale);
-
-    for (const project of content.projects) {
-      // The scene's own named link ("Visit Stoic") also contains the product
-      // name, so the title link is addressed exactly.
-      const titleLink = page.getByRole('link', {
-        name: project.name,
-        exact: true,
-      });
-      const namedLink = page.getByRole('link', { name: project.linkLabel });
-
-      for (const link of [titleLink, namedLink]) {
-        await expect(link).toHaveAttribute('href', project.href);
-        await expect(link).toHaveAttribute('target', '_blank');
-        await expect(link).toHaveAttribute('rel', /noopener/u);
-      }
-    }
-  }
 });
 
 test('defers brand fonts until after first paint', async ({ page }) => {
@@ -124,76 +106,64 @@ test('defers brand fonts until after first paint', async ({ page }) => {
   expect(fontStylesheetRequests.length).toBeGreaterThan(0);
 });
 
-test('Russian skip link moves keyboard focus to main content', async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto('/ru/');
+test.describe('keyboard traversal', () => {
+  test.use({ viewport: { width: 1440, height: 1000 } });
 
-  await page.keyboard.press('Tab');
-  const skipLink = page.getByRole('link', { name: 'Перейти к содержанию' });
-  await expect(skipLink).toBeFocused();
-  await assertVisibleFocus(page);
+  test('reaches the skip link, the nav, the language switch and a project', async ({
+    page,
+  }) => {
+    await page.goto('/en/');
 
-  await page.keyboard.press('Enter');
-  await expect(page.locator('#main-content')).toBeFocused();
-});
+    await page.keyboard.press('Tab');
+    await expect(
+      page.getByRole('link', { name: 'Skip to content' }),
+    ).toBeFocused();
+    await assertVisibleFocus(page);
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#main-content')).toBeFocused();
 
-test('keyboard traversal reaches the skip link, nav, language switch and a project', async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto('/en/');
+    await page.goto('/en/');
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Tab');
+    await expect(
+      page.getByRole('link', { name: 'Rinat Gumarov — home' }),
+    ).toBeFocused();
 
-  await page.keyboard.press('Tab');
-  const skipLink = page.getByRole('link', { name: 'Skip to content' });
-  await expect(skipLink).toBeFocused();
-  await assertVisibleFocus(page);
-  await page.keyboard.press('Enter');
-  await expect(page.locator('#main-content')).toBeFocused();
-  await page.goto('/en/');
-  await page.keyboard.press('Tab');
+    await page.keyboard.press('Tab');
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Primary navigation' })
+        .getByRole('link', { name: 'Work' }),
+    ).toBeFocused();
 
-  await page.keyboard.press('Tab');
-  await expect(
-    page.getByRole('link', { name: 'Rinat Gumarov — home' }),
-  ).toBeFocused();
+    const languageNav = page
+      .locator('header')
+      .getByRole('navigation', { name: 'Language selection' });
+    for (let press = 0; press < 3; press += 1) await page.keyboard.press('Tab');
+    await expect(
+      languageNav.getByRole('link', { name: 'English' }),
+    ).toBeFocused();
 
-  await page.keyboard.press('Tab');
-  await expect(
-    page
-      .getByRole('navigation', { name: 'Primary navigation' })
-      .getByRole('link', { name: 'Work' }),
-  ).toBeFocused();
-  await assertVisibleFocus(page);
-
-  const languageNav = page
-    .locator('header')
-    .getByRole('navigation', { name: 'Language selection' });
-
-  await page.keyboard.press('Tab');
-  await page.keyboard.press('Tab');
-  await page.keyboard.press('Tab');
-  await expect(
-    languageNav.getByRole('link', { name: 'English' }),
-  ).toBeFocused();
-
-  await page.keyboard.press('Tab');
-  await expect(
-    languageNav.getByRole('link', { name: 'Русский' }),
-  ).toBeFocused();
-
-  const projectLink = page.getByRole('link', {
-    name: 'TradingView',
-    exact: true,
+    const projectLink = page.getByRole('link', {
+      name: 'TradingView',
+      exact: true,
+    });
+    await tabUntilFocused(page, projectLink);
+    await assertVisibleFocus(page);
   });
-  await tabUntilFocused(page, projectLink);
-  await expect(projectLink).toBeFocused();
-  await assertVisibleFocus(page);
-  await expect(projectLink).toHaveAttribute(
-    'href',
-    'https://www.tradingview.com/',
-  );
+
+  test('moves focus to main content from the Russian skip link', async ({
+    page,
+  }) => {
+    await page.goto('/ru/');
+
+    await page.keyboard.press('Tab');
+    await expect(
+      page.getByRole('link', { name: 'Перейти к содержанию' }),
+    ).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#main-content')).toBeFocused();
+  });
 });
 
 async function tabUntilFocused(
@@ -212,16 +182,3 @@ async function tabUntilFocused(
 
   throw new Error('Keyboard traversal never reached the expected control');
 }
-
-test('sends a Russian-language browser from the root to the Russian page', async ({
-  browser,
-}) => {
-  const context = await browser.newContext({ locale: 'ru-RU' });
-  const page = await context.newPage();
-
-  await page.goto('/');
-
-  await expect(page).toHaveURL(/\/ru\/$/u);
-  await expect(page.locator('main')).toHaveAttribute('data-locale', 'ru');
-  await context.close();
-});

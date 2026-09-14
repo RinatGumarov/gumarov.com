@@ -3,13 +3,10 @@ import { act } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useHeroVisual } from './hero-visual';
 
-/**
- * The hook's contract, independent of how the ribbon looks.
- *
- * Three things matter here and none of them is visual: the pointer position
- * never becomes React state, nothing is installed while the gate is closed, and
- * unmounting leaves the document exactly as it was found — no listeners, no
- * observers, no custom properties still written on the host.
+/*
+ * The hook's contract, none of it visual: the pointer position never becomes
+ * React state, nothing is installed while the gate is closed, and unmounting
+ * leaves the document exactly as it was found.
  */
 
 interface MediaQueryStub {
@@ -73,11 +70,9 @@ class ObserverStub {
 }
 
 /*
- * jsdom has no canvas backend, so `getContext` reports "not implemented" to the
- * virtual console rather than answering. Stubbing it to `null` both silences
- * that and states the case these tests actually run: a browser without WebGL,
- * where the hook must keep the pointer response and never reach for the
- * enhancement chunk.
+ * jsdom has no canvas backend. Stubbing `getContext` to `null` silences its
+ * "not implemented" noise and states the case these tests run: a browser
+ * without WebGL, where the pointer response works and no chunk is fetched.
  */
 function stubNoWebGl() {
   vi.stubGlobal('HTMLCanvasElement', window.HTMLCanvasElement);

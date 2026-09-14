@@ -53,12 +53,7 @@ test('sustained pointer motion stays responsive under four-times CPU throttling'
   await client.send('Emulation.setCPUThrottlingRate', { rate: 4 });
 
   await page.goto('/en/');
-  /*
-   * Only the two side-by-side scenes have a copy column to make sticky: the
-   * lead case is a full-width composition and the closing compact row is a
-   * single line, so neither carries one. Target the first scene that does,
-   * rather than whichever scene happens to come first in the section.
-   */
+  // Only the side-by-side scenes have a copy column to make sticky.
   const stickyProject = page
     .locator('[data-motion-project]:has([data-motion-sticky])')
     .first();
@@ -195,13 +190,8 @@ test('missing matchMedia leaves every enhancement in its complete final state', 
   await expect(stickyCopy).toHaveCSS('position', 'static');
 });
 
-/*
- * This used to read one pseudo-element on the hero, because one ambient
- * `8s ... infinite` drift lived there. That selector died with the hero
- * rewrite and the rule was removed. The page forbids the whole category — not
- * a single infinite background animation — so the check is the category rather
- * than the one rule that used to break it.
- */
+// Nothing on the page loops forever: ambient motion costs battery and reads as
+// a page that never settles.
 test('runs no endlessly looping animation anywhere on the page', async ({
   page,
 }) => {

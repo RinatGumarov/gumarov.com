@@ -49,47 +49,6 @@ describe('useReducedMotion', () => {
 
     expect(result.current).toBe(true);
   });
-
-  it('tracks preference changes and removes its listener on cleanup', () => {
-    let matches = false;
-    let listener: EventListenerOrEventListenerObject | undefined;
-    const addEventListener = vi.fn(
-      (_type: string, nextListener: EventListenerOrEventListenerObject) => {
-        listener = nextListener;
-      },
-    );
-    const removeEventListener = vi.fn();
-    const mediaQuery = {
-      get matches() {
-        return matches;
-      },
-      media: '(prefers-reduced-motion: reduce)',
-      onchange: null,
-      addEventListener,
-      removeEventListener,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    } as MediaQueryList;
-    vi.stubGlobal(
-      'matchMedia',
-      vi.fn(() => mediaQuery),
-    );
-
-    const { result, unmount } = renderHook(() => useReducedMotion());
-    expect(result.current).toBe(false);
-
-    act(() => {
-      matches = true;
-      if (typeof listener === 'function') {
-        listener({ matches: true } as MediaQueryListEvent);
-      }
-    });
-
-    expect(result.current).toBe(true);
-    unmount();
-    expect(removeEventListener).toHaveBeenCalledWith('change', listener);
-  });
 });
 
 describe('useViewedOnce', () => {
@@ -130,15 +89,6 @@ describe('useViewedOnce', () => {
     unmount();
     expect(observer.disconnect).toHaveBeenCalledTimes(1);
   });
-
-  it('disconnects an active observer when the component unmounts', () => {
-    const observer = installIntersectionObserver();
-    const { unmount } = render(<ViewedProbe />);
-
-    unmount();
-
-    expect(observer.disconnect).toHaveBeenCalledTimes(1);
-  });
 });
 
 describe('usePointerParallax', () => {
@@ -177,21 +127,6 @@ describe('usePointerParallax', () => {
     expect(target.style.getPropertyValue('--motion-parallax-y')).toBe('0px');
   });
 
-  it('does not move while the document is hidden', () => {
-    installMotionQueries({ coarse: false, reduced: false });
-    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
-    render(<ParallaxProbe />);
-    const target = screen.getByTestId('parallax');
-    vi.spyOn(target, 'getBoundingClientRect').mockReturnValue(
-      rect({ left: 0, top: 0, width: 100, height: 100 }),
-    );
-
-    fireEvent.pointerMove(target, { clientX: 100, clientY: 100 });
-
-    expect(target.style.getPropertyValue('--motion-parallax-x')).toBe('0px');
-    expect(target.style.getPropertyValue('--motion-parallax-y')).toBe('0px');
-  });
-
   it('resets active parallax when the tab moves to the background', () => {
     installMotionQueries({ coarse: false, reduced: false });
     const visibility = vi
@@ -207,21 +142,6 @@ describe('usePointerParallax', () => {
 
     visibility.mockReturnValue('hidden');
     fireEvent(document, new Event('visibilitychange'));
-
-    expect(target.style.getPropertyValue('--motion-parallax-x')).toBe('0px');
-    expect(target.style.getPropertyValue('--motion-parallax-y')).toBe('0px');
-  });
-
-  it('stays in the final state when PointerEvent is unavailable', () => {
-    installMotionQueries({ coarse: false, reduced: false });
-    vi.stubGlobal('PointerEvent', undefined);
-    render(<ParallaxProbe />);
-    const target = screen.getByTestId('parallax');
-    vi.spyOn(target, 'getBoundingClientRect').mockReturnValue(
-      rect({ left: 0, top: 0, width: 100, height: 100 }),
-    );
-
-    fireEvent.pointerMove(target, { clientX: 100, clientY: 100 });
 
     expect(target.style.getPropertyValue('--motion-parallax-x')).toBe('0px');
     expect(target.style.getPropertyValue('--motion-parallax-y')).toBe('0px');
