@@ -2,8 +2,6 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e',
-  // Nested git worktrees carry a copy of this suite; never run it twice.
-  testIgnore: ['**/.claude/**'],
   timeout: 60_000,
   expect: {
     toHaveScreenshot: {

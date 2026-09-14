@@ -4,27 +4,25 @@
   "version": "0.1.0",
   "type": "module",
   "engines": {
-    "node": ">=22 <23",
+    "node": ">=22",
     "pnpm": ">=10 <11"
   },
   "scripts": {
     "dev": "vite",
+    "build": "pnpm build:client && pnpm build:ssr && pnpm prerender && node scripts/check-dist.mjs",
     "build:client": "vite build",
     "build:ssr": "vite build --ssr src/entry-server.tsx --outDir dist-ssr",
     "prerender": "node scripts/prerender.mjs",
-    "build": "pnpm build:client && pnpm build:ssr && pnpm prerender && node scripts/check-dist.mjs",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:e2e": "playwright test",
-    "test:a11y": "playwright test tests/e2e/accessibility.spec.ts",
-    "test:lighthouse": "lhci autorun",
-    "media:portrait": "node scripts/process-images.mjs",
-    "media:brand": "node scripts/process-brand-assets.mjs",
-    "typecheck": "tsc -b",
+    "preview": "vite preview",
     "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc -b",
     "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:lighthouse": "lhci autorun",
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
-    "preview": "vite preview"
+    "media": "node scripts/process-images.mjs",
+    "media:brand": "node scripts/process-brand-assets.mjs"
   },
   "dependencies": {
     "posthog-js": "^1.417.0",

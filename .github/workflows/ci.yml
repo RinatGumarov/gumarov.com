@@ -1,9 +1,10 @@
 name: CI
 
+# Pull requests only. A push to main runs the same gates inside Deploy, and
+# running both would double every job for no extra signal.
 on:
-  push:
-    branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
