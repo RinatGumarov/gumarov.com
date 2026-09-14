@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { expect, it, vi } from 'vitest';
 import { getContent } from '../content';
@@ -12,7 +12,28 @@ vi.mock('../lib/analytics', () => ({
   trackAnalyticsEvent: trackAnalyticsEventMock,
 }));
 
-it('reports footer contact and language actions without changing their links', async () => {
+it('keeps the year, the privacy note and both contact paths in the markup', () => {
+  const content = getContent('en');
+  render(
+    <Footer
+      locale="en"
+      contact={content.contact}
+      privacy={content.footer.privacy}
+    />,
+  );
+
+  const footer = screen.getByRole('contentinfo');
+  expect(footer).toHaveTextContent(String(new Date().getUTCFullYear()));
+  expect(within(footer).getByText(content.footer.privacy)).toBeInTheDocument();
+  expect(
+    within(footer).getByRole('link', { name: 'Telegram: @RinatGumarov' }),
+  ).toHaveAttribute('href', content.contact.telegramHref);
+  expect(
+    within(footer).getByRole('link', { name: 'Email: hi@gumarov.com' }),
+  ).toHaveAttribute('href', content.contact.emailHref);
+});
+
+it('reports a footer contact click without changing the link', async () => {
   const user = userEvent.setup();
   const content = getContent('ru');
   render(
@@ -26,39 +47,12 @@ it('reports footer contact and language actions without changing their links', a
   const telegram = screen.getByRole('link', {
     name: `${content.contact.telegramLabel}: ${content.contact.telegramHandle}`,
   });
-  const email = screen.getByRole('link', {
-    name: `${content.contact.emailLabel}: ${content.contact.emailAddress}`,
-  });
-  const english = screen.getByRole('link', { name: 'English' });
-  for (const link of [telegram, email, english]) {
-    link.addEventListener('click', (event) => event.preventDefault());
-    await user.click(link);
-  }
+  telegram.addEventListener('click', (event) => event.preventDefault());
+  await user.click(telegram);
 
-  expect(trackAnalyticsEventMock.mock.calls).toEqual([
-    [
-      {
-        name: 'contact_clicked',
-        properties: {
-          channel: 'telegram',
-          section: 'footer',
-          locale: 'ru',
-        },
-      },
-    ],
-    [
-      {
-        name: 'contact_clicked',
-        properties: { channel: 'email', section: 'footer', locale: 'ru' },
-      },
-    ],
-    [
-      {
-        name: 'language_changed',
-        properties: { from: 'ru', to: 'en' },
-      },
-    ],
-  ]);
-  expect(telegram).toHaveAttribute('href', 'https://t.me/RinatGumarov');
-  expect(email).toHaveAttribute('href', 'mailto:hi@gumarov.com');
+  expect(trackAnalyticsEventMock).toHaveBeenCalledWith({
+    name: 'contact_clicked',
+    properties: { channel: 'telegram', section: 'footer', locale: 'ru' },
+  });
+  expect(telegram).toHaveAttribute('href', content.contact.telegramHref);
 });

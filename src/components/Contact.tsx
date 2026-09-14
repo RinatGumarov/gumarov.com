@@ -7,8 +7,7 @@ interface ContactProps {
   locale: Locale;
 }
 
-export function Contact(_props: ContactProps) {
-  const { content, locale } = _props;
+export function Contact({ content, locale }: ContactProps) {
   const captureContact = (channel: ContactChannel) => () => {
     trackAnalyticsEvent({
       name: 'contact_clicked',

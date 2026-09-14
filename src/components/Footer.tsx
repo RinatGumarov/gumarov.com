@@ -1,6 +1,6 @@
 import type { Contact, Locale } from '../content';
 import { trackAnalyticsEvent, type ContactChannel } from '../lib/analytics';
-import { setPreferredLocale } from '../lib/locale';
+import { LocaleLinks } from './LocaleLinks';
 import styles from './Footer.module.css';
 
 interface FooterProps {
@@ -9,28 +9,8 @@ interface FooterProps {
   privacy: string;
 }
 
-export function Footer(_props: FooterProps) {
-  const { locale, contact, privacy } = _props;
+export function Footer({ locale, contact, privacy }: FooterProps) {
   const year = new Date().getUTCFullYear();
-  const localeLabel = locale === 'ru' ? 'Выбор языка' : 'Language selection';
-
-  const activateLocale =
-    (nextLocale: Locale) => (event: React.MouseEvent<HTMLAnchorElement>) => {
-      if (nextLocale !== locale) {
-        trackAnalyticsEvent({
-          name: 'language_changed',
-          properties: { from: locale, to: nextLocale },
-        });
-      }
-      setPreferredLocale(nextLocale);
-
-      if (window.location.hash) {
-        event.currentTarget.setAttribute(
-          'href',
-          `/${nextLocale}/${window.location.hash}`,
-        );
-      }
-    };
   const captureContact = (channel: ContactChannel) => () => {
     trackAnalyticsEvent({
       name: 'contact_clicked',
@@ -66,27 +46,7 @@ export function Footer(_props: FooterProps) {
           </a>
         </address>
 
-        <nav className={styles.locales} aria-label={localeLabel}>
-          <a
-            href="/en/"
-            hrefLang="en"
-            lang="en"
-            aria-current={locale === 'en' ? 'page' : undefined}
-            onClick={activateLocale('en')}
-          >
-            English
-          </a>
-          <span aria-hidden="true">/</span>
-          <a
-            href="/ru/"
-            hrefLang="ru"
-            lang="ru"
-            aria-current={locale === 'ru' ? 'page' : undefined}
-            onClick={activateLocale('ru')}
-          >
-            Русский
-          </a>
-        </nav>
+        <LocaleLinks locale={locale} className={styles.locales} />
 
         <p className={styles.privacy}>{privacy}</p>
       </div>
