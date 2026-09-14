@@ -15,10 +15,7 @@ export type AnalyticsEvent =
         referrer: ReferrerCategory;
       };
     }
-  | {
-      name: 'language_changed';
-      properties: { from: Locale; to: Locale };
-    }
+  | { name: 'language_changed'; properties: { from: Locale; to: Locale } }
   | {
       name: 'project_viewed';
       properties: { slug: ProjectSlug; locale: Locale };
@@ -32,88 +29,48 @@ export type AnalyticsEvent =
       };
     };
 
-type AnalyticsProperties = AnalyticsEvent['properties'];
-type ProviderEvent = {
+interface ProviderEvent {
   event: string;
   properties?: Record<string, unknown>;
   [key: string]: unknown;
-};
-
-export interface PostHogConfig {
-  api_host: string;
-  person_profiles: 'identified_only';
-  autocapture: false;
-  capture_pageview: false;
-  capture_pageleave: false;
-  disable_session_recording: true;
-  capture_heatmaps: false;
-  enable_heatmaps: false;
-  disable_surveys: true;
-  disable_surveys_automatic_display: true;
-  advanced_disable_feature_flags: true;
-  advanced_disable_feature_flags_on_first_load: true;
-  capture_exceptions: false;
-  capture_performance: false;
-  enable_recording_console_log: false;
-  logs: { captureConsoleLogs: false };
-  capture_dead_clicks: false;
-  rageclick: false;
-  disable_product_tours: true;
-  disable_persistence: true;
-  save_referrer: false;
-  disable_capture_url_hashes: true;
-  respect_dnt: true;
-  request_batching: false;
-  get_current_url: () => string;
-  before_send: (event: ProviderEvent) => ProviderEvent | null;
-}
-
-export interface PostHogCaptureOptions {
-  transport: 'sendBeacon';
 }
 
 export interface PostHogProvider {
-  init(key: string, config: PostHogConfig): PostHogProvider | void;
+  init(
+    key: string,
+    config: ReturnType<typeof createPostHogConfig>,
+  ): PostHogProvider | void;
   capture(
     name: AnalyticsEvent['name'],
-    properties: AnalyticsProperties,
-    options: PostHogCaptureOptions,
+    properties: AnalyticsEvent['properties'],
+    options: { transport: 'sendBeacon' },
   ): void;
 }
 
 export interface AnalyticsAdapter {
-  capture(event: unknown): boolean;
-}
-
-interface AnalyticsAdapterOptions {
-  key?: string;
-  host?: string;
-  loadProvider?: () => Promise<PostHogProvider>;
-  doNotTrack?: boolean;
-  currentUrl?: string;
-}
-
-interface LandingRuntime {
-  requestIdleCallback?: (callback: () => void) => number;
-  setTimeout: (callback: () => void, delay: number) => number;
-  viewportWidth: () => number;
-  referrer: () => string;
+  capture(event: AnalyticsEvent): void;
 }
 
 const euPostHogHost = 'https://eu.i.posthog.com';
-const locales = ['en', 'ru'] as const;
-const viewportClasses = ['mobile', 'tablet', 'desktop'] as const;
-const referrerCategories = [
-  'instagram',
-  'search',
-  'social',
-  'direct',
-  'other',
-] as const;
-const projectSlugs = ['tradingview', 'stoic', 'splithub', 'evercity'] as const;
-const contactChannels = ['telegram', 'email'] as const;
-const contactSections = ['hero', 'contact', 'footer'] as const;
-const safeProviderProperties = [
+
+/**
+ * The privacy contract: the only properties allowed to leave the browser.
+ * `before_send` rebuilds every outgoing event from this list, so a property the
+ * SDK starts adding — or one added to an event by mistake — is dropped rather
+ * than sent. `tests/e2e/analytics.spec.ts` decodes the real payloads and holds
+ * them to the same list.
+ */
+const allowedEventProperties: Record<
+  AnalyticsEvent['name'],
+  readonly string[]
+> = {
+  landing_viewed: ['locale', 'viewport', 'referrer'],
+  language_changed: ['from', 'to'],
+  project_viewed: ['slug', 'locale'],
+  contact_clicked: ['channel', 'section', 'locale'],
+};
+
+const allowedProviderProperties = [
   'token',
   '$lib',
   '$lib_version',
@@ -131,21 +88,23 @@ const safeProviderProperties = [
 // Language and contact events fire while the browser is already leaving the
 // page, which cancels an in-flight request. A beacon is the only transport the
 // browser still delivers after the document unloads.
-const navigationSafeTransport: PostHogCaptureOptions = {
-  transport: 'sendBeacon',
-};
+const navigationSafeTransport = { transport: 'sendBeacon' } as const;
 
 export function createAnalyticsAdapter({
   key,
   host,
   loadProvider = loadPostHog,
-  doNotTrack = browserDoNotTrack(),
-  currentUrl = browserLocation(),
-}: AnalyticsAdapterOptions): AnalyticsAdapter {
+}: {
+  key?: string;
+  host?: string;
+  loadProvider?: () => Promise<PostHogProvider>;
+}): AnalyticsAdapter {
   const normalizedKey = key?.trim();
   const normalizedHost = normalizeHost(host);
   const enabled =
-    Boolean(normalizedKey) && normalizedHost === euPostHogHost && !doNotTrack;
+    Boolean(normalizedKey) &&
+    normalizedHost === euPostHogHost &&
+    !browserDoNotTrack();
   let providerPromise: Promise<PostHogProvider | null> | undefined;
 
   const getProvider = () => {
@@ -153,7 +112,7 @@ export function createAnalyticsAdapter({
       .then((provider) => {
         const initialized = provider.init(
           normalizedKey ?? '',
-          createPostHogConfig(normalizedHost, currentUrl),
+          createPostHogConfig(normalizedHost, browserLocation()),
         );
         return initialized ?? provider;
       })
@@ -163,18 +122,15 @@ export function createAnalyticsAdapter({
   };
 
   return {
-    capture(event: unknown) {
-      if (!isAnalyticsEvent(event)) return false;
-      if (!enabled) return true;
+    capture(event) {
+      if (!enabled) return;
 
-      const payload = cloneEvent(event);
       void getProvider()
         .then((provider) => {
-          if (!provider) return;
           try {
-            provider.capture(
-              payload.name,
-              payload.properties,
+            provider?.capture(
+              event.name,
+              event.properties,
               navigationSafeTransport,
             );
           } catch {
@@ -182,16 +138,11 @@ export function createAnalyticsAdapter({
           }
         })
         .catch(() => undefined);
-
-      return true;
     },
   };
 }
 
-export function createPostHogConfig(
-  host: string,
-  currentUrl: string,
-): PostHogConfig {
+export function createPostHogConfig(host: string, currentUrl: string) {
   const safeCurrentUrl = sanitizeLocation(currentUrl);
 
   return {
@@ -226,10 +177,12 @@ export function createPostHogConfig(
     respect_dnt: true,
     request_batching: false,
     get_current_url: () => safeCurrentUrl,
-    before_send: (event) => sanitizeProviderEvent(event, safeCurrentUrl),
-  };
+    before_send: (event: ProviderEvent) =>
+      sanitizeProviderEvent(event, safeCurrentUrl),
+  } as const;
 }
 
+/** Strips the query and the hash: a page URL, never what was typed into it. */
 export function sanitizeLocation(value: string): string {
   try {
     const url = new URL(value);
@@ -240,6 +193,7 @@ export function sanitizeLocation(value: string): string {
   }
 }
 
+/** A referrer becomes one of five buckets; the URL itself is never sent. */
 export function categorizeReferrer(value: string): ReferrerCategory {
   if (!value.trim()) return 'direct';
 
@@ -286,55 +240,18 @@ export function getViewportClass(width: number): ViewportClass {
   return 'desktop';
 }
 
-export function createLandingViewScheduler(
-  adapter: AnalyticsAdapter,
-  runtime: LandingRuntime,
-) {
-  let scheduled = false;
-
-  return (locale: Locale) => {
-    if (scheduled) return;
-    scheduled = true;
-    const capture = () => {
-      adapter.capture({
-        name: 'landing_viewed',
-        properties: {
-          locale,
-          viewport: getViewportClass(runtime.viewportWidth()),
-          referrer: categorizeReferrer(runtime.referrer()),
-        },
-      });
-    };
-
-    try {
-      if (runtime.requestIdleCallback) {
-        runtime.requestIdleCallback(capture);
-      } else {
-        runtime.setTimeout(capture, 1);
-      }
-    } catch {
-      // A broken scheduling API must not affect hydration or static content.
-    }
-  };
-}
-
 export function observeProjectViewOnce(
   element: Element,
   event: Extract<AnalyticsEvent, { name: 'project_viewed' }>,
   adapter: AnalyticsAdapter = browserAnalytics,
 ): () => void {
-  if (
-    typeof window === 'undefined' ||
-    typeof window.IntersectionObserver !== 'function'
-  ) {
+  if (typeof window.IntersectionObserver !== 'function') {
     return () => undefined;
   }
 
-  let captured = false;
   const observer = new window.IntersectionObserver(
     (entries) => {
       if (
-        captured ||
         !entries.some(
           (entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5,
         )
@@ -342,7 +259,6 @@ export function observeProjectViewOnce(
         return;
       }
 
-      captured = true;
       adapter.capture(event);
       observer.disconnect();
     },
@@ -358,19 +274,6 @@ const browserAnalytics = createAnalyticsAdapter({
   host: import.meta.env.VITE_POSTHOG_HOST,
 });
 
-const scheduleBrowserLandingView = createLandingViewScheduler(
-  browserAnalytics,
-  {
-    requestIdleCallback:
-      typeof window === 'undefined'
-        ? undefined
-        : window.requestIdleCallback?.bind(window),
-    setTimeout: (callback, delay) => window.setTimeout(callback, delay),
-    viewportWidth: () => window.innerWidth,
-    referrer: () => document.referrer,
-  },
-);
-
 export function trackAnalyticsEvent(event: AnalyticsEvent): void {
   try {
     browserAnalytics.capture(event);
@@ -379,9 +282,29 @@ export function trackAnalyticsEvent(event: AnalyticsEvent): void {
   }
 }
 
+let landingViewScheduled = false;
+
+/** Reported once per document, off the critical path. */
 export function scheduleLandingViewed(locale: Locale): void {
+  if (landingViewScheduled) return;
+  landingViewScheduled = true;
+
+  const capture = () =>
+    trackAnalyticsEvent({
+      name: 'landing_viewed',
+      properties: {
+        locale,
+        viewport: getViewportClass(window.innerWidth),
+        referrer: categorizeReferrer(document.referrer),
+      },
+    });
+
   try {
-    scheduleBrowserLandingView(locale);
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(capture, { timeout: 2000 });
+    } else {
+      window.setTimeout(capture, 1);
+    }
   } catch {
     // Keep hydration independent from analytics and scheduling APIs.
   }
@@ -391,115 +314,15 @@ function sanitizeProviderEvent(
   event: ProviderEvent,
   safeCurrentUrl: string,
 ): ProviderEvent | null {
-  const applicationProperties = pickApplicationProperties(
-    event.event,
-    event.properties,
-  );
-  if (!applicationProperties) return null;
+  const allowed = allowedEventProperties[event.event as AnalyticsEvent['name']];
+  if (!allowed || !event.properties) return null;
 
-  const providerProperties: Record<string, unknown> = {};
-  for (const property of safeProviderProperties) {
-    if (event.properties && property in event.properties) {
-      providerProperties[property] = event.properties[property];
-    }
+  const properties: Record<string, unknown> = { $current_url: safeCurrentUrl };
+  for (const key of [...allowed, ...allowedProviderProperties]) {
+    if (key in event.properties) properties[key] = event.properties[key];
   }
 
-  return {
-    event: event.event,
-    properties: {
-      ...applicationProperties,
-      $current_url: safeCurrentUrl,
-      ...providerProperties,
-    },
-  };
-}
-
-function pickApplicationProperties(
-  name: string,
-  properties: Record<string, unknown> | undefined,
-): AnalyticsProperties | null {
-  if (!properties) return null;
-
-  const keysByEvent: Record<AnalyticsEvent['name'], readonly string[]> = {
-    landing_viewed: ['locale', 'viewport', 'referrer'],
-    language_changed: ['from', 'to'],
-    project_viewed: ['slug', 'locale'],
-    contact_clicked: ['channel', 'section', 'locale'],
-  };
-  if (!(name in keysByEvent)) return null;
-
-  const eventName = name as AnalyticsEvent['name'];
-  const picked = Object.fromEntries(
-    keysByEvent[eventName].map((key) => [key, properties[key]]),
-  );
-  const candidate = { name: eventName, properties: picked };
-  return isAnalyticsEvent(candidate) ? candidate.properties : null;
-}
-
-function isAnalyticsEvent(value: unknown): value is AnalyticsEvent {
-  if (!isRecord(value) || typeof value.name !== 'string') return false;
-  if (!isRecord(value.properties)) return false;
-
-  switch (value.name) {
-    case 'landing_viewed':
-      return (
-        hasExactKeys(value.properties, ['locale', 'viewport', 'referrer']) &&
-        includes(locales, value.properties.locale) &&
-        includes(viewportClasses, value.properties.viewport) &&
-        includes(referrerCategories, value.properties.referrer)
-      );
-    case 'language_changed':
-      return (
-        hasExactKeys(value.properties, ['from', 'to']) &&
-        includes(locales, value.properties.from) &&
-        includes(locales, value.properties.to)
-      );
-    case 'project_viewed':
-      return (
-        hasExactKeys(value.properties, ['slug', 'locale']) &&
-        includes(projectSlugs, value.properties.slug) &&
-        includes(locales, value.properties.locale)
-      );
-    case 'contact_clicked':
-      return (
-        hasExactKeys(value.properties, ['channel', 'section', 'locale']) &&
-        includes(contactChannels, value.properties.channel) &&
-        includes(contactSections, value.properties.section) &&
-        includes(locales, value.properties.locale)
-      );
-    default:
-      return false;
-  }
-}
-
-function cloneEvent(event: AnalyticsEvent): AnalyticsEvent {
-  return {
-    ...event,
-    properties: { ...event.properties },
-  } as AnalyticsEvent;
-}
-
-function hasExactKeys(
-  value: Record<string, unknown>,
-  expected: readonly string[],
-): boolean {
-  const actual = Object.keys(value).sort();
-  const sortedExpected = [...expected].sort();
-  return (
-    actual.length === sortedExpected.length &&
-    actual.every((key, index) => key === sortedExpected[index])
-  );
-}
-
-function includes<T extends string>(
-  values: readonly T[],
-  value: unknown,
-): value is T {
-  return typeof value === 'string' && values.includes(value as T);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+  return { event: event.event, properties };
 }
 
 function matchesDomain(hostname: string, domains: readonly string[]): boolean {
@@ -513,8 +336,7 @@ function normalizeHost(host: string | undefined): string {
 }
 
 function browserDoNotTrack(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  return navigator.doNotTrack === '1';
+  return typeof navigator !== 'undefined' && navigator.doNotTrack === '1';
 }
 
 function browserLocation(): string {
