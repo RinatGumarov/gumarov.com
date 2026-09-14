@@ -24,6 +24,9 @@ module.exports = {
         'categories:seo': ['error', { minScore: 0.9 }],
         'largest-contentful-paint': ['error', { maxNumericValue: 2500 }],
         'cumulative-layout-shift': ['error', { maxNumericValue: 0.1 }],
+        // Page weight, measured as the browser actually transfers it.
+        'resource-summary:total:size': ['error', { maxNumericValue: 512000 }],
+        'resource-summary:script:size': ['error', { maxNumericValue: 160000 }],
       },
     },
     upload: {
