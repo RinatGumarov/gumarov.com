@@ -6,19 +6,10 @@ interface PerformanceLabProps {
 }
 
 /**
- * The Frontend Performance Lab block, which replaces the old three
- * engineering cards.
- *
- * It is a set of links and nothing else. The lab itself is a separate
- * open-source application with its own deploy: this page neither embeds it in
- * an iframe nor imports its bundle nor mirrors its controls, so a visitor who
- * wants to compare Baseline and Optimized goes to the real demo, where the
- * real switches are. That keeps the portfolio's own weight unchanged and means
- * an outage over there cannot break anything here.
- *
- * Both links leave the site, so both carry `rel="noopener noreferrer"` and an
- * accessible new-tab notice; neither is instrumented, because opening a demo is
- * not a contact.
+ * Links out to the Performance Lab, and nothing more: it is a separate
+ * deployed application, so nothing here embeds it, bundles it or mirrors its
+ * controls. The portfolio's weight is unchanged and an outage over there
+ * cannot break anything here.
  */
 export function PerformanceLab({ content }: PerformanceLabProps) {
   return (

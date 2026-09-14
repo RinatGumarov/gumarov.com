@@ -1,27 +1,18 @@
 /*
- * The metric-adjusted fallback, declared here rather than in `faces.css`.
+ * The metric-adjusted fallback for Onest, inlined with the critical CSS.
  *
- * `faces.css` is deferred, so until it lands the page paints in the raw system
- * stack — and that stack is whatever the visitor's OS provides. On macOS it is
- * close enough to Onest that nothing moves; on Windows and Linux it is wider,
- * and the h1 took an extra line until Onest arrived and pulled the whole page
- * up by about 66px. That jump lands while the visitor is already reading.
+ * `faces.css` is deferred, so the first paint uses whatever the OS provides.
+ * On Windows and Linux that is wider than Onest, the h1 took an extra line,
+ * and Onest arriving pulled the page up ~66px under someone already reading.
+ * These faces download nothing — `local()` sources only — they just scale an
+ * installed font to Onest's box (97% ascent / 30% descent, divided by each
+ * bucket's `size-adjust`). The weight split exists because a face declaring
+ * itself bold gets no synthesis: `local('Arial')` resolves to Arial Regular
+ * at heading weights and runs ~8% narrow.
  *
- * Both faces below download nothing: their sources are `local()` only, so this
- * costs no request and no bytes on the critical path. It only tells the browser
- * to scale a font it already has to Onest's measurements, which is what makes
- * the first frame agree with the last one about how many lines the heading
- * takes. A visitor with none of the named faces installed falls through to the
- * system stack exactly as before.
- *
- * The numbers are Onest's own box (97% ascent / 30% descent) divided by each
- * bucket's `size-adjust`, and the weight split exists because the browser will
- * not synthesise bold for a face that declares itself bold — at heading weights
- * `local('Arial')` resolves to Arial Regular and runs ~8% narrow.
- *
- * This is best effort, not a guarantee: a machine with none of the named faces
- * installed gets the raw system stack and may still reflow when Onest lands.
- * Re-measure against the shipped Onest file if these are ever changed.
+ * Best effort, not a guarantee: a machine with none of these installed still
+ * falls through to the system stack. Re-measure against the shipped Onest file
+ * if the numbers change.
  */
 @font-face {
   font-family: 'Onest Fallback';
@@ -100,12 +91,8 @@
   /* Desktop max width of the content column: 1280px. */
   --content-wide: 80rem;
 
-  /*
-   * Grid gutters, column gap and intersection spacing from the redesign's
-   * grid. Values are stepped at the
-   * breakpoints (768px, 1200px) rather than fluid, so they land on exact
-   * pixel values instead of interpolating between them.
-   */
+  /* Stepped at 768px and 1200px rather than fluid, so they land on exact
+   * pixel values instead of interpolating between them. */
   --page-gutter: 20px;
   --grid-gap: 16px;
   --section-spacing: 64px;
@@ -127,7 +114,7 @@
   }
 }
 
-/* The grid contract calls out 320px specifically: gutters drop to 16px there. */
+/* 320px is the narrowest supported width; the gutter drops with it. */
 @media (max-width: 20em) {
   :root {
     --page-gutter: 16px;

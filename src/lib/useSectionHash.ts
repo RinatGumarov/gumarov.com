@@ -1,13 +1,12 @@
 import { useEffect } from 'react';
 
 /**
- * Keeps the address bar pointing at the section actually in view.
+ * Keeps the address bar pointing at the section actually in view: a clicked
+ * nav anchor otherwise stayed in the URL forever, so reloading or switching
+ * language jumped back to a section long since scrolled past.
  *
- * A clicked nav anchor otherwise stayed in the URL forever, so reloading or
- * switching language jumped the visitor back to a section they had long
- * scrolled past. The hash is a convenience: when the browser lacks either
- * IntersectionObserver or `history.replaceState`, nothing happens and every
- * anchor keeps working as a plain link.
+ * A convenience only — without `IntersectionObserver` or `replaceState`
+ * nothing happens and every anchor still works as a plain link.
  */
 export function useSectionHash(sectionIds: readonly string[]): void {
   const key = sectionIds.join(',');

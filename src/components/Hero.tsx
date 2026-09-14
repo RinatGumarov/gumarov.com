@@ -18,11 +18,7 @@ const portraitSizes = '44px';
 
 interface HeroProps {
   content: LandingContent['hero'];
-  /**
-   * The boolean from the application's single `useMotionEnhancementGate()`.
-   * The hero never runs a gate of its own — there is exactly one
-   * root-mutating gate on the page, and it lives in `App`.
-   */
+  /** From the application's one `useMotionEnhancementGate()`, never re-derived. */
   motionEnabled: boolean;
 }
 
@@ -33,11 +29,9 @@ export function Hero({ content, motionEnabled }: HeroProps) {
   const portraitRef = useRef<HTMLImageElement>(null);
 
   /*
-   * The avatar is eager and above the fold, so on a prerendered page it can
-   * finish — or fail — before React hydrates, and an `error` that has already
-   * fired never reaches the handler below. Without this the frame keeps a
-   * broken-image glyph instead of falling back to its empty ground. Read once
-   * on mount: `complete` with no intrinsic width is exactly "this one failed".
+   * The avatar is eager and above the fold, so it can fail before React
+   * hydrates and that `error` never reaches the handler below. `complete` with
+   * no intrinsic width is exactly "this one already failed".
    */
   useEffect(() => {
     const image = portraitRef.current;
@@ -60,15 +54,9 @@ export function Hero({ content, motionEnabled }: HeroProps) {
       aria-labelledby="hero-heading"
     >
       {/*
-       * The optical ribbon. Purely decorative: hidden from assistive
-       * technology, transparent to pointer events, and painted behind the copy,
-       * so the heading, the paragraph and both calls to action stay exactly
-       * where they are and stay clickable.
-       *
-       * The SVG is the composition. The canvas over it is an enhancement that
-       * may never arrive — it is only mounted into once a fine pointer has
-       * moved inside a visible hero and WebGL has answered — and the two
-       * crossfade, so there is no moment where the hero has no object in it.
+       * The SVG is the composition; the canvas over it is an enhancement that
+       * may never arrive. Both are decorative: hidden from assistive
+       * technology, transparent to pointer events, painted behind the copy.
        */}
       <div
         className={styles.decor}

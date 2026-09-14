@@ -8,7 +8,7 @@ import sharp from 'sharp';
 const execFileAsync = promisify(execFile);
 
 const portraitWidths = [480, 768, 1024];
-const portraitFormats = [
+const imageFormats = [
   {
     name: 'avif',
     extension: 'avif',
@@ -43,7 +43,7 @@ export async function processPortrait({ inputPath, outputDirectory }) {
   for (const width of portraitWidths) {
     const height = Math.round(width * 1.25);
 
-    for (const format of portraitFormats) {
+    for (const format of imageFormats) {
       const fileName = `portrait-${width}.${format.extension}`;
       const outputPath = path.join(outputDirectory, fileName);
       const image = sharp(inputPath)
@@ -122,7 +122,7 @@ export async function processPersonalPhotos({
     for (const width of personalWidths) {
       const height = Math.round((width * 3) / 4);
 
-      for (const format of portraitFormats) {
+      for (const format of imageFormats) {
         const fileName = `${photo.slug}-${width}.${format.extension}`;
         const outputPath = path.join(outputDirectory, fileName);
         const image = sharp(inputPath)
@@ -152,9 +152,8 @@ const projectWidths = [640, 960, 1440];
 /**
  * Product screenshots for the work scenes. Each crop starts below the browser
  * chrome — row 310 of the 3024x1964 captures — so no tab bar, address bar or
- * bookmark strip reaches the site. Stoic starts lower still, because its
- * application header carries the signed-in account's address. Full source
- * width is kept and the height fixed at 2:1, so no interface is cut mid-word.
+ * bookmark strip reaches the site. Full source width is kept and the height
+ * fixed at 2:1, so no interface is cut mid-word.
  */
 export const projectScreenshots = [
   {
@@ -185,7 +184,7 @@ export async function processProjectScreenshots({
     for (const width of projectWidths) {
       const height = Math.round(width / 2);
 
-      for (const format of portraitFormats) {
+      for (const format of imageFormats) {
         const fileName = `${shot.slug}-${width}.${format.extension}`;
         const outputPath = path.join(outputDirectory, fileName);
         // Screenshots are flat UI, not photographs: keep them unmodulated so
@@ -210,18 +209,11 @@ export async function processProjectScreenshots({
 }
 
 /*
- * The Splithub app crop.
- *
- * Unlike every other derivative here, this one is cut from a derivative rather
- * than from an original capture: the project sources live outside the
- * repository, and the largest Splithub pixels available locally are the
- * 1440x720 JPEG this pipeline already produced. The rectangle below lifts the
- * phone and both of its floating notifications out of that composite so the
- * portfolio can show the application instead of another landing page.
- *
- * The consequence is a hard ceiling: 624px is the crop's native width and
- * nothing here upscales past it. If the original 3024px capture is ever added
- * to `assets-source/projects/`, re-cut this from it — run `--projects` first.
+ * The one derivative cut from another derivative: the Splithub source capture
+ * lives outside this repository, so the largest pixels available are the
+ * 1440x720 JPEG this pipeline already produced. That caps the crop at its
+ * native 624px — nothing here upscales. If the original 3024px capture is ever
+ * added to `assets-source/projects/`, re-cut this from it after `--projects`.
  */
 export const splithubAppCrop = {
   slug: 'splithub-app',
@@ -246,7 +238,7 @@ export async function processSplithubAppCrop({
       (width * descriptor.crop.height) / descriptor.crop.width,
     );
 
-    for (const format of portraitFormats) {
+    for (const format of imageFormats) {
       const fileName = `${descriptor.slug}-${width}.${format.extension}`;
       const outputPath = path.join(outputDirectory, fileName);
       // Flat interface pixels, like the other project captures: no modulate

@@ -19,12 +19,10 @@ export type { Locale } from './content';
 // The anchors the navigation and footer link to.
 const sectionIds = ['work', 'about', 'contact'] as const;
 
-/**
- * The About strip is three frames in one row on desktop and a 1 + 2 stack on
- * mobile, so a frame is at most half the strip's column and the strip is a bit
- * over half the section. The widths below follow that, and stop at the widest
- * any single frame is ever displayed — no frame pulls a desktop-sized raster to
- * fill a third of a phone screen.
+/*
+ * The About strip is three frames in a row on desktop and a 1 + 2 stack on
+ * mobile, so these stop at the widest any single frame is ever displayed. No
+ * frame pulls a desktop-sized raster to fill a third of a phone screen.
  */
 const stripPhotoSizes =
   '(min-width: 75em) 250px, (min-width: 54rem) 22vw, calc(50vw - 26px)';
@@ -72,15 +70,7 @@ function buildPersonalPhoto({
   };
 }
 
-/**
- * The three About frames, in render order: surf, snowboard, drift-front.
- *
- * The surf and drift-front sources carry wider derivatives than the shared
- * 480/768 pair, left over from the full-bleed composition this section
- * replaced. They are deliberately not offered here: at these display sizes the
- * browser would never pick them, and listing a 1920w candidate a layout can
- * never use is how a strip of thumbnails ends up downloading a wallpaper.
- */
+/** The three About frames, in render order: surf, snowboard, drift-front. */
 function buildPersonalMedia(
   content: ReturnType<typeof getContent>,
 ): PersonalPhotos {
@@ -109,8 +99,8 @@ function buildPersonalMedia(
 }
 
 export function App({ locale }: { locale: Locale }) {
-  // The page's single motion gate. Its answer is passed down rather than
-  // re-derived, so no component installs a second root-mutating gate.
+  // The page's one motion gate. Its answer is passed down rather than
+  // re-derived, so nothing else mutates the document root.
   const motionEnabled = useMotionEnhancementGate();
   useSectionHash(sectionIds);
   const content = getContent(locale);

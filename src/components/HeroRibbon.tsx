@@ -3,21 +3,14 @@ import { useId } from 'react';
 /**
  * The hero's optical ribbon, drawn as SVG.
  *
- * This is the composition the page ships with: it renders on the server, it is
- * what a visitor sees with JavaScript disabled, with reduced motion, on a
- * touch device and whenever WebGL is unavailable, and it is what the enhanced
- * layer fades in over. It therefore has to be finished on its own rather than a
- * placeholder — everything below is geometry and light, not a loading state.
+ * This is the composition the page ships with — server-rendered, and what a
+ * visitor sees without JavaScript, under reduced motion, on touch, and wherever
+ * WebGL is missing — so it has to be finished rather than a placeholder.
  *
- * The shape is generated from one centreline instead of hand-written path data.
- * A cubic Bézier gives the centre, an analytic tangent gives the normal at each
- * sample, and every other line in the drawing — both edges, the interior
- * strands, the lit rim — is the same centreline offset along that normal. They
- * cannot drift apart, and the interior strands genuinely follow the surface
- * rather than approximating it.
- *
- * Every node is decorative: the host marks the layer `aria-hidden` and takes no
- * pointer events (see `Hero.module.css`).
+ * The shape is generated from one centreline rather than hand-written path
+ * data: a cubic Bézier gives the centre, its analytic tangent gives the normal,
+ * and both edges, the nine interior strands and the lit rim are all that same
+ * centreline offset along that normal, so they cannot drift apart.
  */
 
 const viewBoxWidth = 740;
@@ -58,14 +51,9 @@ function cubicSlopeAt(t: number, a: number, b: number, c: number, d: number) {
 }
 
 /**
- * The ribbon's half-width along its length.
- *
- * Two things happen at once. The band narrows steadily as it rises, which is
- * simple perspective — the far end of a flat surface is smaller. And it pinches
- * hard around the middle, which is the twist: that is the point where the
- * surface turns nearly edge-on to the viewer before opening out again. Without
- * the pinch the shape is a tapering wedge; with it, the band has a front and a
- * back.
+ * The half-width along the ribbon's length: a steady narrowing as it rises
+ * (perspective) times a hard pinch near the middle (the twist, where the
+ * surface turns nearly edge-on). Without the pinch it is a tapering wedge.
  */
 function halfWidthAt(t: number) {
   const clamped = Math.min(1, Math.max(0, t));
@@ -148,19 +136,17 @@ const strands = strandOffsets.map((side) => offsetPath(side));
 /*
  * The lit edge's bloom, drawn as a stack of strokes rather than blurred.
  *
- * A `feGaussianBlur` is the obvious way to write this and the wrong one here.
+ * `feGaussianBlur` is the obvious way to write this and the wrong one here:
  * WebKit re-runs SVG filters in software whenever the filtered subtree is
- * re-rendered, and the stage is re-rendered on every frame of the pointer
- * response — so the two blurs in this drawing cost around 100ms a frame in
- * Safari and turned a 160ms ease into a visible stutter. Measured on the
- * shipped page: 130ms per frame with the filters, 17ms without them.
+ * re-rendered, and the stage re-renders on every frame of the pointer
+ * response. Measured on the shipped page: 130ms per frame with the filters,
+ * 17ms without.
  *
- * The bloom is therefore drawn directly. Each entry is one step of the blurred
- * stroke's cross-section: `width` in view-box units, `opacity` the increment
- * that composites onto the steps outside it, `a = (T - Tprev) / (1 - Tprev)`,
- * where `T` is the profile of the 9-unit stroke at 0.5 opacity this replaces,
- * blurred by sigma 7. Summed, the steps land on that Gaussian to within a
- * pixel value of 11 at the worst point and 0.15 on average.
+ * So each entry is one step of the blurred stroke's cross-section — `width` in
+ * view-box units, `opacity` the increment compositing onto the steps outside
+ * it, `a = (T - Tprev) / (1 - Tprev)` where `T` is the profile of the 9-unit
+ * stroke at 0.5 opacity, blurred by sigma 7. Summed, the steps land on that
+ * Gaussian within 11 pixel values at worst and 0.15 on average.
  */
 const bloomStack = [
   [46, 0.0024],
@@ -174,13 +160,10 @@ const bloomStack = [
 ] as const;
 
 /*
- * The ends. The band leaves the frame through the top and the bottom —
- * `ribbon-bounds` keeps it off the left and right edges entirely — and this is
- * what turns those two exits into distance instead of a crop line. It lives
- * inside the SVG rather than in CSS because the view box is letterboxed inside
- * its element: a CSS gradient would fade against the element's box and miss the
- * edge doing the actual clipping. Both layers carry their own copy, so neither
- * depends on the other being in the document.
+ * Fades the two ends the band leaves the frame through, so they read as
+ * distance instead of a crop line. It lives inside the SVG because the view box
+ * is letterboxed inside its element: a CSS gradient would fade against the
+ * element's box and miss the edge doing the actual clipping.
  */
 function EndMask({
   gradientId,
@@ -220,17 +203,14 @@ interface HeroRibbonProps {
   /** The drawing itself. */
   className?: string;
   /**
-   * The depth shadow, which is a layer of its own so that the one blur left in
-   * the composition is a CSS filter on an element the compositor can cache,
-   * rather than an SVG filter re-run per frame. Its radius is set there, in
-   * units of the layer's own box, so it tracks the drawing at every size.
+   * The depth shadow. A layer of its own so its blur can be a CSS filter the
+   * compositor caches, rather than an SVG filter re-run every frame.
    */
   shadowClassName?: string;
 }
 
 export function HeroRibbon({ className, shadowClassName }: HeroRibbonProps) {
-  // Several ids in one document would collide, so every gradient and mask
-  // reference is namespaced per instance.
+  // Several instances in one document would collide on gradient and mask ids.
   const scope = useId().replace(/:/gu, '');
   const id = (name: string) => `hero-ribbon-${name}-${scope}`;
 
@@ -245,17 +225,10 @@ export function HeroRibbon({ className, shadowClassName }: HeroRibbonProps) {
   return (
     <>
       {/*
-       * The ground the ribbon sits on: the ambient bloom, and the same surface
-       * pushed back and blurred. Not a second ribbon — one object, its own
-       * shadow.
-       *
-       * It is a layer of its own because the blur is a CSS filter: the
-       * compositor keeps the blurred result and re-uses it as the stage tilts,
-       * where the SVG filter it replaces was re-rendered from scratch on every
-       * pointer frame. The bloom comes along because it was painted under the
-       * shadow in the single drawing, and staying under it is what keeps the
-       * two reading as one object; the blur passes over it without a trace,
-       * since it is already a gradient far softer than 18 units.
+       * The ground the ribbon sits on: the ambient bloom and the same surface
+       * pushed back and blurred. One object with its own shadow, not a second
+       * ribbon. The bloom rides along because it was painted under the shadow
+       * in the single drawing, and the blur passes over it without a trace.
        */}
       <svg {...frame} className={shadowClassName} data-hero-ribbon="shadow">
         <defs>

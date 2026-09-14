@@ -15,13 +15,10 @@ interface ProjectSceneProps {
   screenshotCaption?: string;
 }
 
-/**
- * The screenshot geometry, per project rather than per variant.
- *
- * TradingView is a 2:1 desktop capture that runs the content width; Splithub is
- * a near-square crop of the app itself. They are displayed at different sizes
- * and in different shapes, so neither the `sizes` hint nor the intrinsic
- * dimensions can be shared.
+/*
+ * Per project, not per variant: TradingView is a 2:1 desktop capture running
+ * the content width, Splithub a near-square crop of the app, so neither the
+ * `sizes` hint nor the intrinsic dimensions can be shared.
  */
 const screenshots: Record<ScreenshotProjectSlug, ScreenshotGeometry> = {
   tradingview: {
@@ -60,12 +57,8 @@ export function ProjectScene({
   screenshotCaption,
 }: ProjectSceneProps) {
   const [screenshotFailed, setScreenshotFailed] = useState(false);
-  /*
-   * Text mode is declared on the project, not inferred from a missing
-   * screenshot. A scene in text mode renders no figure, no frame and no
-   * substitute graphic — the copy is the scene — so removing a capture removes
-   * a picture instead of swapping it for a decorative one.
-   */
+  // Text mode renders no figure and no substitute graphic: the copy is the
+  // scene. See `ProjectMedia`.
   const showsScreenshot =
     project.media === 'screenshot' &&
     Boolean(screenshotAlt) &&
@@ -95,12 +88,8 @@ export function ProjectScene({
 
   const shot = screenshots[project.slug as ScreenshotProjectSlug];
 
-  /*
-   * The capture sits on a neutral plate with real padding rather than running
-   * edge to edge: a bright interface dropped straight onto a near-black page
-   * reads as a pasted-in rectangle, and the inset is what makes it read as a
-   * framed exhibit instead.
-   */
+  // The capture sits inset on a neutral plate: a bright interface dropped
+  // straight onto a near-black page reads as a pasted-in rectangle.
   const visual = shot ? (
     <div
       ref={visualMotion.ref}
@@ -170,10 +159,8 @@ export function ProjectScene({
     </p>
   );
 
-  /**
-   * The named outbound link every scene carries, so the destination is a
-   * deliberate "Visit <product>" rather than only the title itself.
-   */
+  // Named outbound link, so the destination is a deliberate "Visit <product>"
+  // rather than only the title.
   const outboundLink = (
     <a
       className={styles.outboundLink}
@@ -186,11 +173,8 @@ export function ProjectScene({
     </a>
   );
 
-  /*
-   * A caption describes the capture, so both are dropped together: a scene
-   * whose image failed keeps its link and loses the caption, rather than
-   * captioning an empty box.
-   */
+  // A caption describes the capture, so both are dropped together rather than
+  // captioning an empty box.
   const figure = (figureClassName: string | undefined) =>
     showsScreenshot ? (
       <figure className={[styles.figure, figureClassName].join(' ')}>
@@ -256,11 +240,8 @@ export function ProjectScene({
     );
   }
 
-  /*
-   * Evercity: one compact row that closes the sequence. In text mode it is
-   * literally a row of text — name, one sentence of contribution, one link —
-   * with no column held open for a thumbnail that is not coming.
-   */
+  // The compact row that closes the sequence: name, one sentence, one link,
+  // and no column held open for a thumbnail that is not coming.
   if (variant === 'compact') {
     return (
       <article
@@ -282,12 +263,8 @@ export function ProjectScene({
     );
   }
 
-  /*
-   * Stoic (`major`) in text mode: the summary and the contribution set in two
-   * columns, sized by the type rather than by the screenshot that used to sit
-   * beside them. Splithub (`product`) keeps the visual-left, copy-right
-   * composition.
-   */
+  // A `major` scene in text mode sets summary and contribution in two columns
+  // sized by the type, rather than by a screenshot that is not there.
   if (variant === 'major' && project.media === 'text') {
     return (
       <article

@@ -66,22 +66,11 @@ section {
 }
 
 /*
- * Anchors: native scrolling, no scroll library, no scroll
- * hijacking, no mandatory scroll-snap. The row's optional half — `html {
- * scroll-behavior: smooth }` under `prefers-reduced-motion: no-preference` —
- * is deliberately NOT set, and this is the reason.
- *
- * `scroll-behavior` is not scoped to anchor clicks: it retimes every
- * programmatic scroll on the document. `useSectionHash` clears the address
- * bar's anchor whenever the top of the page comes back into view, which is
- * correct and is what `tests/e2e/section-hash.spec.ts` pins down. The language
- * switch lives in a header that does not stick, so reaching it means
- * travelling back to the top — and once that journey takes 300ms instead of
- * one frame, the anchor is gone before the switch is clicked and
- * `landing.spec.ts`'s "preserves the current hash when switching locales" no
- * longer holds. Turning this on is a product decision about either making the
- * header sticky or decoupling the language links from the live hash, and it is
- * not one to make from a stylesheet.
+ * `html { scroll-behavior: smooth }` is deliberately absent. It is not scoped
+ * to anchor clicks — it retimes every programmatic scroll — and the trip back
+ * up to the non-sticky header then outlasts `useSectionHash` clearing the
+ * anchor, so the language switch loses the section the visitor was reading.
+ * Landing it means making the header sticky first.
  */
 
 ::selection {
