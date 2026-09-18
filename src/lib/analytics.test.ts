@@ -4,6 +4,8 @@ import {
   createAnalyticsAdapter,
   createPostHogConfig,
   getViewportClass,
+  landingReferrer,
+  rootReferrerStorageKey,
   sanitizeLocation,
   type PostHogProvider,
 } from './analytics';
@@ -24,8 +26,17 @@ function setDoNotTrack(value: string | null) {
   });
 }
 
+function setReferrer(value: string) {
+  Object.defineProperty(document, 'referrer', {
+    configurable: true,
+    get: () => value,
+  });
+}
+
 afterEach(() => {
   setDoNotTrack(null);
+  setReferrer('');
+  window.sessionStorage.clear();
 });
 
 /*
@@ -166,5 +177,30 @@ describe('property derivation', () => {
     [1440, 'desktop'],
   ])('classifies a %ipx viewport', (width, expected) => {
     expect(getViewportClass(width)).toBe(expected);
+  });
+});
+
+describe('landing attribution', () => {
+  it('attributes a landing to the page it came from', () => {
+    setReferrer('https://t.me/RinatGumarov');
+
+    expect(landingReferrer()).toBe('https://t.me/RinatGumarov');
+  });
+
+  it('reports no landing for a page reached from the site itself', () => {
+    setReferrer(`${window.location.origin}/en/#work`);
+
+    expect(landingReferrer()).toBeNull();
+  });
+
+  it('uses the referrer handed over by the root redirect, once', () => {
+    setReferrer(`${window.location.origin}/`);
+    window.sessionStorage.setItem(
+      rootReferrerStorageKey,
+      'https://l.instagram.com',
+    );
+
+    expect(landingReferrer()).toBe('https://l.instagram.com');
+    expect(landingReferrer()).toBeNull();
   });
 });

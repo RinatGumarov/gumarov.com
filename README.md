@@ -76,7 +76,10 @@ photographs means capture times and GPS coordinates.
 
 **Analytics.** PostHog, EU region, cookieless and without persistence. Four
 event names with a fixed property set each, URLs stripped of query and hash,
-Do Not Track honoured before the provider is even loaded. `before_send`
+Do Not Track honoured before the provider is even loaded. A landing is an
+arrival: a page reached from the site itself (a language switch) sends none,
+and the root redirect hands the original referrer's origin to `/ru/` through
+`sessionStorage`, where it is read once and removed. `before_send`
 rebuilds every outgoing event from an allowlist, so anything the SDK attaches
 on its own is dropped; a Playwright test decodes the real ingestion payloads
 and fails if anything outside that list leaves the browser.

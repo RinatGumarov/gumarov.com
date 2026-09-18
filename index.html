@@ -29,6 +29,16 @@
         }
 
         if (locale === 'ru') {
+          // The redirect makes this page the referrer of /ru/, so the real
+          // one is handed over: see `rootReferrerStorageKey`.
+          try {
+            window.sessionStorage.setItem(
+              'landing-referrer',
+              document.referrer && new URL(document.referrer).origin,
+            );
+          } catch {
+            // Without it the redirected visit is not reported.
+          }
           window.location.replace(
             `/ru/${window.location.search}${window.location.hash}`,
           );

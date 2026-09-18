@@ -1,5 +1,11 @@
 import { gunzipSync } from 'node:zlib';
-import { expect, test, type Page, type Request } from '@playwright/test';
+import {
+  expect,
+  test,
+  type BrowserContext,
+  type Page,
+  type Request,
+} from '@playwright/test';
 
 const analyticsHost = 'https://eu.i.posthog.com';
 const analyticsKey = 'phc_playwright_public_transport_token';
@@ -38,24 +44,7 @@ test('blocked PostHog keeps the journey intact and sends only the privacy allowl
   page: workingPage,
   context,
 }) => {
-  await context.addInitScript(() => {
-    Object.defineProperty(navigator, 'webdriver', {
-      configurable: true,
-      get: () => false,
-    });
-    Object.defineProperty(navigator, 'userAgentData', {
-      configurable: true,
-      get: () => ({
-        brands: [
-          { brand: 'Chromium', version: '140' },
-          { brand: 'Google Chrome', version: '140' },
-          { brand: 'Not=A?Brand', version: '24' },
-        ],
-        mobile: false,
-        platform: 'macOS',
-      }),
-    });
-  });
+  await presentAsRealVisitor(context);
 
   const workingAnalytics = await installAnalyticsEndpoint(
     workingPage,
@@ -117,6 +106,128 @@ test('blocked PostHog keeps the journey intact and sends only the privacy allowl
   await blockedPage.close();
 });
 
+test('a language switch is reported once, not as a second landing', async ({
+  page,
+  context,
+}) => {
+  await presentAsRealVisitor(context);
+  const analytics = await installAnalyticsEndpoint(page, 'fulfill');
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/en/', { referer: 'https://l.instagram.com/' });
+  await expect
+    .poll(() => landings(analytics.events))
+    .toEqual([{ locale: 'en', referrer: 'instagram' }]);
+
+  await page.getByRole('banner').getByRole('link', { name: 'Русский' }).click();
+  await expect(page.locator('main')).toHaveAttribute('data-locale', 'ru');
+  await waitForLandingSchedule(page);
+  // Events leave in capture order, so once this one arrives a landing
+  // scheduled before it would already have been recorded.
+  await viewProject(page, analytics, 'tradingview', 'ru');
+
+  expect(landings(analytics.events)).toEqual([
+    { locale: 'en', referrer: 'instagram' },
+  ]);
+  expect(
+    analytics.events.filter((event) => event.event === 'language_changed'),
+  ).toHaveLength(1);
+});
+
+test.describe('from the root', () => {
+  test.use({ locale: 'ru-RU' });
+
+  test('a redirected Russian visitor keeps the original referrer', async ({
+    page,
+    context,
+  }) => {
+    await presentAsRealVisitor(context);
+    const analytics = await installAnalyticsEndpoint(page, 'fulfill');
+    await page.goto('/', {
+      referer: 'https://l.instagram.com/private/path?account=rinat',
+    });
+    await expect(page).toHaveURL(/\/ru\/$/u);
+
+    await expect
+      .poll(() => landings(analytics.events))
+      .toEqual([{ locale: 'ru', referrer: 'instagram' }]);
+    expect(
+      await page.evaluate(() => Object.keys(window.sessionStorage)),
+    ).toEqual([]);
+  });
+});
+
+async function presentAsRealVisitor(context: BrowserContext) {
+  await context.addInitScript(() => {
+    Object.defineProperty(navigator, 'webdriver', {
+      configurable: true,
+      get: () => false,
+    });
+    Object.defineProperty(navigator, 'userAgentData', {
+      configurable: true,
+      get: () => ({
+        brands: [
+          { brand: 'Chromium', version: '140' },
+          { brand: 'Google Chrome', version: '140' },
+          { brand: 'Not=A?Brand', version: '24' },
+        ],
+        mobile: false,
+        platform: 'macOS',
+      }),
+    });
+  });
+}
+
+function landings(events: CapturedEvent[]) {
+  return events
+    .filter((event) => event.event === 'landing_viewed')
+    .map(({ properties }) => ({
+      locale: properties.locale,
+      referrer: properties.referrer,
+    }));
+}
+
+/** Resolves after the landing's own idle callback, which was queued first. */
+async function waitForLandingSchedule(page: Page) {
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestIdleCallback(() => resolve(null), { timeout: 2000 }),
+      ),
+  );
+}
+
+async function viewProject(
+  page: Page,
+  analytics: Awaited<ReturnType<typeof installAnalyticsEndpoint>>,
+  slug: string,
+  locale: string,
+) {
+  const project = page.locator(`[data-project-slug="${slug}"]`);
+  await project.scrollIntoViewIfNeeded();
+  await expect
+    .poll(() =>
+      project.evaluate((element) => {
+        const bounds = element.getBoundingClientRect();
+        const visibleHeight = Math.max(
+          0,
+          Math.min(bounds.bottom, window.innerHeight) - Math.max(bounds.top, 0),
+        );
+        return visibleHeight / bounds.height;
+      }),
+    )
+    .toBeGreaterThanOrEqual(0.5);
+  await expect
+    .poll(() =>
+      analytics.events.some(
+        (event) =>
+          event.event === 'project_viewed' &&
+          event.properties.slug === slug &&
+          event.properties.locale === locale,
+      ),
+    )
+    .toBe(true);
+}
+
 async function installAnalyticsEndpoint(
   page: Page,
   response: 'fulfill' | 'abort',
@@ -167,29 +278,7 @@ async function exerciseJourney(
     )
     .toBe(true);
 
-  const firstProject = page.locator('[data-project-slug="tradingview"]');
-  await firstProject.scrollIntoViewIfNeeded();
-  await expect
-    .poll(() =>
-      firstProject.evaluate((element) => {
-        const bounds = element.getBoundingClientRect();
-        const visibleHeight = Math.max(
-          0,
-          Math.min(bounds.bottom, window.innerHeight) - Math.max(bounds.top, 0),
-        );
-        return visibleHeight / bounds.height;
-      }),
-    )
-    .toBeGreaterThanOrEqual(0.5);
-  await expect
-    .poll(() =>
-      analytics.events.some(
-        (event) =>
-          event.event === 'project_viewed' &&
-          event.properties.slug === 'tradingview',
-      ),
-    )
-    .toBe(true);
+  await viewProject(page, analytics, 'tradingview', 'en');
 
   const heroContact = page.locator('[data-hero="landing"] a[href="#contact"]');
   const contactCountBeforeHeroNavigation = analytics.events.filter(

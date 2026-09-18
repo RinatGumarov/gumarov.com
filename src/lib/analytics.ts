@@ -282,12 +282,32 @@ export function trackAnalyticsEvent(event: AnalyticsEvent): void {
   }
 }
 
+/**
+ * The root bootstrap in `index.html` sends Russian visitors on with
+ * `location.replace`, which makes the root page itself their referrer. It
+ * leaves the real referrer's origin here first; the landing reads it once.
+ */
+export const rootReferrerStorageKey = 'landing-referrer';
+
+/**
+ * The referrer a landing is attributed to, or `null` when the page was reached
+ * from the site itself: a language switch is reported as `language_changed`,
+ * not as a second arrival.
+ */
+export function landingReferrer(): string | null {
+  const referrer = takeSessionItem(rootReferrerStorageKey) ?? document.referrer;
+  return isSameOrigin(referrer) ? null : referrer;
+}
+
 let landingViewScheduled = false;
 
-/** Reported once per document, off the critical path. */
+/** Reported once per arrival, off the critical path. */
 export function scheduleLandingViewed(locale: Locale): void {
   if (landingViewScheduled) return;
   landingViewScheduled = true;
+
+  const referrer = landingReferrer();
+  if (referrer === null) return;
 
   const capture = () =>
     trackAnalyticsEvent({
@@ -295,7 +315,7 @@ export function scheduleLandingViewed(locale: Locale): void {
       properties: {
         locale,
         viewport: getViewportClass(window.innerWidth),
-        referrer: categorizeReferrer(document.referrer),
+        referrer: categorizeReferrer(referrer),
       },
     });
 
@@ -323,6 +343,24 @@ function sanitizeProviderEvent(
   }
 
   return { event: event.event, properties };
+}
+
+function takeSessionItem(key: string): string | null {
+  try {
+    const value = window.sessionStorage.getItem(key);
+    if (value !== null) window.sessionStorage.removeItem(key);
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+function isSameOrigin(value: string): boolean {
+  try {
+    return new URL(value).origin === window.location.origin;
+  } catch {
+    return false;
+  }
 }
 
 function matchesDomain(hostname: string, domains: readonly string[]): boolean {
