@@ -25,20 +25,16 @@
 .index {
   margin: 0 0 var(--space-4);
   color: var(--color-amber-300);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  font: var(--type-label);
+  letter-spacing: var(--tracking-label);
 }
 
 .copy h2 {
   max-inline-size: 12ch;
   margin: 0;
   color: var(--color-text-strong);
-  font-family: var(--font-display);
-  font-size: clamp(2.25rem, 4.2vw, 3.75rem);
-  font-weight: 650;
-  letter-spacing: -0.045em;
-  line-height: 0.98;
+  font: var(--type-section);
+  letter-spacing: var(--tracking-heading);
   overflow-wrap: break-word;
   text-wrap: balance;
 }
@@ -62,10 +58,8 @@
 
 .interests li {
   color: var(--color-text-subtle);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  font: var(--type-label);
+  letter-spacing: var(--tracking-label);
 }
 
 /*

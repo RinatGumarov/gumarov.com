@@ -67,6 +67,44 @@
   --text-xl: 1.375rem;
   --text-2xl: 1.75rem;
 
+  /*
+   * The heading voice, in three steps: display for the h1 and the closing
+   * invitation, section for every other h2, title for every project name and
+   * the one headline number. One weight and one tracking across all of them,
+   * so a new size never reads as a new typeface.
+   *
+   * The display size steps at the plan's own breakpoints (768px, 1200px)
+   * rather than running one fluid clamp across the whole range. Its mobile
+   * step is 8.6vw rather than 8.8vw: between the clamp's floor and its
+   * ceiling the heading's width is a fixed fraction of the column, so a font
+   * whose advance widths differ by a percent flips the whole band from one
+   * line to two at once. At 8.8vw the Russian first phrase sat 1% over the
+   * column in Onest and a hair under it in the first-paint system font, so
+   * every width from 409px to 636px reflowed by a line when Onest arrived.
+   * 8.6vw puts Onest under the column across that band with room to spare;
+   * measured, not felt. The desktop cap keeps the longest phrase in either
+   * locale on one line in the hero's copy column.
+   */
+  --text-title: clamp(1.75rem, 3.125vw, 2.5rem);
+  --text-section: clamp(2rem, 3.75vw, 3rem);
+  --text-display: clamp(2.25rem, 8.6vw, 3.5rem);
+  --leading-display: 1.06;
+  --type-display: 650 var(--text-display) / var(--leading-display)
+    var(--font-display);
+  --type-section: 650 var(--text-section) / 1.05 var(--font-display);
+  --type-title: 650 var(--text-title) / 1.05 var(--font-display);
+  --type-value: 650 var(--text-2xl) / 1.1 var(--font-display);
+  --tracking-heading: -0.045em;
+
+  /*
+   * The label voice: every eyebrow, index, tag and small link on the page is
+   * this one setting of the mono, so the page has one kind of label rather
+   * than six. Colour is the caller's — amber leads a block, subtle annotates
+   * one, muted marks navigation — and nothing else about a label varies.
+   */
+  --type-label: 700 var(--text-xs) / 1.5 var(--font-mono);
+  --tracking-label: 0.08em;
+
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -103,6 +141,8 @@
     --page-gutter: 32px;
     --grid-gap: 20px;
     --section-spacing: 80px;
+    --text-display: clamp(3rem, 6.2vw, 4.625rem);
+    --leading-display: 1.02;
   }
 }
 
@@ -111,6 +151,7 @@
     --page-gutter: 48px;
     --grid-gap: 24px;
     --section-spacing: 112px;
+    --text-display: clamp(3.5rem, 4.5vw, 4.75rem);
   }
 }
 

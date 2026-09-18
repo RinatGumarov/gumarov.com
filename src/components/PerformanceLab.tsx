@@ -19,19 +19,24 @@ export function PerformanceLab({ content }: PerformanceLabProps) {
       data-section="performance-lab"
     >
       <div className={styles.intro}>
-        <p className={styles.index} aria-hidden="true">
-          02 /
-        </p>
-        <p className={styles.eyebrow}>{content.eyebrow}</p>
-        <h2 className={styles.name} id="lab-heading">
-          {content.name}
-        </h2>
+        <div className={styles.kicker}>
+          <p className={styles.index} aria-hidden="true">
+            02 /
+          </p>
+          <h2 className={styles.name} id="lab-heading">
+            {content.name}
+          </h2>
+        </div>
         <p className={styles.thesis}>{content.thesis}</p>
       </div>
 
       <div className={styles.detail}>
         <p className={styles.description}>{content.description}</p>
         <p className={styles.note}>{content.note}</p>
+        <p className={styles.tags}>
+          <span aria-hidden="true">//</span>
+          {content.eyebrow}
+        </p>
         <div className={styles.actions}>
           <a
             className={styles.primaryAction}

@@ -1,6 +1,11 @@
+/*
+ * One accent for every scene, the page's own cyan. Each project used to carry
+ * a palette of its own — blue, teal, violet and coral, green and mint — and
+ * four palettes on one page read as four brands. A project's identity is in
+ * its capture; the chrome around it belongs to this site.
+ */
 .scene {
-  --project-accent: var(--color-blue-400);
-  --project-accent-secondary: var(--color-cyan-300);
+  --project-accent: var(--color-cyan-300);
   position: relative;
   min-inline-size: 0;
   /*
@@ -110,7 +115,7 @@
 }
 
 .outboundLink:hover {
-  color: var(--project-accent-secondary);
+  color: var(--color-cyan-200);
 }
 
 /* The CTA arrow: 3px over 160ms, on the glyph, never on the link box. */
@@ -165,21 +170,6 @@
   line-height: 1.6;
 }
 
-.scene[data-project-slug='stoic'] {
-  --project-accent: #48e2d0;
-  --project-accent-secondary: var(--color-cyan-300);
-}
-
-.scene[data-project-slug='splithub'] {
-  --project-accent: #9a7cff;
-  --project-accent-secondary: #ff806f;
-}
-
-.scene[data-project-slug='evercity'] {
-  --project-accent: #42d68d;
-  --project-accent-secondary: #82f0b6;
-}
-
 /*
  * Stoic is a text case: the summary carries the left column and the
  * contribution the right, with the measure set by the type rather than by the
@@ -203,19 +193,17 @@
 }
 
 /*
- * The product summary is the headline of a text case, so it is set at heading
- * scale instead of the body size a captioned scene uses.
+ * The product summary of a text case is set exactly like the summary of a
+ * captioned scene. It used to sit at a heading size of its own, which made
+ * the four project names the only headings on the page at four different
+ * sizes.
  */
 .textLead {
-  max-inline-size: 18ch;
+  max-inline-size: 34rem;
   margin: var(--space-7) 0 0;
-  color: var(--color-text-strong);
-  font-family: var(--font-display);
-  font-size: clamp(1.5rem, 2.4vw, 2.125rem);
-  font-weight: 640;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
-  text-wrap: balance;
+  color: var(--color-text-muted);
+  font-size: var(--text-lg);
+  line-height: 1.65;
 }
 
 .textDetail .contribution {
@@ -281,22 +269,20 @@
   border-block-end: none;
 }
 
+/* The one headline number sits at the title step, level with the name. */
 .productCopy .metrics dt {
-  font-size: clamp(2.25rem, 3.4vw, 3rem);
-  line-height: 1;
-  letter-spacing: -0.03em;
+  font: var(--type-title);
+  letter-spacing: var(--tracking-heading);
 }
 
 .availability {
   margin: 0;
   padding: var(--space-2) var(--space-4);
-  border: 1px solid color-mix(in srgb, var(--project-accent) 46%, transparent);
+  border: 1px solid var(--color-line-strong);
   border-radius: 999px;
   color: var(--color-text);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: var(--type-label);
+  letter-spacing: var(--tracking-label);
 }
 
 /*
@@ -343,11 +329,6 @@
   margin-block-end: var(--space-3);
 }
 
-.compactScene .title {
-  font-size: clamp(1.5rem, 2.2vw, 1.875rem);
-  line-height: 1.1;
-}
-
 .compactScene .contribution {
   max-inline-size: none;
   margin: 0;
@@ -362,27 +343,22 @@
 
 .eyebrow {
   margin: 0 0 var(--space-6);
-  color: var(--project-accent-secondary);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  line-height: 1.5;
-  text-transform: uppercase;
+  color: var(--color-amber-300);
+  font: var(--type-label);
+  letter-spacing: var(--tracking-label);
 }
 
+/*
+ * Every project name is the title step of the scale, whatever its scene. The
+ * lead used to be half again the size of the side-by-side scenes and the
+ * compact row half their size, so the section's own hierarchy — one section
+ * heading over four equal names — was carried by the names' sizes instead.
+ */
 .title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(2.6rem, 5.8vw, 5.75rem);
-  font-weight: 640;
-  letter-spacing: -0.05em;
-  line-height: 0.95;
+  font: var(--type-title);
+  letter-spacing: var(--tracking-heading);
   overflow-wrap: break-word;
-}
-
-.textScene .title,
-.productScene .title {
-  font-size: clamp(2.25rem, 4vw, 3.5rem);
 }
 
 .title a {
@@ -402,7 +378,7 @@
 .title a span {
   color: var(--project-accent);
   font-size: 0.4em;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .title a:hover {
@@ -429,16 +405,14 @@
   max-inline-size: 38rem;
   margin: var(--space-7) 0 0;
   color: var(--color-text-subtle);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  line-height: 1.7;
-  text-transform: uppercase;
+  font: var(--type-label);
+  letter-spacing: var(--tracking-label);
 }
 
+/* The slash is the same mark as the section index, in the same amber. */
 .capabilities span {
   margin-inline-end: var(--space-3);
-  color: var(--project-accent);
+  color: var(--color-amber-300);
 }
 
 /*
@@ -556,10 +530,6 @@
 
   .textDetail {
     padding-block-start: 0;
-  }
-
-  .textLead {
-    max-inline-size: 24ch;
   }
 
   .productFigure {

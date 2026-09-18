@@ -6,8 +6,8 @@
 }
 
 /*
- * The section title is deliberately small (48px, flat — not a fluid clamp up
- * to 112px) with a tight 32px gap to the first project. A "Selected work"
+ * The section title is the section step of the scale, one step above the
+ * project names, with a tight 32px gap to the first project. A "Selected work"
  * screen that reads as its own full-height slide competes with TradingView
  * for being the lead of the section.
  */
@@ -21,20 +21,15 @@
 .header p {
   margin: 0;
   color: var(--color-amber-300);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font: var(--type-label);
+  letter-spacing: var(--tracking-label);
 }
 
 .header h2 {
   margin: 0;
   color: var(--color-text-strong);
-  font-family: var(--font-display);
-  font-size: 48px;
-  font-weight: 650;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
+  font: var(--type-section);
+  letter-spacing: var(--tracking-heading);
   overflow-wrap: break-word;
 }
 

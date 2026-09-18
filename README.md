@@ -69,6 +69,16 @@ the swap does not reflow the page under someone already reading. It is best
 effort, so a Playwright test covers what always holds instead: the Russian
 heading breaks no word and overflows no viewport, in both font states.
 
+**Type.** Two voices, both declared in `tokens.css`. Onest carries the
+headings and the text; the headings sit on three steps — display (the h1 and
+the closing invitation), section (every other h2), title (every project name)
+— with one weight and one tracking, so a new size never reads as a new face.
+IBM Plex Mono is the label voice: every eyebrow, index, tag and small link is
+the one `--type-label` setting, and only its colour varies — amber leads a
+block, subtle annotates one, muted marks navigation. The project scenes share
+the page's cyan; a project's identity is in its capture, not in an accent of
+its own.
+
 **Images.** `scripts/process-images.mjs` generates AVIF/WebP/JPEG derivatives at
 fixed widths from fixed crop rectangles — no gravity heuristics, so re-running
 cannot silently re-frame a photo — and strips all metadata, which for personal

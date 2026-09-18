@@ -1,7 +1,10 @@
 /*
  * A compact editorial band, not a fourth project scene and not a dashboard:
- * name and claim on the left, the explanation and the two links on the right.
- * It closes the work sequence, so it is deliberately shorter than any of the
+ * the index and the lab's name as one label row, then the claim, on the left;
+ * the explanation, the tags and the two links on the right. The claim is the
+ * block's headline — the number is what makes a visitor curious enough to open
+ * the demo — so the name stays a label rather than a second heading size. It
+ * closes the work sequence, so it is deliberately shorter than any of the
  * scenes above it.
  */
 .lab {
@@ -19,46 +22,29 @@
   min-inline-size: 0;
 }
 
-.index {
+/* The index and the name share one row, the way the projects header does. */
+.kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
   margin: 0 0 var(--space-4);
-  color: var(--color-amber-300);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.14em;
 }
 
-.eyebrow {
-  margin: 0 0 var(--space-4);
-  color: var(--color-cyan-300);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-}
-
+.index,
 .name {
   margin: 0;
-  color: var(--color-text-strong);
-  font-family: var(--font-display);
-  font-size: clamp(var(--text-xl), 2.1vw, var(--text-2xl));
-  font-weight: 700;
-  letter-spacing: -0.015em;
-  line-height: 1.15;
+  color: var(--color-amber-300);
+  font: var(--type-label);
+  letter-spacing: var(--tracking-label);
 }
 
-/*
- * The claim is the block's headline — larger than the lab's own name, because
- * the number is what makes a visitor curious enough to open the demo.
- */
 .thesis {
   max-inline-size: 16ch;
-  margin: var(--space-4) 0 0;
+  margin: 0;
   color: var(--color-text-strong);
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 3.6vw, 3.25rem);
-  font-weight: 650;
-  letter-spacing: -0.04em;
-  line-height: 1.04;
+  font: var(--type-section);
+  letter-spacing: var(--tracking-heading);
   text-wrap: balance;
 }
 
@@ -88,6 +74,19 @@
   line-height: 1.55;
 }
 
+/* What the lab is, set like a project's capabilities row. */
+.tags {
+  margin: var(--space-6) 0 0;
+  color: var(--color-text-subtle);
+  font: var(--type-label);
+  letter-spacing: var(--tracking-label);
+}
+
+.tags span {
+  margin-inline-end: var(--space-3);
+  color: var(--color-amber-300);
+}
+
 .actions {
   margin-block-start: var(--space-8);
   display: flex;
@@ -108,8 +107,7 @@
   color: var(--color-graphite-950);
   background: var(--color-text-strong);
   font-size: var(--text-sm);
-  font-weight: 750;
-  letter-spacing: 0.015em;
+  font-weight: 700;
   text-decoration: none;
 }
 
@@ -125,8 +123,7 @@
   padding-inline: var(--space-2);
   color: var(--color-text);
   font-size: var(--text-sm);
-  font-weight: 750;
-  letter-spacing: 0.015em;
+  font-weight: 700;
   text-decoration: underline;
   text-decoration-color: var(--color-line-strong);
   text-underline-offset: 0.28em;
