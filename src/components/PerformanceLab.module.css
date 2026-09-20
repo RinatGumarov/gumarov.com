@@ -34,7 +34,7 @@
 .index,
 .name {
   margin: 0;
-  color: var(--color-amber-300);
+  color: var(--color-text-muted);
   font: var(--type-label);
   letter-spacing: var(--tracking-label);
 }
@@ -84,7 +84,7 @@
 
 .tags span {
   margin-inline-end: var(--space-3);
-  color: var(--color-amber-300);
+  color: var(--color-text-subtle);
 }
 
 .actions {

@@ -21,7 +21,7 @@
 
 .index {
   margin: 0 0 var(--space-6);
-  color: var(--color-amber-300);
+  color: var(--color-text-muted);
   font: var(--type-label);
   letter-spacing: var(--tracking-label);
 }

@@ -24,7 +24,7 @@
 
 .index {
   margin: 0 0 var(--space-4);
-  color: var(--color-amber-300);
+  color: var(--color-text-muted);
   font: var(--type-label);
   letter-spacing: var(--tracking-label);
 }
@@ -100,7 +100,7 @@
   inset-block-start: 0;
   inset-inline: 0;
   block-size: 1px;
-  background: var(--color-amber-300);
+  background: var(--color-cyan-300);
   opacity: 0.28;
   pointer-events: none;
 }

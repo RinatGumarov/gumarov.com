@@ -343,7 +343,7 @@
 
 .eyebrow {
   margin: 0 0 var(--space-6);
-  color: var(--color-amber-300);
+  color: var(--color-text-muted);
   font: var(--type-label);
   letter-spacing: var(--tracking-label);
 }
@@ -409,10 +409,10 @@
   letter-spacing: var(--tracking-label);
 }
 
-/* The slash is the same mark as the section index, in the same amber. */
+/* The slash is a quiet separator, a step below the tags it introduces. */
 .capabilities span {
   margin-inline-end: var(--space-3);
-  color: var(--color-amber-300);
+  color: var(--color-text-subtle);
 }
 
 /*
