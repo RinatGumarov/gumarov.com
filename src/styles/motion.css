@@ -1,9 +1,24 @@
-@keyframes motion-hero-copy-enter {
+/*
+ * The heading, a word at a time: each word clears a blur and settles the last
+ * few pixels of a rise, a fraction of a second behind the one before it.
+ *
+ * The opacity starts at 0.35 rather than 0. Text at zero opacity has not been
+ * painted as far as the paint metrics are concerned, and this is the largest
+ * heading on the first screen: fading it up from nothing would move its own
+ * first paint to wherever the stagger happened to put each word. At 0.35 every
+ * word counts from the first frame, and the blur rather than the fade is what
+ * carries the arrival.
+ */
+@keyframes motion-hero-word {
   from {
-    transform: translate3d(0, 1.25rem, 0);
+    opacity: 0.35;
+    filter: blur(12px);
+    transform: translate3d(0, 8px, 0);
   }
 
   to {
+    opacity: 1;
+    filter: none;
     transform: none;
   }
 }
@@ -12,11 +27,13 @@
   from {
     opacity: 0;
     transform: translate3d(0, 1.75rem, 0);
+    filter: blur(var(--reveal-blur));
   }
 
   to {
     opacity: 1;
     transform: none;
+    filter: none;
   }
 }
 
@@ -51,21 +68,50 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  [data-motion-state='enabled'] [data-motion-hero] [data-motion-enter='copy'] {
-    animation: motion-hero-copy-enter 640ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  /*
+   * A word can only be moved and blurred if it has a box of its own, and only
+   * `inline-block` gives an inline run one. The rule is gated on
+   * `data-motion-state` together with the animation it exists for, so a
+   * document that never hydrates — or one that reports reduced motion — lays
+   * the heading out as the ordinary inline text it still is in the markup.
+   *
+   * The stagger is capped rather than open-ended: a heading with more words,
+   * or a translation with more of them, would otherwise make the last word
+   * wait proportionally longer, and the point is a heading that arrives, not
+   * one that is spelled out.
+   */
+  [data-motion-state='enabled'] [data-motion-hero] [data-motion-word] {
+    display: inline-block;
+    animation: motion-hero-word 640ms var(--ease-reveal)
+      min(calc(var(--word-index, 0) * 45ms), 400ms) backwards;
+  }
+
+  /*
+   * The paragraph and the two actions follow the heading in, as one step,
+   * after the first few words have landed. They are separate elements rather
+   * than one wrapper so that the heading — which sits between them — is left
+   * to its own animation.
+   */
+  [data-motion-state='enabled']
+    [data-motion-hero]
+    [data-motion-enter='subcopy'] {
+    animation: motion-scene-enter var(--dur-reveal) var(--ease-reveal) 240ms
+      backwards;
   }
 
   [data-motion-state='enabled']
     [data-motion-hero]
     [data-motion-enter='portrait'] {
-    animation: motion-hero-portrait-enter 760ms cubic-bezier(0.22, 1, 0.36, 1)
-      90ms both;
+    animation: motion-hero-portrait-enter var(--dur-reveal) var(--ease-reveal)
+      var(--reveal-stagger) backwards;
   }
 
   /*
-   * The hero row: the decor appears smoothly over 400ms once the page is
-   * ready, and the LCP text is never hidden before hydration. The drawing is
-   * the only thing this fades — it is `aria-hidden` decoration, it carries no
+   * The hero row: the decor appears smoothly over the page's one reveal
+   * duration once the page is ready, and no text is hidden before hydration —
+   * every rule in this block waits for `data-motion-state`, and the heading's
+   * own words start from an opacity the browser counts as painted. The drawing
+   * is the only thing this fades — it is `aria-hidden` decoration, it carries no
    * text, and it only ever animates opacity, so it cannot move the heading or
    * compete with the lens's own opacity transition on the layer inside it. The
    * rule is gated on `data-motion-state`, so a document that never hydrates —
@@ -73,7 +119,7 @@
    * immediately.
    */
   [data-motion-state='enabled'] [data-motion-hero] [data-motion-enter='decor'] {
-    animation: motion-scene-fade 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: motion-scene-fade var(--dur-reveal) var(--ease-reveal) both;
   }
 
   /*
@@ -160,7 +206,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   [data-motion-enter],
-  [data-motion-reveal] {
+  [data-motion-reveal],
+  [data-motion-word] {
     opacity: 1 !important;
     transform: none !important;
     filter: none !important;

@@ -41,15 +41,28 @@ async function loadedOnest(page: Page) {
   );
 }
 
-/** Every word that was rendered across more than one line box. */
-async function brokenWords(page: Page) {
+/**
+ * Every word the heading's measure could not hold on one line.
+ *
+ * A word misses in one of two ways, depending on how it is laid out. As
+ * ordinary inline text it breaks, and is rendered across two line boxes. Given
+ * a box of its own — which is what the entrance animation needs, and what the
+ * heading's words get once motion is enabled — it cannot break, so it hangs
+ * out of the heading's measure instead. Both are the same defect, the measure
+ * being narrower than the word, and both are reported here: measuring only the
+ * first would quietly stop testing anything the moment the words were wrapped.
+ */
+async function unfitWords(page: Page) {
   return page.evaluate(() => {
     const heading = document.querySelector('h1');
     if (!heading) {
       return ['<missing h1>'];
     }
 
-    const broken: string[] = [];
+    // The measure every word has to fit into. The heading has no padding, so
+    // its content box is the line box the words are laid into.
+    const measure = heading.clientWidth;
+    const unfit: string[] = [];
     const walker = document.createTreeWalker(heading, NodeFilter.SHOW_TEXT);
 
     for (
@@ -68,17 +81,19 @@ async function brokenWords(page: Page) {
         const range = document.createRange();
         range.setStart(node, match.index);
         range.setEnd(node, match.index + match[0].length);
-        const lineTops = new Set(
-          Array.from(range.getClientRects(), (rect) => Math.round(rect.top)),
-        );
-        if (lineTops.size > 1) {
-          broken.push(match[0]);
+        const rects = [...range.getClientRects()];
+        const lineTops = new Set(rects.map((rect) => Math.round(rect.top)));
+        const widest = Math.max(0, ...rects.map((rect) => rect.width));
+        // A pixel of tolerance: the rects are fractional and the measure is
+        // rounded, so an exactly-fitting word can read a hair over.
+        if (lineTops.size > 1 || widest > measure + 1) {
+          unfit.push(match[0]);
         }
         range.detach();
       }
     }
 
-    return broken;
+    return unfit;
   });
 }
 
@@ -137,12 +152,13 @@ for (const locale of locales) {
           expect(await loadedOnest(page)).toBe(false);
         }
 
-        // A word rendered across more than one line box was broken mid-word.
-        // Russian headline words are long enough to trigger this whenever the
-        // heading measure is narrower than the longest word.
+        // A word that does not fit the measure is either broken across two
+        // lines or hanging out of the column. Russian headline words are long
+        // enough to do one or the other whenever the heading measure is
+        // narrower than the longest word.
         expect(
-          await brokenWords(page),
-          `hero words broken mid-word in ${locale} (${fonts} fonts)`,
+          await unfitWords(page),
+          `hero words that do not fit the measure in ${locale} (${fonts} fonts)`,
         ).toEqual([]);
 
         expect(

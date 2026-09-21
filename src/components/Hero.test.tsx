@@ -30,6 +30,62 @@ it('presents the heading as two lines, with both calls to action', () => {
 });
 
 /*
+ * The heading arrives a word at a time, so every word is a box of its own in
+ * the served markup. To assistive technology that is noise, so the words are
+ * hidden and the h1 carries the whole phrase as its label; to everything else
+ * the text is unchanged — same order, same whitespace, still selectable.
+ */
+it('splits the heading into words without breaking up the phrase', () => {
+  renderHero();
+
+  const phrase = content.titleLines.join(' ');
+  const heading = screen.getByRole('heading', { level: 1, name: phrase });
+  expect(heading).toHaveAttribute('aria-label', phrase);
+
+  const words = [
+    ...heading.querySelectorAll<HTMLElement>('[data-motion-word]'),
+  ];
+  expect(words.map((word) => word.textContent)).toEqual(phrase.split(' '));
+  for (const [index, word] of words.entries()) {
+    expect(word).toHaveAttribute('aria-hidden', 'true');
+    expect(word.style.getPropertyValue('--word-index')).toBe(String(index));
+  }
+
+  // The whitespace never moves inside a word box: it stays between them as the
+  // text it always was, so the heading wraps exactly where it used to.
+  expect(heading.textContent).toBe(phrase);
+});
+
+/*
+ * A non-breaking space is not a break opportunity, so the pair it joins has to
+ * stay inside one box — splitting there would let the two halves land on
+ * different lines, which is the one thing the character exists to prevent.
+ */
+it('keeps a pair joined by a non-breaking space in a single word', () => {
+  render(
+    <Hero
+      content={{
+        ...content,
+        titleLines: ['Complex\u00a0interfaces.', 'Effortless interactions.'],
+      }}
+      motionEnabled={false}
+    />,
+  );
+
+  const words = [
+    ...screen
+      .getByRole('heading', { level: 1 })
+      .querySelectorAll('[data-motion-word]'),
+  ];
+
+  expect(words.map((word) => word.textContent)).toEqual([
+    'Complex\u00a0interfaces.',
+    'Effortless',
+    'interactions.',
+  ]);
+});
+
+/*
  * The SVG ribbon is the composition, not a placeholder: it is what a visitor
  * sees with JavaScript disabled, with reduced motion, on touch, and wherever
  * WebGL is missing. The canvas over it is the enhancement and starts empty.

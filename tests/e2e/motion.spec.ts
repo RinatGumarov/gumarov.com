@@ -30,6 +30,14 @@ test('reduced motion presents final states while preserving focus and hover feed
   await expect(projectLayer).toHaveCSS('filter', 'none');
   await expect(stickyCopy).toHaveCSS('position', 'static');
 
+  // The heading's words are boxes only so that the arrival can be staggered.
+  // Without the arrival they are inline text again, laid out exactly as the
+  // unsplit heading was.
+  const headingWord = page.locator('h1 [data-motion-word]').first();
+  await expect(headingWord).toHaveCSS('animation-name', 'none');
+  await expect(headingWord).toHaveCSS('filter', 'none');
+  await expect(headingWord).toHaveCSS('display', 'inline');
+
   const primaryAction = page.getByRole('link', { name: 'View selected work' });
   const restingBackground = await primaryAction.evaluate(
     (element) => getComputedStyle(element).backgroundColor,
@@ -75,6 +83,52 @@ test('a scene that has finished revealing carries no filter, transform or layer'
     await expect(layer).toHaveCSS('transform', 'none');
     await expect(layer).toHaveCSS('opacity', '1');
     await expect(layer).toHaveCSS('will-change', 'auto');
+  }
+});
+
+// The heading is the page's largest text and it arrives one word at a time, so
+// it is the place where a layer left behind would be most visible: the whole
+// point of the split is that afterwards it is ordinary heading text again.
+test('a hero heading that has finished arriving carries no filter, transform or layer', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/en/');
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-motion-state',
+    'enabled',
+  );
+
+  const heading = page.getByRole('heading', { level: 1 });
+  const words = heading.locator('[data-motion-word]');
+  await expect(words.first()).toBeVisible();
+  expect(await words.count()).toBeGreaterThan(1);
+
+  // Each word waits a step longer than the one before it, and however many
+  // words a translation has, none of them waits longer than the cap.
+  const delays = await words.evaluateAll((elements) =>
+    elements.map((element) =>
+      Number.parseFloat(getComputedStyle(element).animationDelay),
+    ),
+  );
+  const [firstDelay = -1, secondDelay = -1] = delays;
+  expect(firstDelay).toBe(0);
+  expect(secondDelay).toBeGreaterThan(0);
+  expect(Math.max(...delays)).toBeLessThanOrEqual(0.4);
+
+  await heading.evaluate(async (element) => {
+    await Promise.all(
+      element
+        .getAnimations({ subtree: true })
+        .map((animation) => animation.finished.catch(() => undefined)),
+    );
+  });
+
+  for (const word of await words.all()) {
+    await expect(word).toHaveCSS('filter', 'none');
+    await expect(word).toHaveCSS('transform', 'none');
+    await expect(word).toHaveCSS('opacity', '1');
+    await expect(word).toHaveCSS('will-change', 'auto');
   }
 });
 
