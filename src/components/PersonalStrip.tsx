@@ -34,7 +34,9 @@ interface PersonalStripProps {
 
 /** The About section: a short paragraph beside a compact three-frame strip. */
 export function PersonalStrip({ content, photos }: PersonalStripProps) {
-  const { observed, ref } = useViewedOnce<HTMLElement>();
+  // Three frames stack under the copy on a phone, which makes the strip taller
+  // than the screen it is read on.
+  const { observed, ref, scoped } = useViewedOnce<HTMLElement>({ tall: true });
   const stripMotion = usePointerParallax<HTMLDivElement>();
   const [failedPhotos, setFailedPhotos] = useState<readonly number[]>([]);
 
@@ -49,7 +51,7 @@ export function PersonalStrip({ content, photos }: PersonalStripProps) {
       id="about"
       className={styles.personal}
       aria-labelledby="personal-heading"
-      data-motion-personal="true"
+      data-motion-scope={scoped ? 'personal' : undefined}
       data-motion-viewed={observed ? 'true' : undefined}
     >
       <div className={styles.copy} data-motion-reveal="copy">

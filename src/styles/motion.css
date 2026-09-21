@@ -123,25 +123,47 @@
   }
 
   /*
-   * Hold a scene transparent until it is viewed. The enter animation starts
-   * from `opacity: 0`, so without this the scene rendered fully visible and
-   * then snapped to transparent the moment it crossed the observer threshold,
-   * which reads as a flicker while scrolling. Gated on `data-motion-state`, so
-   * nothing is ever hidden before motion support is confirmed.
+   * Hold a section's blocks transparent until it is viewed. The enter animation
+   * starts from `opacity: 0`, so without this a section rendered fully visible
+   * and then snapped to transparent the moment it crossed the observer
+   * threshold, which reads as a flicker while scrolling. Gated on
+   * `data-motion-state`, so nothing is ever hidden before motion support is
+   * confirmed; and a section drops `data-motion-scope` altogether when there is
+   * no observer to release it, so a browser without one is never left looking
+   * at a blank page either.
    */
   [data-motion-state='enabled']
-    [data-motion-project]:not([data-motion-viewed='true'])
-    [data-motion-reveal],
-  [data-motion-state='enabled']
-    [data-motion-personal]:not([data-motion-viewed='true'])
+    [data-motion-scope]:not([data-motion-viewed='true'])
     [data-motion-reveal] {
     opacity: 0;
   }
 
   /*
+   * Where a block sits in its section's order. Most of them say so inline, one
+   * number per block; a scene's visual is the exception the stylesheet knows
+   * about, because there is only ever one of them and it always follows the
+   * copy it belongs to by a single step.
+   */
+  [data-motion-reveal='visual'] {
+    --reveal-index: 1;
+  }
+
+  /*
+   * The facts under the hero are the one section already on screen when the
+   * page opens — measured at 390×844 and at 1440×1000, the top of the row is
+   * inside the first viewport at both — so they belong to the hero's arrival
+   * rather than to the scroll. They wait out the sub-copy's delay and one step
+   * more, which puts them after the last word of the heading instead of beside
+   * it.
+   */
+  [data-motion-scope='proof'] {
+    --reveal-lead: calc(240ms + var(--reveal-stagger));
+  }
+
+  /*
    * `backwards`, not `both`. A backwards fill covers the gap between the rule
-   * above releasing the scene and the animation's first frame — including the
-   * delay a staggered layer waits out — so nothing is ever painted at full
+   * above releasing the section and the animation's first frame — including the
+   * delay a staggered block waits out — so nothing is ever painted at full
    * strength for a frame before it starts. What it does not do is outlive the
    * run: the moment the reveal ends the element carries no filter and no
    * transform, its compositing layer goes away, and the text inside it is
@@ -152,22 +174,13 @@
    * is exactly when the browser arranges it anyway.
    */
   [data-motion-state='enabled']
-    [data-motion-project][data-motion-viewed='true']
-    [data-motion-reveal='copy'],
-  [data-motion-state='enabled']
-    [data-motion-personal][data-motion-viewed='true']
-    [data-motion-reveal='copy'] {
-    animation: motion-scene-enter var(--dur-reveal) var(--ease-reveal) backwards;
-  }
-
-  [data-motion-state='enabled']
-    [data-motion-project][data-motion-viewed='true']
-    [data-motion-reveal='visual'],
-  [data-motion-state='enabled']
-    [data-motion-personal][data-motion-viewed='true']
-    [data-motion-reveal='visual'] {
+    [data-motion-scope][data-motion-viewed='true']
+    [data-motion-reveal] {
     animation: motion-scene-enter var(--dur-reveal) var(--ease-reveal)
-      var(--reveal-stagger) backwards;
+      calc(
+        var(--reveal-lead, 0ms) + var(--reveal-index, 0) * var(--reveal-stagger)
+      )
+      backwards;
   }
 }
 
@@ -186,7 +199,7 @@
    * the blur either. Fade this one in without moving it.
    */
   [data-motion-state='enabled']
-    [data-motion-project][data-motion-viewed='true']
+    [data-motion-scope][data-motion-viewed='true']
     [data-motion-sticky][data-motion-reveal='copy'] {
     animation-name: motion-scene-fade;
   }

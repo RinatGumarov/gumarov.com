@@ -320,11 +320,12 @@
 /*
  * The display step of the type scale; its sizes, and the measurements behind
  * them, are in `tokens.css`. The family is `--font-display`, like every other
- * heading on the page, and this is the LCP element, so it is the reason the
- * Onest subset is preloaded with the document and declared in the inlined CSS:
- * the heading paints in its real face rather than changing typeface a second
- * later. `scripts/check-dist.mjs` holds that arrangement to exactly one small
- * preloaded font and nothing else on the critical path.
+ * heading on the page — and like the paragraph below it, which is the element
+ * the paint metrics actually report as the largest contentful paint. Both are
+ * why the Onest subset is preloaded with the document and declared in the
+ * inlined CSS: the first screen paints in its real face rather than changing
+ * typeface a second later. `scripts/check-dist.mjs` holds that arrangement to
+ * exactly one small preloaded font and nothing else on the critical path.
  */
 .title {
   max-inline-size: 1120px;

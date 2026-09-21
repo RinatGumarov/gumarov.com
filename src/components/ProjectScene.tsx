@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Locale, Project, ScreenshotProjectSlug } from '../content';
 import { observeProjectViewOnce } from '../lib/analytics';
-import { usePointerParallax } from '../lib/motion';
 import { useViewedOnce } from '../lib/useViewedOnce';
 import { ProofRow } from './ProofRow';
 import styles from './ProjectScene.module.css';
@@ -65,9 +64,17 @@ export function ProjectScene({
     !screenshotFailed;
   const headingId = `project-${project.slug}-heading`;
   const { variant } = project;
-  const { observed, ref: motionRef } = useViewedOnce<HTMLElement>();
+  /*
+   * A scene with a capture is taller than a phone screen, so it asks to be
+   * counted as viewed on a smaller fraction of itself; the text-only scenes are
+   * shorter than the screen and use the ordinary one.
+   */
+  const {
+    observed,
+    ref: motionRef,
+    scoped,
+  } = useViewedOnce<HTMLElement>({ tall: project.media === 'screenshot' });
   const analyticsRef = useRef<HTMLElement>(null);
-  const visualMotion = usePointerParallax<HTMLDivElement>();
   const setSceneRef = useCallback(
     (element: HTMLElement | null) => {
       motionRef.current = element;
@@ -92,14 +99,10 @@ export function ProjectScene({
   // straight onto a near-black page reads as a pasted-in rectangle.
   const visual = shot ? (
     <div
-      ref={visualMotion.ref}
       className={`${styles.visual} ${project.slug === 'splithub' ? styles.appVisual : styles.wideVisual}`}
       data-visual-kind="product-screenshot"
       data-image-state={screenshotFailed ? 'failed' : undefined}
-      data-motion-parallax="true"
       data-motion-reveal="visual"
-      onPointerMove={visualMotion.onPointerMove}
-      onPointerLeave={visualMotion.onPointerLeave}
     >
       <picture className={styles.screenshot}>
         <source
@@ -200,6 +203,7 @@ export function ProjectScene({
     'data-project-slug': project.slug,
     'data-project-media': project.media,
     'data-motion-project': 'true',
+    'data-motion-scope': scoped ? 'project' : undefined,
     'data-motion-viewed': observed ? 'true' : undefined,
     'aria-labelledby': headingId,
   } as const;

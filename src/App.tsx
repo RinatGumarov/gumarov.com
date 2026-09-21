@@ -112,7 +112,7 @@ export function App({ locale }: { locale: Locale }) {
       <main id="main-content" data-locale={locale} tabIndex={-1}>
         <Hero content={content.hero} motionEnabled={motionEnabled} />
 
-        <ProofRow points={content.hero.proofPoints} />
+        <ProofRow points={content.hero.proofPoints} reveals />
 
         <SelectedWork
           heading={content.projectsHeading}

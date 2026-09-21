@@ -86,6 +86,80 @@ test('a scene that has finished revealing carries no filter, transform or layer'
   }
 });
 
+// Every section below the hero holds its blocks back until it is scrolled to,
+// and then has to leave them exactly as the ordinary page would render them.
+test('every section below the hero reveals its blocks as it is scrolled to', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/en/');
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-motion-state',
+    'enabled',
+  );
+
+  const sections = ['lab', 'personal', 'contact'].map((name) =>
+    page.locator(`[data-motion-scope="${name}"]`),
+  );
+  // None of them is anywhere near the first screen, so all three start held
+  // back; they are released one at a time as the page is scrolled through.
+  for (const section of sections) {
+    await expect(section).toHaveCount(1);
+    await expect(section).not.toHaveAttribute('data-motion-viewed', 'true');
+  }
+
+  for (const section of sections) {
+    await section.scrollIntoViewIfNeeded();
+    await expect(section).toHaveAttribute('data-motion-viewed', 'true');
+
+    const blocks = section.locator('[data-motion-reveal]');
+    expect(await blocks.count()).toBeGreaterThan(1);
+    // Longer than the reveal plus its widest stagger step.
+    await page.waitForTimeout(900);
+    for (const block of await blocks.all()) {
+      await expect(block).toHaveCSS('filter', 'none');
+      await expect(block).toHaveCSS('transform', 'none');
+      await expect(block).toHaveCSS('opacity', '1');
+    }
+  }
+});
+
+// The facts under the hero are the one section already on screen when the page
+// opens. They belong to the hero's arrival rather than to the scroll: they
+// follow the sub-copy in, one after another, instead of appearing beside the
+// heading while it is still assembling itself.
+test('the facts under the hero arrive after the hero, without being scrolled to', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/en/');
+
+  const facts = page.locator(
+    '[data-motion-scope="proof"] [data-motion-reveal]',
+  );
+  await expect(page.locator('[data-motion-scope="proof"]')).toHaveAttribute(
+    'data-motion-viewed',
+    'true',
+  );
+
+  const subcopyDelay = await page
+    .locator('[data-motion-hero] [data-motion-enter="subcopy"]')
+    .first()
+    .evaluate((element) =>
+      Number.parseFloat(getComputedStyle(element).animationDelay),
+    );
+  const delays = await facts.evaluateAll((elements) =>
+    elements.map((element) =>
+      Number.parseFloat(getComputedStyle(element).animationDelay),
+    ),
+  );
+
+  expect(delays.length).toBeGreaterThan(1);
+  expect(delays[0]).toBeGreaterThan(subcopyDelay);
+  expect(delays[0]).toBeLessThanOrEqual(0.4);
+  expect(delays).toEqual([...delays].sort((first, second) => first - second));
+});
+
 // The heading is the page's largest text and it arrives one word at a time, so
 // it is the place where a layer left behind would be most visible: the whole
 // point of the split is that afterwards it is ordinary heading text again.
@@ -175,7 +249,6 @@ test('sustained pointer motion stays responsive under four-times CPU throttling'
   const stickyProject = page
     .locator('[data-motion-project]:has([data-motion-sticky])')
     .first();
-  const projectVisual = stickyProject.locator('[data-motion-parallax]');
   await stickyProject.scrollIntoViewIfNeeded();
 
   await expect(stickyProject).toBeVisible();
@@ -183,9 +256,16 @@ test('sustained pointer motion stays responsive under four-times CPU throttling'
     'position',
     'sticky',
   );
-  const bounds = await projectVisual.boundingBox();
-  if (!bounds) throw new Error('Project visual did not produce layout bounds');
-  const frameGaps = await projectVisual.evaluate(async (element) => {
+
+  // The film strip is the page's one pointer-driven layer, and the only place
+  // a pointer moves anything at all.
+  const filmStrip = page.locator('[data-motion-parallax]');
+  await expect(filmStrip).toHaveCount(1);
+  await filmStrip.scrollIntoViewIfNeeded();
+  await expect(filmStrip).toBeVisible();
+  const bounds = await filmStrip.boundingBox();
+  if (!bounds) throw new Error('The film strip did not produce layout bounds');
+  const frameGaps = await filmStrip.evaluate(async (element) => {
     const bounds = element.getBoundingClientRect();
     const gaps: number[] = [];
     let previousFrame = performance.now();
@@ -213,17 +293,19 @@ test('sustained pointer motion stays responsive under four-times CPU throttling'
   });
   await expect
     .poll(() =>
-      projectVisual.evaluate((element) =>
+      filmStrip.evaluate((element) =>
         Number.parseFloat(
           element.style.getPropertyValue('--motion-parallax-x'),
         ),
       ),
     )
     .toBeGreaterThan(3);
-  const parallaxOffset = await projectVisual.evaluate((element) =>
-    Number.parseFloat(element.style.getPropertyValue('--motion-parallax-x')),
+  const parallaxOffset = await filmStrip.evaluate((element) =>
+    element.style.getPropertyValue('--motion-parallax-x'),
   );
-  expect(parallaxOffset).toBeLessThanOrEqual(4);
+  expect(Number.parseFloat(parallaxOffset)).toBeLessThanOrEqual(4);
+  // Offsets are written to a tenth of a pixel, and no finer.
+  expect(parallaxOffset).toMatch(/^-?\d+(\.\d)?px$/);
   const sortedFrameGaps = [...frameGaps].sort((a, b) => a - b);
   const percentile95 =
     sortedFrameGaps[Math.floor((sortedFrameGaps.length - 1) * 0.95)];
@@ -256,7 +338,10 @@ test('sticky storytelling stays off at tablet width and never captures scrolling
     .toBeGreaterThan(scrollBefore);
 });
 
-test('missing observers never hide project content', async ({ page }) => {
+// A section is held back until an observer says it has been seen, so a browser
+// with no observer must not leave one held back: without one there is no scope
+// to hold anything, and every block is simply part of the page.
+test('missing observers never hide a section of the page', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(window, 'IntersectionObserver', {
       configurable: true,
@@ -270,6 +355,14 @@ test('missing observers never hide project content', async ({ page }) => {
   for (const project of await projects.all()) {
     await expect(project).toBeVisible();
     await expect(project.locator('h3')).toBeVisible();
+  }
+
+  await expect(page.locator('[data-motion-scope]')).toHaveCount(0);
+  const blocks = page.locator('[data-motion-reveal]');
+  expect(await blocks.count()).toBeGreaterThan(0);
+  for (const block of await blocks.all()) {
+    await expect(block).toHaveCSS('opacity', '1');
+    await expect(block).toHaveCSS('filter', 'none');
   }
 });
 
@@ -291,19 +384,23 @@ test('missing matchMedia leaves every enhancement in its complete final state', 
   const heroLayer = page
     .locator('[data-motion-hero] [data-motion-enter]')
     .first();
-  const projectLayer = page
-    .locator('[data-motion-project] [data-motion-reveal]')
-    .first();
   const stickyCopy = page
     .locator('[data-motion-project] [data-motion-sticky]')
     .first();
   const parallaxLayer = page.locator('[data-motion-parallax-layer]').first();
+  const sectionBlocks = ['proof', 'project', 'lab', 'personal', 'contact'].map(
+    (name) =>
+      page
+        .locator(`[data-motion-scope="${name}"] [data-motion-reveal]`)
+        .first(),
+  );
 
-  for (const layer of [heroLayer, projectLayer, parallaxLayer]) {
+  for (const layer of [heroLayer, parallaxLayer, ...sectionBlocks]) {
     await expect(layer).toBeVisible();
     await expect(layer).toHaveCSS('animation-name', 'none');
     await expect(layer).toHaveCSS('opacity', '1');
     await expect(layer).toHaveCSS('transform', 'none');
+    await expect(layer).toHaveCSS('filter', 'none');
   }
   await expect(stickyCopy).toHaveCSS('position', 'static');
 });

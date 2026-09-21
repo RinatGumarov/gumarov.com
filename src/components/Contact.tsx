@@ -1,5 +1,7 @@
 import type { Contact as ContactContent, Locale } from '../content';
 import { trackAnalyticsEvent, type ContactChannel } from '../lib/analytics';
+import { revealIndex } from '../lib/motion';
+import { useViewedOnce } from '../lib/useViewedOnce';
 import styles from './Contact.module.css';
 
 interface ContactProps {
@@ -8,6 +10,7 @@ interface ContactProps {
 }
 
 export function Contact({ content, locale }: ContactProps) {
+  const { observed, ref, scoped } = useViewedOnce<HTMLElement>();
   const captureContact = (channel: ContactChannel) => () => {
     trackAnalyticsEvent({
       name: 'contact_clicked',
@@ -17,11 +20,22 @@ export function Contact({ content, locale }: ContactProps) {
 
   return (
     <section
+      ref={ref}
       className={styles.contact}
       id="contact"
       aria-labelledby="contact-heading"
+      data-motion-scope={scoped ? 'contact' : undefined}
+      data-motion-viewed={observed ? 'true' : undefined}
     >
-      <div className={styles.headingBlock}>
+      {/*
+       * The invitation arrives as one block — its label, heading and sentence
+       * are one thought — and the two channels follow it a step later.
+       */}
+      <div
+        className={styles.headingBlock}
+        data-motion-reveal="copy"
+        style={revealIndex(0)}
+      >
         <p className={styles.index} aria-hidden="true">
           {`04 / ${content.indexLabel}`}
         </p>
@@ -29,7 +43,11 @@ export function Contact({ content, locale }: ContactProps) {
         <p className={styles.invitation}>{content.body}</p>
       </div>
 
-      <address className={styles.channels}>
+      <address
+        className={styles.channels}
+        data-motion-reveal="copy"
+        style={revealIndex(1)}
+      >
         <a
           href={content.telegramHref}
           aria-label={`${content.telegramLabel}: ${content.telegramHandle}`}

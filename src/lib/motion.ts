@@ -3,6 +3,7 @@ import {
   useEffect,
   useRef,
   useSyncExternalStore,
+  type CSSProperties,
   type PointerEventHandler,
   type RefObject,
 } from 'react';
@@ -11,6 +12,22 @@ const reducedMotionQuery = '(prefers-reduced-motion: reduce)';
 const motionEnhancementQuery = '(prefers-reduced-motion: no-preference)';
 const coarsePointerQuery = '(pointer: coarse)';
 const maximumParallax = 4;
+const maximumRevealIndex = 3;
+
+/**
+ * A block's place in its section's stagger, as the inline custom property the
+ * reveal reads for its delay.
+ *
+ * The count stops at the fourth block. The stagger exists so a section reads as
+ * one thing arriving in order; past a few steps it reads as a queue instead,
+ * and an open-ended count would make the last block of a long section wait
+ * proportionally longer than the last block of a short one.
+ */
+export function revealIndex(index: number): CSSProperties {
+  return {
+    '--reveal-index': String(Math.min(index, maximumRevealIndex)),
+  } as CSSProperties;
+}
 
 /**
  * A media query, or `null` when the environment cannot answer one — during a
@@ -156,11 +173,11 @@ export function usePointerParallax<T extends HTMLElement>(): {
         return;
       }
 
-      const x = clamp(
+      const x = toOffset(
         (((event.clientX - bounds.left) / bounds.width) * 2 - 1) *
           maximumParallax,
       );
-      const y = clamp(
+      const y = toOffset(
         (((event.clientY - bounds.top) / bounds.height) * 2 - 1) *
           maximumParallax,
       );
@@ -172,6 +189,15 @@ export function usePointerParallax<T extends HTMLElement>(): {
   return { ref, onPointerMove, onPointerLeave: reset };
 }
 
-function clamp(value: number) {
-  return Math.max(-maximumParallax, Math.min(maximumParallax, value));
+/*
+ * Inside the cap, and rounded to a tenth of a pixel. The raw figure carries as
+ * many decimal places as the arithmetic happens to produce, and every one of
+ * them is written into the inline style and read back as a transform on the
+ * next frame. A tenth of a pixel is already finer than the screen can show, so
+ * past it the only thing the extra precision buys is a style write, and a
+ * transform update, for a movement nobody can see.
+ */
+function toOffset(value: number) {
+  const capped = Math.max(-maximumParallax, Math.min(maximumParallax, value));
+  return Math.round(capped * 10) / 10;
 }
