@@ -1,10 +1,14 @@
 /*
  * The metric-adjusted fallback for Onest, inlined with the critical CSS.
  *
- * `faces.css` is deferred, so the first paint uses whatever the OS provides.
- * On Windows and Linux that is wider than Onest, the h1 took an extra line,
- * and Onest arriving pulled the page up ~66px under someone already reading.
- * These faces download nothing — `local()` sources only — they just scale an
+ * Onest is preloaded with the document now, so on any ordinary connection it
+ * is there for the first paint and these faces are never seen. They cover the
+ * window before it arrives — a slow network, a cold cache, a blocked font.
+ * Without them that window renders in whatever the OS provides, which on
+ * Windows and Linux is wider than Onest: the h1 took an extra line, and Onest
+ * arriving pulled the page up ~66px under someone already reading.
+ *
+ * They download nothing — `local()` sources only — they just scale an
  * installed font to Onest's box (97% ascent / 30% descent, divided by each
  * bucket's `size-adjust`). The weight split exists because a face declaring
  * itself bold gets no synthesis: `local('Arial')` resolves to Arial Regular
@@ -36,6 +40,27 @@
   line-gap-override: 0%;
 }
 
+/*
+ * The display face itself, on the critical path. It is a subset — the Latin and
+ * Cyrillic this site is written in, and nothing else — built by
+ * `pnpm fonts:subset` and small enough to be preloaded in `index.html` without
+ * taking the bandwidth the first paint needs. `font-display: swap` because the
+ * fallback above is measured against this face: on the one connection slow
+ * enough to see both, showing the text beats hiding it.
+ *
+ * The weight range is the range the file actually carries — 400 for text, 650
+ * for the headings, 700 for the actions — not the 100–900 the full face has.
+ * Declaring more than the file holds would let a weight outside it match this
+ * face and be synthesised rather than falling through to the fallback.
+ */
+@font-face {
+  font-family: Onest;
+  src: url('/assets/fonts/Onest-Subset.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+}
+
 :root {
   color-scheme: dark;
 
@@ -56,8 +81,8 @@
   --color-line-strong: rgb(179 211 230 / 0.26);
   --color-surface-glass: rgb(23 32 42 / 0.58);
 
-  --font-sans: 'Onest Fallback', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Onest Fallback', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: Onest, 'Onest Fallback', ui-sans-serif, system-ui, sans-serif;
+  --font-display: Onest, 'Onest Fallback', ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, monospace;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;

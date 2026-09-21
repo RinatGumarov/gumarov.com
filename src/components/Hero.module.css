@@ -320,10 +320,11 @@
 /*
  * The display step of the type scale; its sizes, and the measurements behind
  * them, are in `tokens.css`. The family is `--font-display`, like every other
- * heading on the page, so the heading renders in Onest once the deferred brand
- * stylesheet lands. It is not on the critical path: Onest is never inlined and
- * never preloaded — `scripts/check-dist.mjs` fails the build for either — so
- * the heading still paints in a system font and swaps afterwards.
+ * heading on the page, and this is the LCP element, so it is the reason the
+ * Onest subset is preloaded with the document and declared in the inlined CSS:
+ * the heading paints in its real face rather than changing typeface a second
+ * later. `scripts/check-dist.mjs` holds that arrangement to exactly one small
+ * preloaded font and nothing else on the critical path.
  */
 .title {
   max-inline-size: 1120px;

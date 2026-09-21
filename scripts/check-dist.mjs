@@ -1,7 +1,7 @@
 /**
  * Build-time checks on `dist/` that nothing else in the toolchain covers: the
- * prerender is complete and carries the right locale, the critical path stays
- * free of blocking CSS and downloaded webfonts, the bundle stays inside its
+ * prerender is complete and carries the right locale, the critical path carries
+ * the display font and nothing else it should not, the bundle stays inside its
  * budget, and the Pages artifact is intact.
  *
  * Page weight, accessibility and everything else observable in a browser is
@@ -19,6 +19,8 @@ const projectRoot = path.resolve(
 const distDirectory = path.resolve(projectRoot, process.argv[2] ?? 'dist');
 const siteUrl = 'https://gumarov.com';
 const javascriptBudget = 150 * 1024;
+const fontSubsetPath = '/assets/fonts/Onest-Subset.woff2';
+const fontSubsetBudget = 28 * 1024;
 const playwrightAnalyticsToken = 'phc_playwright_public_transport_token';
 
 const routes = [
@@ -70,6 +72,7 @@ if (javascriptBytes > javascriptBudget) {
   );
 }
 
+await checkFontSubset();
 await checkPagesFiles();
 
 if (failures.length > 0) {
@@ -126,12 +129,18 @@ function checkPrerender(route, html) {
 }
 
 /**
- * The LCP heading paints without waiting on a download because nothing
- * render-blocking and no webfont sits in front of it. That is easy to undo by
- * accident: a stray `<link rel="stylesheet">`, a downloaded `@font-face` that
- * drifts into the inlined critical CSS, a well-meant font preload.
+ * The LCP heading paints in its real face, on the first frame, because exactly
+ * one small font — the display subset — is preloaded alongside the document and
+ * declared in the inlined CSS. Everything else stays off the critical path.
+ *
+ * Both halves of that are easy to undo by accident: a stray
+ * `<link rel="stylesheet">`, a second preload, a preload that loses its
+ * `crossorigin` and so downloads the file twice, or the full variable face
+ * drifting back into the inlined `@font-face`.
  */
 function checkCriticalPath(routeFile, html) {
+  const fontPreloads = [];
+
   for (const [tag] of html.matchAll(/<link\b[^>]*>/gu)) {
     const relations = (readHtmlAttribute(tag, 'rel') ?? '').toLowerCase();
 
@@ -147,29 +156,72 @@ function checkCriticalPath(routeFile, html) {
       relations.includes('preload') &&
       (readHtmlAttribute(tag, 'as') ?? '').toLowerCase() === 'font'
     ) {
+      fontPreloads.push(tag);
+    }
+  }
+
+  if (fontPreloads.length !== 1) {
+    failures.push(
+      `${routeFile}: expected exactly one font preload, found ${fontPreloads.length}`,
+    );
+  } else {
+    const [tag] = fontPreloads;
+    const href = readHtmlAttribute(tag, 'href');
+    if (href !== fontSubsetPath) {
       failures.push(
-        `${routeFile}: do not preload webfonts in front of the LCP heading`,
+        `${routeFile}: the font preload is ${JSON.stringify(href)}; only ${fontSubsetPath} belongs in front of the heading`,
       );
+    }
+    if ((readHtmlAttribute(tag, 'type') ?? '').toLowerCase() !== 'font/woff2') {
+      failures.push(
+        `${routeFile}: the font preload is missing type="font/woff2"`,
+      );
+    }
+    /*
+     * A font is fetched anonymously whatever the preload says, so a preload
+     * without `crossorigin` is a second, unused download rather than a warmed
+     * cache entry.
+     */
+    if (!/(?:^|\s)crossorigin(?:[\s=/>]|$)/iu.test(tag)) {
+      failures.push(`${routeFile}: the font preload is missing crossorigin`);
     }
   }
 
   for (const [, css] of html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gu)) {
     /*
-     * A face whose sources are `local()` only downloads nothing: that is the
-     * metric-adjusted fallback in `tokens.css`, which belongs on the critical
-     * path precisely so the first paint agrees with Onest about the heading's
-     * line count. A `url()` source is the thing that must not be here.
+     * The metric-adjusted fallback faces source `local()` only and download
+     * nothing; the display subset is the one face here that may name a `url()`,
+     * and it may only name that one.
      */
     for (const [, face] of css.matchAll(/@font-face\s*\{([^}]*)\}/gu)) {
-      if (/\burl\(/u.test(face)) {
+      const urls = [...face.matchAll(/\burl\(\s*['"]?([^'")]+)/gu)].map(
+        ([, url]) => url,
+      );
+      if (
+        urls.length > 0 &&
+        !(urls.length === 1 && urls[0] === fontSubsetPath)
+      ) {
         failures.push(
-          `${routeFile}: inlined CSS must not declare @font-face with a downloaded source`,
+          `${routeFile}: inlined @font-face downloads ${urls.join(', ')}; only ${fontSubsetPath} may be on the critical path`,
         );
       }
     }
-    if (/\bOnest\b(?!\s+Fallback)/u.test(css)) {
-      failures.push(`${routeFile}: inlined CSS must not reference Onest`);
+  }
+}
+
+/** The preload is only worth its place while the file behind it stays small. */
+async function checkFontSubset() {
+  const file = path.join(distDirectory, fontSubsetPath.replace(/^\/+/u, ''));
+
+  try {
+    const { size } = await stat(file);
+    if (size > fontSubsetBudget) {
+      failures.push(
+        `The display subset is ${formatKib(size)}; budget is ${formatKib(fontSubsetBudget)}.`,
+      );
     }
+  } catch {
+    failures.push(`Missing the preloaded display subset: ${fontSubsetPath}`);
   }
 }
 

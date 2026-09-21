@@ -26,8 +26,10 @@ pnpm dev
 | `pnpm test:lighthouse` | Lighthouse CI against the built preview.            |
 | `pnpm verify`          | format → lint → typecheck → test → build.           |
 
-`pnpm media` regenerates image derivatives from `assets-source/` (not
-committed); `scripts/process-images.mjs` documents the modes.
+Two more scripts write committed files, so they are run by hand rather than in
+the build: `pnpm media` regenerates image derivatives from `assets-source/`
+(not committed, modes documented in `scripts/process-images.mjs`), and
+`pnpm fonts:subset` rebuilds the preloaded Onest subset from the variable face.
 
 ## Architecture
 
@@ -61,13 +63,20 @@ its own layer blurred with a CSS filter the compositor can cache, and the lit
 edge's bloom is drawn as eight stacked strokes summing to the Gaussian it
 replaces. 19 ms per frame, p95 21 ms, nothing over 32 ms.
 
-**Fonts and LCP.** Onest and IBM Plex Mono are self-hosted and loaded _after_
-first paint, so the LCP heading never waits on a download. It paints in a
-metric-adjusted fallback declared in `tokens.css` — `local()` sources only, so
-it costs no request — that scales an installed font to Onest's own metrics, so
-the swap does not reflow the page under someone already reading. It is best
-effort, so a Playwright test covers what always holds instead: the Russian
-heading breaks no word and overflows no viewport, in both font states.
+**Fonts and LCP.** Both faces are self-hosted. Onest ships with the document:
+`scripts/subset-fonts.mjs` cuts the variable face down to the Latin and
+Cyrillic this site is written in, over the three weights it sets — 82 KB to
+27 KB, still one variable face — and that subset is preloaded in `index.html`
+and declared in the inlined CSS, so the heading paints in its real typeface
+instead of changing face a second later. IBM Plex Mono is the label voice,
+where a swap goes unnoticed, so it stays deferred until after first paint.
+
+Behind Onest sits a metric-adjusted fallback declared in `tokens.css` —
+`local()` sources only, so it costs no request — that scales an installed font
+to Onest's own metrics, for the slow connection where the subset is still in
+flight. It is best effort, so a Playwright test covers what always holds
+instead: the Russian heading breaks no word and overflows no viewport, in both
+font states.
 
 **Type.** Two voices, both declared in `tokens.css`. Onest carries the
 headings and the text; the headings sit on three steps — display (the h1 and
@@ -102,8 +111,8 @@ resilience, reduced motion, keyboard traversal, axe, Russian typography in both
 font states, the frame budget under CPU throttling, the analytics payloads, and
 six full-page visual snapshots. `scripts/check-dist.mjs` runs at the end of
 every build and fails it on an incomplete or mislocalized prerender,
-render-blocking CSS or webfonts on the critical path, or a JavaScript budget
-overrun. Lighthouse CI asserts the category scores, LCP, CLS and page weight;
+render-blocking CSS, anything on the critical path beyond the one preloaded
+font subset, or a JavaScript budget overrun. Lighthouse CI asserts the category scores, LCP, CLS and page weight;
 it is run by hand rather than in CI, because its simulated throttling scales
 with the host's measured CPU speed and a loaded machine moves LCP by a second.
 

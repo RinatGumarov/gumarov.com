@@ -1,17 +1,9 @@
-@font-face {
-  font-family: Onest;
-  src: url('/assets/fonts/Onest-Variable.woff2') format('woff2');
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-}
-
 /*
- * The two metric-adjusted 'Onest Fallback' faces used to live here. They now
- * sit in `src/styles/tokens.css`, which is inlined into the document, because a
- * fallback that only exists in this deferred stylesheet cannot help the first
- * paint — and the first paint was where the heading reflowed. Nothing else
- * changed about them; see the comment there for the measurements.
+ * The label voice, fetched after the first paint. Onest no longer lives here:
+ * it is a preloaded subset declared in `src/styles/tokens.css`, because the
+ * heading must not change typeface while it is being read. IBM Plex Mono only
+ * sets eyebrows, indexes and tags, where a swap goes unnoticed, so it stays
+ * off the critical path.
  */
 
 @font-face {
@@ -33,8 +25,6 @@
 }
 
 :root {
-  --font-sans: Onest, 'Onest Fallback', ui-sans-serif, system-ui, sans-serif;
-  --font-display: Onest, 'Onest Fallback', ui-sans-serif, system-ui, sans-serif;
   --font-mono:
     'IBM Plex Mono', 'IBM Plex Mono Fallback', ui-monospace, monospace;
 }

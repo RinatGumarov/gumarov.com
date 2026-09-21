@@ -90,7 +90,29 @@ test('preserves the current hash when switching locales', async ({ page }) => {
   await expect(page.locator('#contact')).toBeInViewport();
 });
 
-test('defers brand fonts until after first paint', async ({ page }) => {
+test('requests the display font subset with the document', async ({ page }) => {
+  const fontRequests: string[] = [];
+  page.on('request', (request) => {
+    if (request.url().endsWith('.woff2')) {
+      fontRequests.push(request.url());
+    }
+  });
+
+  await page.goto('/en/', { waitUntil: 'commit' });
+  await expect
+    .poll(() => fontRequests.some((url) => url.endsWith('/Onest-Subset.woff2')))
+    .toBe(true);
+
+  // The full variable face is 82 KB and still in the repository for the social
+  // cards. Shipping it to a visitor would undo everything the subset buys.
+  await page.waitForLoadState('load');
+  await page.waitForTimeout(2500);
+  expect(fontRequests.filter((url) => url.includes('Onest-Variable'))).toEqual(
+    [],
+  );
+});
+
+test('defers the label font until after first paint', async ({ page }) => {
   const fontStylesheetRequests: string[] = [];
   page.on('request', (request) => {
     if (request.url().includes('/assets/fonts/faces.css')) {

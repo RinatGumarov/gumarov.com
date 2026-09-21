@@ -16,26 +16,29 @@ const viewports = [
 const locales = ['en', 'ru'] as const;
 
 /**
- * Waits until Onest is registered AND usable.
+ * Waits until Onest is loaded and the layout has settled on it.
  *
  * `document.fonts.check()` answers `true` when no matching face is registered
- * at all, so it cannot by itself distinguish "loaded" from "never heard of it"
- * — with the `<link>` in the DOM but its stylesheet not yet parsed, a check-only
- * gate opens early. Confirming `--font-display` has picked up the value that
- * only `faces.css` sets proves the stylesheet is parsed and applied; `load()`
- * then fetches the face and `ready` settles the layout.
+ * at all, so it cannot by itself distinguish "loaded" from "never heard of it".
+ * Here the face is declared in the inlined CSS of every document, so it is
+ * always registered and the check does mean loaded; `load()` asks for the
+ * heading's own weight and `ready` settles the layout around it.
  */
 async function waitForBrandFonts(page: Page) {
-  await page.waitForFunction(() =>
-    getComputedStyle(document.documentElement)
-      .getPropertyValue('--font-display')
-      .includes('Onest'),
-  );
   await page.evaluate(async () => {
     await document.fonts.load('650 64px Onest');
     await document.fonts.ready;
   });
   await page.waitForFunction(() => document.fonts.check('650 64px Onest'));
+}
+
+/** Whether the Onest file itself arrived, as opposed to being merely declared. */
+async function loadedOnest(page: Page) {
+  return page.evaluate(() =>
+    [...document.fonts].some(
+      (face) => face.family === 'Onest' && face.status === 'loaded',
+    ),
+  );
 }
 
 /** Every word that was rendered across more than one line box. */
@@ -124,13 +127,14 @@ for (const locale of locales) {
           await waitForBrandFonts(page);
           // Proves this case measures what it claims to.
           expect(await renderedFamily(page)).toMatch(/(^|\s)Onest(,|$)/u);
+          expect(await loadedOnest(page)).toBe(true);
         } else {
-          // `'Onest Fallback'` stays in the stack — it is the metric-adjusted
-          // local face, and having it here is the point. What must be absent
-          // is the Onest webfont itself.
-          expect(await renderedFamily(page)).not.toMatch(
-            /\bOnest\b(?!\s+Fallback)/u,
-          );
+          // The stack is unchanged — Onest is declared in the inlined CSS of
+          // every document — so what tells the two cases apart is whether the
+          // file behind it arrived. Here it must not have; the heading is
+          // measured in the metric-adjusted local face instead.
+          expect(await renderedFamily(page)).toMatch(/Onest Fallback/u);
+          expect(await loadedOnest(page)).toBe(false);
         }
 
         // A word rendered across more than one line box was broken mid-word.
