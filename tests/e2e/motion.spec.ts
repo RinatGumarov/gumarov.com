@@ -23,9 +23,11 @@ test('reduced motion presents final states while preserving focus and hover feed
   await expect(heroLayer).toHaveCSS('animation-name', 'none');
   await expect(heroLayer).toHaveCSS('opacity', '1');
   await expect(heroLayer).toHaveCSS('transform', 'none');
+  await expect(heroLayer).toHaveCSS('filter', 'none');
   await expect(projectLayer).toHaveCSS('animation-name', 'none');
   await expect(projectLayer).toHaveCSS('opacity', '1');
   await expect(projectLayer).toHaveCSS('transform', 'none');
+  await expect(projectLayer).toHaveCSS('filter', 'none');
   await expect(stickyCopy).toHaveCSS('position', 'static');
 
   const primaryAction = page.getByRole('link', { name: 'View selected work' });
@@ -42,6 +44,68 @@ test('reduced motion presents final states while preserving focus and hover feed
     .not.toBe(restingBackground);
   await primaryAction.focus();
   await expect(primaryAction).toHaveCSS('outline-style', 'solid');
+});
+
+// The reveal has to leave nothing behind. A filter or a transform that outlives
+// the animation keeps the block on its own layer, and the text inside it is then
+// rasterised from that layer rather than by the ordinary text path — which is
+// the difference between crisp subpixel glyphs and slightly soft ones.
+test('a scene that has finished revealing carries no filter, transform or layer', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/en/');
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-motion-state',
+    'enabled',
+  );
+
+  const scene = page.locator('[data-motion-project]').first();
+  await scene.scrollIntoViewIfNeeded();
+  await expect(scene).toHaveAttribute('data-motion-viewed', 'true');
+
+  const layers = scene.locator('[data-motion-reveal]');
+  await expect(layers.first()).toBeVisible();
+  // Longer than the reveal plus its widest stagger step, so every layer in the
+  // scene has run to the end by the time this reads their styles.
+  await page.waitForTimeout(900);
+
+  for (const layer of await layers.all()) {
+    await expect(layer).toHaveCSS('filter', 'none');
+    await expect(layer).toHaveCSS('transform', 'none');
+    await expect(layer).toHaveCSS('opacity', '1');
+    await expect(layer).toHaveCSS('will-change', 'auto');
+  }
+});
+
+// A staggered layer waits for its turn, and the rule that hides an unviewed
+// scene stops applying the instant the scene is marked viewed. Without a
+// backwards fill covering the delay the layer would paint one full-strength,
+// unblurred frame in that gap and only then jump to the start of its animation.
+test('a staggered layer holds the first frame of the reveal while its delay runs', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/en/');
+
+  const scene = page.locator('[data-motion-project]').first();
+  await scene.scrollIntoViewIfNeeded();
+  await expect(scene).toHaveAttribute('data-motion-viewed', 'true');
+
+  const visual = scene.locator('[data-motion-reveal="visual"]').first();
+  const duringDelay = await visual.evaluate((element) => {
+    const [reveal] = element.getAnimations();
+    if (!reveal) throw new Error('The visual layer is running no reveal');
+    reveal.pause();
+    // Anywhere inside the delay: the animation has not started, so only a
+    // backwards fill can put the element in its starting state here.
+    reveal.currentTime = 10;
+    const style = getComputedStyle(element);
+    return { filter: style.filter, opacity: style.opacity };
+  });
+
+  expect(duringDelay.filter).toMatch(/^blur\(/);
+  expect(duringDelay.opacity).toBe('0');
 });
 
 test('sustained pointer motion stays responsive under four-times CPU throttling', async ({

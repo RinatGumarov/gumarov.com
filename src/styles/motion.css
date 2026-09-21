@@ -20,16 +20,23 @@
   }
 }
 
-/* translateY 12 -> 0px, opacity 0 -> 1, once. */
+/*
+ * The one reveal on the page: a block rises by `--reveal-shift`, clears a light
+ * blur and fades up, once. The blur is the reason this reads as content coming
+ * into focus rather than content sliding around, and it is why the shift can
+ * stay as small as it is.
+ */
 @keyframes motion-scene-enter {
   from {
     opacity: 0;
-    transform: translate3d(0, 12px, 0);
+    transform: translate3d(0, var(--reveal-shift), 0);
+    filter: blur(var(--reveal-blur));
   }
 
   to {
     opacity: 1;
     transform: none;
+    filter: none;
   }
 }
 
@@ -85,13 +92,26 @@
     opacity: 0;
   }
 
+  /*
+   * `backwards`, not `both`. A backwards fill covers the gap between the rule
+   * above releasing the scene and the animation's first frame — including the
+   * delay a staggered layer waits out — so nothing is ever painted at full
+   * strength for a frame before it starts. What it does not do is outlive the
+   * run: the moment the reveal ends the element carries no filter and no
+   * transform, its compositing layer goes away, and the text inside it is
+   * rasterised by the ordinary text path again. A `both` fill would hold the
+   * final frame forever and keep every revealed block on a layer of its own for
+   * the rest of the visit. For the same reason nothing here declares
+   * `will-change`: the promotion is only wanted while the animation runs, which
+   * is exactly when the browser arranges it anyway.
+   */
   [data-motion-state='enabled']
     [data-motion-project][data-motion-viewed='true']
     [data-motion-reveal='copy'],
   [data-motion-state='enabled']
     [data-motion-personal][data-motion-viewed='true']
     [data-motion-reveal='copy'] {
-    animation: motion-scene-enter 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: motion-scene-enter var(--dur-reveal) var(--ease-reveal) backwards;
   }
 
   [data-motion-state='enabled']
@@ -100,7 +120,8 @@
   [data-motion-state='enabled']
     [data-motion-personal][data-motion-viewed='true']
     [data-motion-reveal='visual'] {
-    animation: motion-scene-enter 360ms cubic-bezier(0.22, 1, 0.36, 1) 70ms both;
+    animation: motion-scene-enter var(--dur-reveal) var(--ease-reveal)
+      var(--reveal-stagger) backwards;
   }
 }
 
@@ -114,7 +135,9 @@
   /*
    * A transform makes a sticky element its own containing block, so the sticky
    * offset resolves against a moving reference and the column judders on every
-   * scroll into a scene. Fade this one in without moving it.
+   * scroll into a scene. A filter does the same — `blur()` establishes a
+   * containing block just as a transform does, so the column cannot come out of
+   * the blur either. Fade this one in without moving it.
    */
   [data-motion-state='enabled']
     [data-motion-project][data-motion-viewed='true']
@@ -140,6 +163,7 @@
   [data-motion-reveal] {
     opacity: 1 !important;
     transform: none !important;
+    filter: none !important;
     animation: none !important;
   }
 

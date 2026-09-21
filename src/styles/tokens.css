@@ -158,6 +158,21 @@
   --page-gutter: 20px;
   --grid-gap: 16px;
   --section-spacing: 64px;
+
+  /*
+   * One reveal, described once. The curve spends most of its run decelerating,
+   * so a block arrives long before it stops moving and the eye reads the
+   * arrival rather than the travel; that is also why the duration can be this
+   * long without the page feeling slow. The shift is small enough that nothing
+   * appears to fly in, and the blur is what makes the whole thing read as
+   * coming into focus instead of sliding. One stagger step separates a scene's
+   * visual from its copy — nothing on the page ever waits for a second step.
+   */
+  --ease-reveal: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-reveal: 700ms;
+  --reveal-shift: 16px;
+  --reveal-blur: 10px;
+  --reveal-stagger: 90ms;
 }
 
 @media (min-width: 48em) {
