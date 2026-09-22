@@ -90,7 +90,7 @@ test('preserves the current hash when switching locales', async ({ page }) => {
   await expect(page.locator('#contact')).toBeInViewport();
 });
 
-test('requests the display font subset with the document', async ({ page }) => {
+test('requests both font subsets with the document', async ({ page }) => {
   const fontRequests: string[] = [];
   page.on('request', (request) => {
     if (request.url().endsWith('.woff2')) {
@@ -99,33 +99,17 @@ test('requests the display font subset with the document', async ({ page }) => {
   });
 
   await page.goto('/en/', { waitUntil: 'commit' });
-  await expect
-    .poll(() => fontRequests.some((url) => url.endsWith('/Onest-Subset.woff2')))
-    .toBe(true);
+  for (const subset of ['/Onest-Subset.woff2', '/IBMPlexMono-Subset.woff2']) {
+    await expect
+      .poll(() => fontRequests.some((url) => url.endsWith(subset)))
+      .toBe(true);
+  }
 
-  // The full variable face is 82 KB and still in the repository for the social
-  // cards. Shipping it to a visitor would undo everything the subset buys.
+  // The full variable faces are 82 KB each and still in the repository for the
+  // social cards. Shipping one to a visitor would undo what the subsets buy.
   await page.waitForLoadState('load');
   await page.waitForTimeout(2500);
-  expect(fontRequests.filter((url) => url.includes('Onest-Variable'))).toEqual(
-    [],
-  );
-});
-
-test('defers the label font until after first paint', async ({ page }) => {
-  const fontStylesheetRequests: string[] = [];
-  page.on('request', (request) => {
-    if (request.url().includes('/assets/fonts/faces.css')) {
-      fontStylesheetRequests.push(request.url());
-    }
-  });
-
-  await page.goto('/en/', { waitUntil: 'commit' });
-  expect(fontStylesheetRequests).toEqual([]);
-  await expect
-    .poll(() => page.locator('link[href="/assets/fonts/faces.css"]').count())
-    .toBe(1);
-  expect(fontStylesheetRequests.length).toBeGreaterThan(0);
+  expect(fontRequests.filter((url) => url.includes('-Variable'))).toEqual([]);
 });
 
 test.describe('keyboard traversal', () => {

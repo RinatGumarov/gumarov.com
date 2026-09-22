@@ -18,21 +18,21 @@ for (const locale of qualityLocales) {
       test('matches the reviewed full-page snapshot', async ({ page }) => {
         await page.emulateMedia({ reducedMotion: 'reduce' });
         await page.goto(localePath(locale), { waitUntil: 'networkidle' });
-        await expect(
-          page.locator('link[href="/assets/fonts/faces.css"]'),
-        ).toHaveCount(1);
+        // Both faces are preloaded, so on this machine they are always in hand
+        // — but a baseline recorded while one was still in flight would record
+        // the fallback and diff against every later run.
         await page.evaluate(async () => {
-          const faces = document.querySelector(
-            'link[href="/assets/fonts/faces.css"]',
-          );
-          if (faces instanceof HTMLLinkElement && !faces.sheet) {
-            await new Promise((resolve, reject) => {
-              faces.addEventListener('load', resolve, { once: true });
-              faces.addEventListener('error', reject, { once: true });
-            });
-          }
           await document.fonts.ready;
         });
+        await expect
+          .poll(() =>
+            page.evaluate(
+              () =>
+                document.fonts.check('650 64px Onest') &&
+                document.fonts.check('700 12px "IBM Plex Mono"'),
+            ),
+          )
+          .toBe(true);
         await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
         /*

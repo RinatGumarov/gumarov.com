@@ -29,7 +29,7 @@ pnpm dev
 Two more scripts write committed files, so they are run by hand rather than in
 the build: `pnpm media` regenerates image derivatives from `assets-source/`
 (not committed, modes documented in `scripts/process-images.mjs`), and
-`pnpm fonts:subset` rebuilds the preloaded Onest subset from the variable face.
+`pnpm fonts:subset` rebuilds the two preloaded subsets from the variable faces.
 
 ## Architecture
 
@@ -63,20 +63,23 @@ its own layer blurred with a CSS filter the compositor can cache, and the lit
 edge's bloom is drawn as eight stacked strokes summing to the Gaussian it
 replaces. 19 ms per frame, p95 21 ms, nothing over 32 ms.
 
-**Fonts and LCP.** Both faces are self-hosted. Onest ships with the document:
-`scripts/subset-fonts.mjs` cuts the variable face down to the Latin and
-Cyrillic this site is written in, over the three weights it sets — 82 KB to
-27 KB, still one variable face — and that subset is preloaded in `index.html`
-and declared in the inlined CSS, so the heading paints in its real typeface
-instead of changing face a second later. IBM Plex Mono is the label voice,
-where a swap goes unnoticed, so it stays deferred until after first paint.
+**Fonts and LCP.** Both faces are self-hosted and both ship with the document.
+`scripts/subset-fonts.mjs` cuts each variable face down to the Latin and
+Cyrillic this site is written in, over the weights it actually sets: Onest from
+82 KB to 27 KB, still one variable face across 400–700, and IBM Plex Mono from
+82 KB to 17 KB, the single instance at 700 that `--type-label` asks for. Both
+subsets are preloaded in `index.html` and declared in the inlined CSS with
+`font-display: optional`, so the page paints in its own typefaces on the first
+frame — and on the visit where a file misses that frame it is not used at all,
+rather than replacing the text half a second later.
 
-Behind Onest sits a metric-adjusted fallback declared in `tokens.css` —
+Behind each face sits a metric-adjusted fallback declared in `tokens.css` —
 `local()` sources only, so it costs no request — that scales an installed font
-to Onest's own metrics, for the slow connection where the subset is still in
-flight. It is best effort, so a Playwright test covers what always holds
-instead: the Russian heading breaks no word and overflows no viewport, in both
-font states.
+to the real face's metrics, for the visit where the subset does not arrive in
+time. It is best effort, so Playwright covers what always holds instead: the
+Russian heading breaks no word and overflows no viewport in either font state,
+and no watched element changes family, width or position after the first frame,
+on an ordinary load and with both files delayed past it.
 
 **Type.** Two voices, both declared in `tokens.css`. Onest carries the
 headings and the text; the headings sit on three steps — display (the h1 and

@@ -1,7 +1,7 @@
 /**
  * Build-time checks on `dist/` that nothing else in the toolchain covers: the
  * prerender is complete and carries the right locale, the critical path carries
- * the display font and nothing else it should not, the bundle stays inside its
+ * both font subsets and nothing else it should not, the bundle stays inside its
  * budget, and the Pages artifact is intact.
  *
  * Page weight, accessibility and everything else observable in a browser is
@@ -19,8 +19,17 @@ const projectRoot = path.resolve(
 const distDirectory = path.resolve(projectRoot, process.argv[2] ?? 'dist');
 const siteUrl = 'https://gumarov.com';
 const javascriptBudget = 150 * 1024;
-const fontSubsetPath = '/assets/fonts/Onest-Subset.woff2';
-const fontSubsetBudget = 28 * 1024;
+/*
+ * The two faces the document is allowed to carry, and what each may weigh.
+ * `scripts/subset-fonts.mjs` holds the same budgets — it refuses to write a
+ * subset over them — and this is the check that the file in `dist/` is the one
+ * that script wrote rather than a full face copied over it.
+ */
+const fontSubsets = [
+  { path: '/assets/fonts/Onest-Subset.woff2', budget: 28 * 1024 },
+  { path: '/assets/fonts/IBMPlexMono-Subset.woff2', budget: 20 * 1024 },
+];
+const fontSubsetPaths = fontSubsets.map((subset) => subset.path);
 const playwrightAnalyticsToken = 'phc_playwright_public_transport_token';
 
 const routes = [
@@ -72,7 +81,7 @@ if (javascriptBytes > javascriptBudget) {
   );
 }
 
-await checkFontSubset();
+await checkFontSubsets();
 await checkPagesFiles();
 
 if (failures.length > 0) {
@@ -129,14 +138,16 @@ function checkPrerender(route, html) {
 }
 
 /**
- * The LCP heading paints in its real face, on the first frame, because exactly
- * one small font — the display subset — is preloaded alongside the document and
- * declared in the inlined CSS. Everything else stays off the critical path.
+ * Every word on the page paints in its real face, on the first frame, because
+ * both subsets — the display face and the label face — are preloaded alongside
+ * the document and declared in the inlined CSS. Nothing else goes on the
+ * critical path, and nothing that is on it may be dropped: a face that arrives
+ * after the first frame is a face the visitor watches change.
  *
- * Both halves of that are easy to undo by accident: a stray
- * `<link rel="stylesheet">`, a second preload, a preload that loses its
- * `crossorigin` and so downloads the file twice, or the full variable face
- * drifting back into the inlined `@font-face`.
+ * Every part of that is easy to undo by accident: a stray
+ * `<link rel="stylesheet">`, a preload going missing or a third appearing, a
+ * preload that loses its `crossorigin` and so downloads the file twice, or a
+ * full variable face drifting back into the inlined `@font-face`.
  */
 function checkCriticalPath(routeFile, html) {
   const fontPreloads = [];
@@ -160,21 +171,21 @@ function checkCriticalPath(routeFile, html) {
     }
   }
 
-  if (fontPreloads.length !== 1) {
+  const preloaded = fontPreloads.map((tag) => readHtmlAttribute(tag, 'href'));
+  if (
+    preloaded.length !== fontSubsetPaths.length ||
+    !fontSubsetPaths.every((subsetPath) => preloaded.includes(subsetPath))
+  ) {
     failures.push(
-      `${routeFile}: expected exactly one font preload, found ${fontPreloads.length}`,
+      `${routeFile}: the font preloads are ${JSON.stringify(preloaded)}; exactly ${JSON.stringify(fontSubsetPaths)} belong in front of the text`,
     );
-  } else {
-    const [tag] = fontPreloads;
+  }
+
+  for (const tag of fontPreloads) {
     const href = readHtmlAttribute(tag, 'href');
-    if (href !== fontSubsetPath) {
-      failures.push(
-        `${routeFile}: the font preload is ${JSON.stringify(href)}; only ${fontSubsetPath} belongs in front of the heading`,
-      );
-    }
     if ((readHtmlAttribute(tag, 'type') ?? '').toLowerCase() !== 'font/woff2') {
       failures.push(
-        `${routeFile}: the font preload is missing type="font/woff2"`,
+        `${routeFile}: the ${href} preload is missing type="font/woff2"`,
       );
     }
     /*
@@ -183,15 +194,15 @@ function checkCriticalPath(routeFile, html) {
      * cache entry.
      */
     if (!/(?:^|\s)crossorigin(?:[\s=/>]|$)/iu.test(tag)) {
-      failures.push(`${routeFile}: the font preload is missing crossorigin`);
+      failures.push(`${routeFile}: the ${href} preload is missing crossorigin`);
     }
   }
 
   for (const [, css] of html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gu)) {
     /*
      * The metric-adjusted fallback faces source `local()` only and download
-     * nothing; the display subset is the one face here that may name a `url()`,
-     * and it may only name that one.
+     * nothing; the two subsets are the only faces here that may name a
+     * `url()`, and they may only name their own.
      */
     for (const [, face] of css.matchAll(/@font-face\s*\{([^}]*)\}/gu)) {
       const urls = [...face.matchAll(/\burl\(\s*['"]?([^'")]+)/gu)].map(
@@ -199,29 +210,31 @@ function checkCriticalPath(routeFile, html) {
       );
       if (
         urls.length > 0 &&
-        !(urls.length === 1 && urls[0] === fontSubsetPath)
+        !(urls.length === 1 && fontSubsetPaths.includes(urls[0]))
       ) {
         failures.push(
-          `${routeFile}: inlined @font-face downloads ${urls.join(', ')}; only ${fontSubsetPath} may be on the critical path`,
+          `${routeFile}: inlined @font-face downloads ${urls.join(', ')}; only ${fontSubsetPaths.join(' and ')} may be on the critical path`,
         );
       }
     }
   }
 }
 
-/** The preload is only worth its place while the file behind it stays small. */
-async function checkFontSubset() {
-  const file = path.join(distDirectory, fontSubsetPath.replace(/^\/+/u, ''));
+/** A preload is only worth its place while the file behind it stays small. */
+async function checkFontSubsets() {
+  for (const subset of fontSubsets) {
+    const file = path.join(distDirectory, subset.path.replace(/^\/+/u, ''));
 
-  try {
-    const { size } = await stat(file);
-    if (size > fontSubsetBudget) {
-      failures.push(
-        `The display subset is ${formatKib(size)}; budget is ${formatKib(fontSubsetBudget)}.`,
-      );
+    try {
+      const { size } = await stat(file);
+      if (size > subset.budget) {
+        failures.push(
+          `${subset.path} is ${formatKib(size)}; budget is ${formatKib(subset.budget)}.`,
+        );
+      }
+    } catch {
+      failures.push(`Missing a preloaded subset: ${subset.path}`);
     }
-  } catch {
-    failures.push(`Missing the preloaded display subset: ${fontSubsetPath}`);
   }
 }
 

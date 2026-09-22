@@ -16,20 +16,28 @@ const viewports = [
 const locales = ['en', 'ru'] as const;
 
 /**
- * Waits until Onest is loaded and the layout has settled on it.
+ * Waits until both subsets are loaded and the layout has settled on them.
  *
  * `document.fonts.check()` answers `true` when no matching face is registered
  * at all, so it cannot by itself distinguish "loaded" from "never heard of it".
- * Here the face is declared in the inlined CSS of every document, so it is
- * always registered and the check does mean loaded; `load()` asks for the
- * heading's own weight and `ready` settles the layout around it.
+ * Here both faces are declared in the inlined CSS of every document, so they
+ * are always registered and the check does mean loaded; `load()` asks for the
+ * settings the page actually sets — the heading's weight and the label's — and
+ * `ready` settles the layout around them.
  */
 async function waitForBrandFonts(page: Page) {
   await page.evaluate(async () => {
-    await document.fonts.load('650 64px Onest');
+    await Promise.all([
+      document.fonts.load('650 64px Onest'),
+      document.fonts.load('700 12px "IBM Plex Mono"'),
+    ]);
     await document.fonts.ready;
   });
-  await page.waitForFunction(() => document.fonts.check('650 64px Onest'));
+  await page.waitForFunction(
+    () =>
+      document.fonts.check('650 64px Onest') &&
+      document.fonts.check('700 12px "IBM Plex Mono"'),
+  );
 }
 
 /** Whether the Onest file itself arrived, as opposed to being merely declared. */

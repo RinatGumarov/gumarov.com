@@ -1,18 +1,20 @@
 /**
- * Builds the Onest subset that ships with the document.
+ * Builds the two subsets that ship with the document.
  *
- * The full variable face is 82 KB, which is too much to put in front of the
- * first paint; a subset of the glyphs this site actually renders is a third of
- * that, so it can be preloaded with the HTML and the heading never changes
- * typeface under the visitor. It stays one variable file rather than a handful
- * of static instances, but only across the weights the page asks for — 400 for
- * text, 650 for the headings, 700 for the actions and the identity line. The
- * rest of the axis is not free: 100–900 costs 11 KB more, all of it weights
- * nothing on this site can reach.
+ * The full variable faces are 82 KB each, which is far too much to put in front
+ * of the first paint; a subset of the glyphs this site actually renders is a
+ * fraction of that, so both can be preloaded with the HTML and no text ever
+ * changes typeface under the visitor. Onest stays one variable file rather than
+ * a handful of static instances, but only across the weights the page asks for
+ * — 400 for text, 650 for the headings, 700 for the actions and the identity
+ * line. The rest of the axis is not free: 100–900 costs 11 KB more, all of it
+ * weights nothing on this site can reach. IBM Plex Mono is asked for at one
+ * weight and is built as that one instance, which is 9 KB smaller again.
  *
- * The result is committed. Re-run `pnpm fonts:subset` after changing the
- * source face or adding a character the ranges below do not cover; the script
- * refuses to write a subset that misses a character the site renders.
+ * The results are committed. Re-run `pnpm fonts:subset` after changing a source
+ * face or adding a character the ranges below do not cover; the script refuses
+ * to write a subset that misses a character the site renders, or a mono subset
+ * that misses a weight the stylesheets set.
  */
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -24,31 +26,54 @@ const projectRoot = path.resolve(
   '..',
 );
 const fontDirectory = path.join(projectRoot, 'public', 'assets', 'fonts');
-const sourceFile = path.join(fontDirectory, 'Onest-Variable.woff2');
-const outputFile = path.join(fontDirectory, 'Onest-Subset.woff2');
 
 /*
- * The weights the page sets, and no more. Every `font-weight` in `src/` that
- * lands on the sans is 400, 650 or 700; 100–500 and 501–900 belong to the two
- * `local()` fallback faces in `tokens.css`, which this file does not build.
- */
-const weightAxis = { wght: { min: 400, max: 700 } };
-
-/*
- * The budget is what a preload can cost without taking the bandwidth the LCP
- * text and the bundle need on a slow connection — the subset is fetched at the
+ * The budgets are what a preload can cost without taking the bandwidth the LCP
+ * text and the bundle need on a slow connection — a subset is fetched at the
  * same priority as the bundle, so every kilobyte here is a kilobyte the first
- * paint waits for. It sits just above the current result, deliberately: if a
- * subset exceeds it, narrow the ranges rather than raise the number.
+ * paint waits for. They sit just above the current results, deliberately: if a
+ * subset exceeds one, narrow the ranges rather than raise the number.
  */
-const byteBudget = 28 * 1024;
+const faces = [
+  {
+    source: 'Onest-Variable.woff2',
+    output: 'Onest-Subset.woff2',
+    /*
+     * The weights the page sets, and no more. Every `font-weight` in `src/`
+     * that lands on the sans is 400, 650 or 700; 100–500 and 501–900 belong to
+     * the two `local()` fallback faces in `tokens.css`, which this file does
+     * not build.
+     */
+    weightAxis: { wght: { min: 400, max: 700 } },
+    byteBudget: 28 * 1024,
+  },
+  {
+    source: 'IBMPlexMono-Variable.woff2',
+    output: 'IBMPlexMono-Subset.woff2',
+    /*
+     * The mono is the label voice and the label voice is one setting, so this
+     * is a single instance rather than a range: `--type-label` is the only
+     * thing in the stylesheets that reaches `--font-mono`, and it sets 700.
+     * `assertMonoWeights` fails the build if that stops being true, because a
+     * weight this file does not carry would not be synthesised — it would fall
+     * through to the metric fallback, which is a different typeface.
+     */
+    weightAxis: { wght: { min: 700, max: 700 } },
+    byteBudget: 20 * 1024,
+    assertWeights: assertMonoWeights,
+  },
+];
 
 /**
- * Every code point the site can render in Onest, as inclusive ranges: the two
- * alphabets it is written in, then the punctuation, arrows and symbols the copy
- * and the components reach for. Ranges rather than the exact strings, because
- * the copy changes more often than this file does and a subset that fits only
- * today's wording would break the next edit silently.
+ * Every code point the site can render, as inclusive ranges: the two alphabets
+ * it is written in, then the punctuation, arrows and symbols the copy and the
+ * components reach for. Ranges rather than the exact strings, because the copy
+ * changes more often than this file does and a subset that fits only today's
+ * wording would break the next edit silently.
+ *
+ * One set for both faces. A label carries the same copy as a paragraph — the
+ * Russian eyebrows, the numero sign, the arrow on an outbound link — and a
+ * per-face set would only be a second place to forget a character.
  *
  * They are as wide as the budget allows and no wider. The whole Latin-1
  * Supplement block and the whole Cyrillic block together cost 45.9 KiB, which
@@ -102,23 +127,29 @@ for (const [first, last] of codePointRanges) {
 
 await assertCoverage();
 
-const source = await readFile(sourceFile);
-const subset = await subsetFont(
-  source,
-  String.fromCodePoint(...subsetCodePoints),
-  { targetFormat: 'woff2', variationAxes: weightAxis },
-);
+for (const face of faces) {
+  await face.assertWeights?.(face.weightAxis.wght);
 
-if (subset.byteLength > byteBudget) {
-  throw new Error(
-    `The subset is ${formatKib(subset.byteLength)}; the budget is ${formatKib(byteBudget)}.`,
+  const sourceFile = path.join(fontDirectory, face.source);
+  const outputFile = path.join(fontDirectory, face.output);
+  const source = await readFile(sourceFile);
+  const subset = await subsetFont(
+    source,
+    String.fromCodePoint(...subsetCodePoints),
+    { targetFormat: 'woff2', variationAxes: face.weightAxis },
+  );
+
+  if (subset.byteLength > face.byteBudget) {
+    throw new Error(
+      `${face.output} is ${formatKib(subset.byteLength)}; the budget is ${formatKib(face.byteBudget)}.`,
+    );
+  }
+
+  await writeFile(outputFile, subset);
+  console.log(
+    `Wrote ${path.relative(projectRoot, outputFile)}: ${formatKib(subset.byteLength)} from ${formatKib(source.byteLength)}, ${subsetCodePoints.size} code points requested, ${formatWeightAxis(face.weightAxis.wght)}.`,
   );
 }
-
-await writeFile(outputFile, subset);
-console.log(
-  `Wrote ${path.relative(projectRoot, outputFile)}: ${formatKib(subset.byteLength)} from ${formatKib(source.byteLength)}, ${subsetCodePoints.size} code points requested, wght ${weightAxis.wght.min}–${weightAxis.wght.max}.`,
-);
 
 /**
  * Fails before anything is written if the site renders a character the ranges
@@ -157,6 +188,53 @@ async function assertCoverage() {
 }
 
 /**
+ * Fails if a stylesheet asks the mono for a weight the instance does not carry.
+ *
+ * The mono subset is one weight, so unlike the sans it has no range to absorb a
+ * new setting: a `font: 400 … var(--font-mono)` added tomorrow would match no
+ * face and render the label in the metric fallback instead — quietly, and only
+ * on the machines that have one of those fonts installed.
+ *
+ * Every declaration that reaches `var(--font-mono)` does so through the `font`
+ * shorthand or through a custom property built like one, so the weight is the
+ * first token of the value. A usage without one is reported too: it would leave
+ * the weight to whatever the element inherits, which this check cannot follow.
+ */
+async function assertMonoWeights({ min, max }) {
+  const wrong = [];
+
+  for (const file of await listStyleSheets(path.join(projectRoot, 'src'))) {
+    // Without this a colon inside the prose above a declaration reads as the
+    // start of its value, and the weight in front of it is never seen.
+    const css = (await readFile(file, 'utf8')).replaceAll(
+      /\/\*[\s\S]*?\*\//gu,
+      '',
+    );
+    const where = path.relative(projectRoot, file);
+
+    for (const match of css.matchAll(/var\(\s*--font-mono\s*\)/gu)) {
+      const declaration = css
+        .slice(css.lastIndexOf(';', match.index) + 1, match.index)
+        .replace(/^[^{}]*\{/su, '');
+      const value = declaration.slice(declaration.indexOf(':') + 1).trim();
+      const weight = Number.parseInt(value, 10);
+
+      if (Number.isNaN(weight)) {
+        wrong.push(`${where}: \`${collapse(declaration)}\` sets no weight`);
+      } else if (weight < min || weight > max) {
+        wrong.push(`${where}: \`${collapse(declaration)}\` asks for ${weight}`);
+      }
+    }
+  }
+
+  if (wrong.length === 0) return;
+
+  throw new Error(
+    `The mono subset carries ${formatWeightAxis({ min, max })}, but:\n${wrong.map((line) => `  ${line}`).join('\n')}`,
+  );
+}
+
+/**
  * Drops the comments, because a prose comment is not something a visitor sees
  * and the subset should not grow to cover an accent in one. Line comments are
  * only recognised on a line of their own — that is how they are written here,
@@ -176,8 +254,31 @@ async function listSourceFiles(directory, matches) {
     .map((name) => path.join(directory, name));
 }
 
+async function listStyleSheets(directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const files = await Promise.all(
+    entries
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((entry) => {
+        const entryPath = path.join(directory, entry.name);
+        if (entry.isDirectory()) return listStyleSheets(entryPath);
+        return entry.name.endsWith('.css') ? [entryPath] : [];
+      }),
+  );
+
+  return files.flat();
+}
+
+function collapse(text) {
+  return text.trim().replaceAll(/\s+/gu, ' ');
+}
+
 function formatCodePoint(character) {
   return `U+${character.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')}`;
+}
+
+function formatWeightAxis({ min, max }) {
+  return min === max ? `wght ${min}` : `wght ${min}–${max}`;
 }
 
 function formatKib(bytes) {

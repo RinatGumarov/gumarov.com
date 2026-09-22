@@ -1,22 +1,27 @@
 /*
- * The metric-adjusted fallback for Onest, inlined with the critical CSS.
+ * The metric-adjusted fallbacks, inlined with the critical CSS.
  *
- * Onest is preloaded with the document now, so on any ordinary connection it
- * is there for the first paint and these faces are never seen. They cover the
- * window before it arrives — a slow network, a cold cache, a blocked font.
- * Without them that window renders in whatever the OS provides, which on
- * Windows and Linux is wider than Onest: the h1 took an extra line, and Onest
- * arriving pulled the page up ~66px under someone already reading.
+ * Both real faces are preloaded with the document and declared
+ * `font-display: optional`, so on any ordinary connection they are there for
+ * the first frame and these faces are never seen. What they cover is the visit
+ * where a face misses that deadline: `optional` then keeps the fallback for
+ * the whole visit rather than swapping, so the page is read in these metrics
+ * from the first frame to the last.
+ *
+ * Without them that visit renders in whatever the OS provides, which on
+ * Windows and Linux is wider than Onest: the h1 took an extra line and the
+ * page sat ~66px away from where the same visit in Onest would have put it.
  *
  * They download nothing — `local()` sources only — they just scale an
- * installed font to Onest's box (97% ascent / 30% descent, divided by each
- * bucket's `size-adjust`). The weight split exists because a face declaring
- * itself bold gets no synthesis: `local('Arial')` resolves to Arial Regular
- * at heading weights and runs ~8% narrow.
+ * installed font to the real face's box: its ascent and descent (97% / 30%
+ * for Onest, 102.5% / 27.5% for the mono), each divided by the `size-adjust`
+ * that matches the two advance widths. The sans weight split exists because a
+ * face declaring itself bold gets no synthesis: `local('Arial')` resolves to
+ * Arial Regular at heading weights and runs ~8% narrow.
  *
  * Best effort, not a guarantee: a machine with none of these installed still
- * falls through to the system stack. Re-measure against the shipped Onest file
- * if the numbers change.
+ * falls through to the system stack. Re-measure against the shipped subsets if
+ * the numbers change.
  */
 @font-face {
   font-family: 'Onest Fallback';
@@ -41,24 +46,78 @@
 }
 
 /*
- * The display face itself, on the critical path. It is a subset — the Latin and
- * Cyrillic this site is written in, and nothing else — built by
- * `pnpm fonts:subset` and small enough to be preloaded in `index.html` without
- * taking the bandwidth the first paint needs. `font-display: swap` because the
- * fallback above is measured against this face: on the one connection slow
- * enough to see both, showing the text beats hiding it.
+ * IBM Plex Mono's advance is 600/1000 em, which is what three of the four
+ * fonts below are already built around: Menlo and DejaVu Sans Mono are
+ * 1233/2048, Liberation Mono 1229/2048, all inside half a percent of it once
+ * `size-adjust` closes the gap. Consolas is the exception at 1126/2048 and
+ * runs ~8% narrow — but it is the one of the four a Windows machine is likely
+ * to have, and a real mono a few percent off beats the generic stack. The mono
+ * only sets 12px labels, so what is at stake either way is a pixel or two per
+ * label, not a reflow.
  *
- * The weight range is the range the file actually carries — 400 for text, 650
- * for the headings, 700 for the actions — not the 100–900 the full face has.
- * Declaring more than the file holds would let a weight outside it match this
- * face and be synthesised rather than falling through to the fallback.
+ * Menlo is named twice because `local()` is not matched the same way
+ * everywhere: Chromium looks at a font's full name and its PostScript name,
+ * never its family name, and Apple calls this one "Menlo Regular" — so the
+ * family spelling alone resolved nothing and the whole face reported itself
+ * broken, on every Mac, for as long as it was the only spelling here. The
+ * other three are named the same way whichever of the three you ask for.
+ *
+ * `ui-monospace` and `monospace` used to head this list. They are CSS
+ * keywords, not font names, so `local()` can never resolve them; they belong
+ * in the stack below, where they now are.
+ *
+ * No bold twin, unlike the sans: these are monospaced, so the advance a label
+ * is laid out on is the same whether the weight is real or synthesised, and
+ * `--type-label` is the only setting that gets here.
+ */
+@font-face {
+  font-family: 'IBM Plex Mono Fallback';
+  src:
+    local('Menlo-Regular'), local('Menlo'), local('Consolas'),
+    local('DejaVu Sans Mono'), local('Liberation Mono');
+  size-adjust: 99.7%;
+  ascent-override: 102.8%;
+  descent-override: 27.6%;
+  line-gap-override: 0%;
+}
+
+/*
+ * The faces themselves, on the critical path. Both are subsets — the Latin and
+ * Cyrillic this site is written in, and nothing else — built by
+ * `pnpm fonts:subset` and small enough to be preloaded together in
+ * `index.html` without taking the bandwidth the first paint needs.
+ *
+ * `font-display: optional` is the point of the whole arrangement. With the
+ * preload the file is normally in hand before the first render, and Chromium
+ * holds that render briefly for a preloaded optional face rather than painting
+ * a frame it would have to redraw; when it is not in hand, the visit keeps the
+ * metric-matched fallback above instead of changing typeface under someone who
+ * is already reading. A swap is the one thing this page must never do — the
+ * label font arriving half a second in used to restyle every eyebrow and nav
+ * link in place, and the sans arriving late rewrapped the hero paragraph and
+ * moved it 14px up the page.
+ *
+ * The weight ranges are the ranges the files actually carry — 400 to 700 for
+ * the sans (400 for text, 650 for the headings, 700 for the actions), one
+ * instance at 700 for the mono, which is all `--type-label` asks for — not the
+ * 100–900 the full faces have. Declaring more than a file holds would let a
+ * weight outside it match the face and be synthesised rather than falling
+ * through to the fallback.
  */
 @font-face {
   font-family: Onest;
   src: url('/assets/fonts/Onest-Subset.woff2') format('woff2');
   font-style: normal;
   font-weight: 400 700;
-  font-display: swap;
+  font-display: optional;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('/assets/fonts/IBMPlexMono-Subset.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 700;
+  font-display: optional;
 }
 
 :root {
@@ -83,7 +142,8 @@
 
   --font-sans: Onest, 'Onest Fallback', ui-sans-serif, system-ui, sans-serif;
   --font-display: Onest, 'Onest Fallback', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, monospace;
+  --font-mono:
+    'IBM Plex Mono', 'IBM Plex Mono Fallback', ui-monospace, monospace;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;
