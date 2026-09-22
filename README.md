@@ -86,10 +86,10 @@ headings and the text; the headings sit on three steps — display (the h1 and
 the closing invitation), section (every other h2), title (every project name)
 — with one weight and one tracking, so a new size never reads as a new face.
 IBM Plex Mono is the label voice: every eyebrow, index, tag and small link is
-the one `--type-label` setting, and only its colour varies — amber leads a
-block, subtle annotates one, muted marks navigation. The project scenes share
-the page's cyan; a project's identity is in its capture, not in an accent of
-its own.
+the one `--type-label` setting, and only its colour varies — muted where it
+leads a block or marks navigation, subtle where it annotates one. The project
+scenes share the page's cyan; a project's identity is in its capture, not in an
+accent of its own.
 
 **Images.** `scripts/process-images.mjs` generates AVIF/WebP/JPEG derivatives at
 fixed widths from fixed crop rectangles — no gravity heuristics, so re-running
